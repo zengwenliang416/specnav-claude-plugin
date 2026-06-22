@@ -1,0 +1,177 @@
+#!/usr/bin/env node
+'use strict';
+
+const fs = require('fs');
+const path = require('path');
+const lib = require('./helm-lib');
+
+function readStdinJson() {
+  try {
+    const input = fs.readFileSync(0, 'utf8').trim();
+    return input ? JSON.parse(input) : {};
+  } catch {
+    return {};
+  }
+}
+
+function toolName(payload) {
+  return payload.tool_name || payload.toolName || payload.name || '';
+}
+
+function addPath(paths, value) {
+  if (typeof value !== 'string') return;
+  const trimmed = value.trim();
+  if (trimmed) paths.add(trimmed);
+}
+
+function collectPaths(value, paths) {
+  if (!value || typeof value !== 'object') return;
+  if (Array.isArray(value)) {
+    for (const item of value) collectPaths(item, paths);
+    return;
+  }
+  addPath(paths, value.file_path);
+  addPath(paths, value.path);
+  addPath(paths, value.notebook_path);
+  addPath(paths, value.destination_path);
+  addPath(paths, value.target_path);
+  for (const key of ['edits', 'files', 'paths', 'targets']) {
+    collectPaths(value[key], paths);
+  }
+}
+
+function normalizePayload(payload) {
+  const input = payload.tool_input || payload.input || {};
+  const paths = new Set();
+  collectPaths(input, paths);
+  return {
+    tool: toolName(payload),
+    command: typeof input.command === 'string' ? input.command : '',
+    paths: Array.from(paths)
+  };
+}
+
+function isWriteTool(tool) {
+  return /^(Write|Edit|MultiEdit|NotebookEdit)$/i.test(tool || '');
+}
+
+function toRelativeProjectPath(root, target) {
+  return path.relative(root, path.resolve(root, target)).split(path.sep).join('/');
+}
+
+function deny(message) {
+  console.error(`Helm gate denied: ${message}`);
+  process.exit(2);
+}
+
+function warn(root, message) {
+  console.error(`Helm gate warning: ${message}`);
+  lib.event(root, 'hook.warn', { message });
+  process.exit(1);
+}
+
+function allow(root, reason = 'allow') {
+  lib.event(root, 'hook.allow', { reason });
+  process.exit(0);
+}
+
+function overrideAllows(root, gate, context) {
+  const override = lib.findActiveOverride(root, gate, context);
+  if (!override) return false;
+  lib.event(root, 'hook.override', {
+    gate,
+    override_file: override.file,
+    active_change: context.active_change,
+    affected_path: context.affected_path,
+    command: context.command
+  });
+  return true;
+}
+
+function pathOverrideAllows(root, gate, rel, activeChange) {
+  return overrideAllows(root, gate, {
+    active_change: activeChange,
+    affected_path: rel
+  }) || overrideAllows(root, gate, {
+    active_change: activeChange
+  });
+}
+
+function pathAllowedByScope(scope, rel) {
+  const excluded = scope.exclude.some((pattern) => lib.globLikeMatch(pattern, rel));
+  if (excluded) return { ok: false, reason: 'excluded' };
+  if (!scope.include.length) return { ok: true, reason: 'no-include-scope' };
+  const included = scope.include.some((pattern) => lib.globLikeMatch(pattern, rel));
+  return { ok: included, reason: included ? 'included' : 'not-included' };
+}
+
+function main() {
+  const root = lib.projectRoot();
+  const payload = readStdinJson();
+  const normalized = normalizePayload(payload);
+  if (normalized.command && /\brm\s+-rf\s+\/|\bsudo\b|curl\b.+\|\s*(sh|bash)|wget\b.+\|\s*(sh|bash)/.test(normalized.command)) {
+    if (overrideAllows(root, 'dangerous-command', { command: normalized.command })) {
+      allow(root, 'override-dangerous-command');
+    }
+    lib.event(root, 'hook.deny', { reason: 'dangerous-command' });
+    deny('dangerous shell command requires explicit manual review.');
+  }
+
+  if (!normalized.paths.length) {
+    if (isWriteTool(normalized.tool)) {
+      warn(root, `No target path found in ${normalized.tool || 'write'} hook payload.`);
+    }
+    allow(root, 'no-target-path');
+  }
+
+  const change = lib.activeChange(root);
+  const dir = lib.changeDir(root, change);
+  if (!change || !dir) warn(root, 'No active Helm change; run /helm-status or /helm propose.');
+
+  const relPaths = normalized.paths.map((target) => toRelativeProjectPath(root, target));
+  const productionPaths = relPaths.filter((rel) => !rel.startsWith('openspec/'));
+  if (!productionPaths.length) allow(root, 'openspec-edit');
+
+  if (!lib.fileExists(path.join(dir, 'tasks.md'))) {
+    const overridden = productionPaths.every((rel) => pathOverrideAllows(root, 'missing-tasks', rel, change));
+    if (overridden) {
+      allow(root, 'override-missing-tasks');
+    }
+    lib.event(root, 'hook.deny', { reason: 'missing-tasks', paths: productionPaths });
+    deny('production edits require an active OpenSpec change with tasks.md.');
+  }
+
+  const scope = lib.readFileScope(dir);
+  for (const rel of productionPaths) {
+    if (/^tests\/acceptance\//.test(rel)) {
+      if (pathOverrideAllows(root, 'frozen-acceptance', rel, change)) continue;
+      lib.event(root, 'hook.deny', { reason: 'frozen-acceptance', path: rel });
+      deny(`acceptance contract is frozen during implementation: ${rel}`);
+    }
+    const scopeResult = pathAllowedByScope(scope, rel);
+    if (!scopeResult.ok) {
+      if (pathOverrideAllows(root, 'scope', rel, change)) continue;
+      lib.event(root, 'hook.deny', {
+        reason: 'scope',
+        scope_reason: scopeResult.reason,
+        path: rel,
+        paths: productionPaths,
+        include: scope.include,
+        exclude: scope.exclude,
+        scope_source: scope.source
+      });
+      deny(`${rel} is outside declared Helm file scope from ${scope.source}: ${scope.include.join(', ') || '(no include scope)'}`);
+    }
+  }
+
+  allow(root, 'within-scope');
+}
+
+if (require.main === module) main();
+
+module.exports = {
+  collectPaths,
+  normalizePayload,
+  pathAllowedByScope,
+  toRelativeProjectPath
+};

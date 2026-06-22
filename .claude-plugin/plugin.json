@@ -1,0 +1,18 @@
+{
+  "name": "helm",
+  "version": "0.2.1",
+  "description": "Spec-driven Claude Code workflow plugin on top of OpenSpec: route intent, enforce guardrails, verify changes, and gate archive.",
+  "author": {
+    "name": "Wenliang Zeng"
+  },
+  "homepage": "https://github.com/zengwenliang416/helm",
+  "license": "MIT",
+  "keywords": [
+    "claude-code",
+    "openspec",
+    "workflow",
+    "guardrails",
+    "verification"
+  ],
+  "skills": "./skills/"
+}

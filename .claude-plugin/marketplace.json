@@ -1,0 +1,16 @@
+{
+  "name": "helm-marketplace",
+  "description": "Local marketplace for the Helm Claude Code plugin.",
+  "owner": {
+    "name": "Wenliang Zeng"
+  },
+  "plugins": [
+    {
+      "name": "helm",
+      "source": "./",
+      "description": "Spec-driven Claude Code workflow plugin on top of OpenSpec.",
+      "version": "0.2.1",
+      "category": "productivity"
+    }
+  ]
+}
