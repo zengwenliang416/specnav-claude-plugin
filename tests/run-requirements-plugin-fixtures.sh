@@ -321,6 +321,27 @@ jq -e '.blockers | index("invalid-foundation-spec-sections:ui-design") == null' 
 run_json "$HAPPY_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/happy-requirements-contract.json" 0
 jq -e '.ok == true' "$TMP_DIR/happy-requirements-contract.json" >/dev/null
 
+MISSING_ACTIVE_CHANGE_PROJECT="$TMP_DIR/missing-active-change-project"
+cp -R "$HAPPY_PROJECT" "$MISSING_ACTIVE_CHANGE_PROJECT"
+rm "$MISSING_ACTIVE_CHANGE_PROJECT/openspec/.helm/active-change"
+run_json "$MISSING_ACTIVE_CHANGE_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/missing-active-change.json" 2
+jq -e '.active_change == null' "$TMP_DIR/missing-active-change.json" >/dev/null
+jq -e '.blockers[] | select(. == "active-change")' "$TMP_DIR/missing-active-change.json" >/dev/null
+
+EMPTY_ACTIVE_CHANGE_PROJECT="$TMP_DIR/empty-active-change-project"
+cp -R "$HAPPY_PROJECT" "$EMPTY_ACTIVE_CHANGE_PROJECT"
+: >"$EMPTY_ACTIVE_CHANGE_PROJECT/openspec/.helm/active-change"
+run_json "$EMPTY_ACTIVE_CHANGE_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/empty-active-change.json" 2
+jq -e '.active_change == null' "$TMP_DIR/empty-active-change.json" >/dev/null
+jq -e '.blockers[] | select(. == "active-change")' "$TMP_DIR/empty-active-change.json" >/dev/null
+
+INVALID_ACTIVE_CHANGE_PROJECT="$TMP_DIR/invalid-active-change-project"
+cp -R "$HAPPY_PROJECT" "$INVALID_ACTIVE_CHANGE_PROJECT"
+printf '%s\n' '../add-dashboard' >"$INVALID_ACTIVE_CHANGE_PROJECT/openspec/.helm/active-change"
+run_json "$INVALID_ACTIVE_CHANGE_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/invalid-active-change.json" 2
+jq -e '.active_change == null' "$TMP_DIR/invalid-active-change.json" >/dev/null
+jq -e '.blockers[] | select(. == "active-change")' "$TMP_DIR/invalid-active-change.json" >/dev/null
+
 EMPTY_ARTIFACT_PROJECT="$TMP_DIR/empty-artifact-project"
 cp -R "$HAPPY_PROJECT" "$EMPTY_ARTIFACT_PROJECT"
 printf ' \n\t\n' >"$EMPTY_ARTIFACT_PROJECT/openspec/changes/add-dashboard/requirements.md"

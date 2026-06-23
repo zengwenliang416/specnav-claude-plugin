@@ -39,6 +39,30 @@ function readTextFile(file) {
   }
 }
 
+function invalidChangeId(value) {
+  return value.includes('/') || value.includes('\\') || value.includes('..') || /\s/.test(value);
+}
+
+function strictActiveChange(projectRoot) {
+  const activeFile = path.join(lib.helmDir(projectRoot), 'active-change');
+
+  try {
+    if (!fs.statSync(activeFile).isFile()) return null;
+  } catch (_error) {
+    return null;
+  }
+
+  let change;
+  try {
+    change = fs.readFileSync(activeFile, 'utf8').trim();
+  } catch (_error) {
+    return null;
+  }
+
+  if (!change || invalidChangeId(change)) return null;
+  return change;
+}
+
 function isPlainObject(value) {
   return !!value && typeof value === 'object' && !Array.isArray(value);
 }
@@ -97,7 +121,7 @@ function validateArtifact(dir, change, name) {
 function validateRequirements(root = lib.projectRoot()) {
   const projectRoot = path.resolve(root);
   const foundation = foundationSpecs.validateFoundationSpecs(projectRoot);
-  const change = lib.activeChange(projectRoot);
+  const change = strictActiveChange(projectRoot);
   const dir = change ? lib.changeDir(projectRoot, change) : null;
   const blockers = [];
 
