@@ -133,6 +133,10 @@ function isYamlQuoteStart(value, index) {
   return /[\s:[{,]/.test(value[index - 1]);
 }
 
+function isYamlEscapedSingleQuote(value, index, single, double) {
+  return single && !double && value[index] === "'" && value[index + 1] === "'";
+}
+
 function yamlHexColorLiteralLength(line, index) {
   const match = line.slice(index).match(/^#(?:[0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})(?=$|[\s,\]}])/);
   if (!match) return 0;
@@ -157,6 +161,10 @@ function stripYamlComment(line) {
     }
     if (character === '\\') {
       escaped = true;
+      continue;
+    }
+    if (isYamlEscapedSingleQuote(line, index, single, double)) {
+      index += 1;
       continue;
     }
     if (character === "'" && !double && (single || isYamlQuoteStart(line, index))) single = !single;
@@ -203,6 +211,10 @@ function splitTopLevel(value, delimiter) {
     }
     if (character === '\\') {
       escaped = true;
+      continue;
+    }
+    if (isYamlEscapedSingleQuote(value, index, single, double)) {
+      index += 1;
       continue;
     }
     if (character === "'" && !double && (single || isYamlQuoteStart(value, index))) {

@@ -418,6 +418,37 @@ run_json "$BLOCK_FRONTMATTER_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_D
 jq -e '.ok == true' "$TMP_DIR/block-frontmatter.json" >/dev/null
 jq -e '.blockers | index("invalid-foundation-spec-theme-parity:ui-design") == null' "$TMP_DIR/block-frontmatter.json" >/dev/null
 
+SINGLE_QUOTE_ESCAPE_FRONTMATTER_PROJECT="$TMP_DIR/single-quote-escape-frontmatter-project"
+cp -R "$HAPPY_PROJECT" "$SINGLE_QUOTE_ESCAPE_FRONTMATTER_PROJECT"
+cat >"$SINGLE_QUOTE_ESCAPE_FRONTMATTER_PROJECT/openspec/specs/ui-design/design.md" <<'MD'
+---
+version: 1.0.0
+name: 'Bob''s UI Design'
+description: 'Bob''s #1 design system'
+colors: {primary: 'Bob''s #1, primary tone', accent: '#111111'}
+typography: {body: 'Bob''s #1, readable type'}
+spacing: {sm: 8px}
+rounded: {sm: 4px}
+components: ['Bob''s #1, component note', {name: Button, note: 'Bob''s #1, inline component'}]
+---
+# UI Design
+
+## Overview
+## Colors
+## Typography
+## Layout
+## Elevation & Depth
+## Motion
+## Shapes
+## Components
+## Voice & Content
+## Do's and Don'ts
+MD
+run_json "$SINGLE_QUOTE_ESCAPE_FRONTMATTER_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/single-quote-escape-frontmatter.json" 0
+jq -e '.ok == true' "$TMP_DIR/single-quote-escape-frontmatter.json" >/dev/null
+jq -e '.blockers | index("invalid-foundation-spec-frontmatter:ui-design") == null' "$TMP_DIR/single-quote-escape-frontmatter.json" >/dev/null
+jq -e '.blockers | index("invalid-foundation-spec-theme-parity:ui-design") == null' "$TMP_DIR/single-quote-escape-frontmatter.json" >/dev/null
+
 HEX_LITERAL_FRONTMATTER_PROJECT="$TMP_DIR/hex-literal-frontmatter-project"
 cp -R "$HAPPY_PROJECT" "$HEX_LITERAL_FRONTMATTER_PROJECT"
 cat >"$HEX_LITERAL_FRONTMATTER_PROJECT/openspec/specs/ui-design/design.md" <<'MD'
