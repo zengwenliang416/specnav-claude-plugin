@@ -35,6 +35,13 @@ const COMPONENT_IMPACT_MAP_FIELDS = [
   'required_component_tests'
 ];
 
+const FOUNDATION_SPEC_IDS = new Set([
+  'ui-design',
+  'system-architecture',
+  'frontend-backend-data-flow',
+  'component-architecture'
+]);
+
 function unique(values) {
   return Array.from(new Set(values.filter(Boolean)));
 }
@@ -98,35 +105,45 @@ function isPlainObject(value) {
   return !!value && typeof value === 'object' && !Array.isArray(value);
 }
 
+function hasInvalidArrayMembers(values) {
+  return values.some((item) => typeof item !== 'string' || item.trim().length === 0);
+}
+
 function validateArrayFieldContract(value, fields, blocker) {
   let hasNonEmptyArray = false;
-  let invalidFieldType = false;
+  let invalidField = false;
 
   for (const field of fields) {
     if (!Object.prototype.hasOwnProperty.call(value, field)) continue;
     if (!Array.isArray(value[field])) {
-      invalidFieldType = true;
+      invalidField = true;
       continue;
     }
+    if (hasInvalidArrayMembers(value[field])) invalidField = true;
     if (value[field].length > 0) hasNonEmptyArray = true;
   }
 
-  return invalidFieldType || !hasNonEmptyArray ? [blocker] : [];
+  return invalidField || !hasNonEmptyArray ? [blocker] : [];
 }
 
 function validateSpecMapContract(value) {
   const blocker = 'invalid-spec-map-contract:spec-map.json';
-  let invalidFieldType = false;
+  let invalidField = false;
 
   for (const field of SPEC_MAP_FIELDS) {
     if (!Object.prototype.hasOwnProperty.call(value, field)) continue;
-    if (!Array.isArray(value[field])) invalidFieldType = true;
+    if (!Array.isArray(value[field])) {
+      invalidField = true;
+      continue;
+    }
+    if (hasInvalidArrayMembers(value[field])) invalidField = true;
   }
 
   const touchedSpecs = value.touched_specs;
   const hasTouchedSpecs = Array.isArray(touchedSpecs) && touchedSpecs.length > 0;
+  const hasUnknownTouchedSpecs = Array.isArray(touchedSpecs) && touchedSpecs.some((id) => typeof id !== 'string' || !FOUNDATION_SPEC_IDS.has(id.trim()));
 
-  return invalidFieldType || !hasTouchedSpecs ? [blocker] : [];
+  return invalidField || !hasTouchedSpecs || hasUnknownTouchedSpecs ? [blocker] : [];
 }
 
 function validateJsonArtifactContract(name, value) {
