@@ -189,8 +189,11 @@ HTML
   "screens": [
     {
       "id": "dashboard",
-      "requirements": ["requirements.md"],
-      "acceptance": ["Dashboard renders with loading, empty, and error states covered."]
+      "requirements": ["requirements.md#dashboard-view"],
+      "acceptance": ["Dashboard renders with loading, empty, and error states covered."],
+      "components": ["DashboardView", "DashboardSummary"],
+      "data_flows": ["Dashboard summary API response populates dashboard view state"],
+      "implementation_files": ["src/dashboard/DashboardView.tsx", "src/dashboard/useDashboardState.ts"]
     }
   ]
 }
@@ -224,9 +227,53 @@ JSON
   cat >"$prototype/handoff.md" <<'MD'
 # Prototype Handoff
 
-Approved branch: ui-html
+## Approved branch and variant
 
-Implement the dashboard screen using the existing shell, summary component, mock-state labels, and acceptance coverage for loading, empty, error, disabled, and permission behavior.
+- Branch: ui-html
+- Variant: balanced
+
+## Screens or flows to implement
+
+- Dashboard screen with summary metrics and reviewable states.
+
+## Components to create
+
+- DashboardView.
+
+## Components to reuse
+
+- Existing application shell and summary card primitives.
+
+## Components, hooks, utilities, and services to extract
+
+- Components: DashboardSummary.
+- Hooks: useDashboardState.
+- Utilities: formatDashboardMetric.
+- Services: dashboardSummaryService.
+
+## API contracts
+
+- GET /api/dashboard/summary returns metric counts and permission flags for the dashboard.
+
+## Data flows
+
+- DashboardView loads the summary API response into local view state before rendering metrics.
+
+## State, loading, empty, error, disabled, and permission behavior
+
+- Required states cover loading, empty, error, disabled refresh, and permission denied views.
+
+## Out-of-scope items
+
+- Live analytics filtering and export workflows stay outside this prototype handoff.
+
+## Required tests
+
+- DashboardView covers loading, empty, error, disabled, and permission behavior.
+
+## Open risks
+
+- Backend summary fields may need final naming during development.
 MD
 
   cat >"$prototype/decision.json" <<'JSON'
@@ -276,6 +323,36 @@ run_json "$HAPPY_PROJECT" "$TMP_DIR/happy-prototype.json" 0
 jq -e '.ok == true' "$TMP_DIR/happy-prototype.json" >/dev/null
 jq -e '.active_change == "add-dashboard"' "$TMP_DIR/happy-prototype.json" >/dev/null
 jq -e '.manifest.type == "ui-html"' "$TMP_DIR/happy-prototype.json" >/dev/null
+
+WEAK_HANDOFF_PROJECT="$TMP_DIR/weak-handoff-project"
+cp -R "$HAPPY_PROJECT" "$WEAK_HANDOFF_PROJECT"
+cat >"$WEAK_HANDOFF_PROJECT/openspec/changes/add-dashboard/prototype/handoff.md" <<'MD'
+# Prototype Handoff
+
+Approved branch: ui-html
+
+Implement the dashboard screen using the existing shell.
+MD
+run_json "$WEAK_HANDOFF_PROJECT" "$TMP_DIR/weak-handoff.json" 2
+assert_blocker "$TMP_DIR/weak-handoff.json" 'invalid-prototype-handoff:required-tests'
+
+MISSING_SCREEN_IMPLEMENTATION_PROJECT="$TMP_DIR/missing-screen-implementation-project"
+cp -R "$HAPPY_PROJECT" "$MISSING_SCREEN_IMPLEMENTATION_PROJECT"
+jq 'del(.screens[0].implementation_files)' \
+  "$MISSING_SCREEN_IMPLEMENTATION_PROJECT/openspec/changes/add-dashboard/prototype/screen-map.json" \
+  >"$TMP_DIR/missing-screen-implementation.json.tmp"
+mv "$TMP_DIR/missing-screen-implementation.json.tmp" "$MISSING_SCREEN_IMPLEMENTATION_PROJECT/openspec/changes/add-dashboard/prototype/screen-map.json"
+run_json "$MISSING_SCREEN_IMPLEMENTATION_PROJECT" "$TMP_DIR/missing-screen-implementation.json" 2
+assert_blocker "$TMP_DIR/missing-screen-implementation.json" 'invalid-screen-map-contract:screen-map.json'
+
+EMPTY_SCREEN_COMPONENTS_PROJECT="$TMP_DIR/empty-screen-components-project"
+cp -R "$HAPPY_PROJECT" "$EMPTY_SCREEN_COMPONENTS_PROJECT"
+jq '.screens[0].components = []' \
+  "$EMPTY_SCREEN_COMPONENTS_PROJECT/openspec/changes/add-dashboard/prototype/screen-map.json" \
+  >"$TMP_DIR/empty-screen-components.json.tmp"
+mv "$TMP_DIR/empty-screen-components.json.tmp" "$EMPTY_SCREEN_COMPONENTS_PROJECT/openspec/changes/add-dashboard/prototype/screen-map.json"
+run_json "$EMPTY_SCREEN_COMPONENTS_PROJECT" "$TMP_DIR/empty-screen-components.json" 2
+assert_blocker "$TMP_DIR/empty-screen-components.json" 'invalid-screen-map-contract:screen-map.json'
 
 ENTRY_ESCAPE_PROJECT="$TMP_DIR/entry-escape-project"
 cp -R "$HAPPY_PROJECT" "$ENTRY_ESCAPE_PROJECT"

@@ -33,6 +33,8 @@ Write `prototype/handoff.md` with the development handoff:
 - required tests;
 - open risks.
 
+Use explicit Markdown headings for these topics so the contract can verify each required section deterministically.
+
 `handoff.md` is gap-sensitive and must not contain TODO, TBD, unresolved, or gap as unresolved words.
 
 Write `prototype/decision.json`. Only an explicit user approval may set:

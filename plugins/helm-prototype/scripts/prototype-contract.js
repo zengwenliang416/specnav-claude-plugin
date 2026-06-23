@@ -32,6 +32,61 @@ const GAP_SENSITIVE_FILES = [
   'handoff.md'
 ];
 
+const SCREEN_MAP_SCREEN_FIELDS = [
+  'requirements',
+  'acceptance',
+  'components',
+  'data_flows',
+  'implementation_files'
+];
+
+const HANDOFF_REQUIRED_TOPICS = [
+  {
+    id: 'approved-branch-variant',
+    termSets: [['approved', 'branch', 'variant']]
+  },
+  {
+    id: 'screens-or-flows',
+    termSets: [['screens'], ['flows']]
+  },
+  {
+    id: 'components-to-create',
+    termSets: [['components', 'create']]
+  },
+  {
+    id: 'components-to-reuse',
+    termSets: [['components', 'reuse']]
+  },
+  {
+    id: 'extraction-targets',
+    termSets: [['components', 'hooks', 'utilities', 'services', 'extract']]
+  },
+  {
+    id: 'api-contracts',
+    termSets: [['api', 'contracts']]
+  },
+  {
+    id: 'data-flows',
+    termSets: [['data', 'flows']]
+  },
+  {
+    id: 'state-behavior',
+    termSets: [['state', 'loading', 'empty', 'error', 'disabled', 'permission']]
+  },
+  {
+    id: 'out-of-scope-items',
+    termSets: [['out', 'of', 'scope']]
+  },
+  {
+    id: 'required-tests',
+    termSets: [['required', 'tests']]
+  },
+  {
+    id: 'open-risks',
+    termSets: [['open', 'risks']]
+  }
+];
+
 const BRANCH_REQUIREMENTS = {
   'ui-html': {
     required: 'artifact/index.html',
@@ -92,6 +147,23 @@ function hasOwn(value, property) {
 
 function hasInvalidStringArrayMembers(values) {
   return values.some((item) => !isCleanString(item));
+}
+
+function normalizeContractText(value) {
+  return value
+    .toLowerCase()
+    .replace(/[`*_()[\]{}:;,.!?/\\|-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function handoffContractCandidates(text) {
+  return text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => /^(?:#{1,6}\s+|[-*]\s+|[A-Za-z][A-Za-z0-9 /,&()-]+:)/.test(line))
+    .map(normalizeContractText)
+    .filter(Boolean);
 }
 
 function readJsonFile(file) {
@@ -208,12 +280,101 @@ function validateGapSensitiveFiles(prototypeDir, change, requiredNames) {
     }
     if (!exists) continue;
 
-    const artifact = validateTextArtifact(prototypeDir, change, name, { gapSensitive: true, nonEmpty: false });
+    const artifact = name === 'handoff.md'
+      ? validateHandoffArtifact(prototypeDir, change)
+      : name === 'screen-map.json' && requiredNames.includes(name)
+        ? validateScreenMapArtifact(prototypeDir, change)
+        : validateTextArtifact(prototypeDir, change, name, { gapSensitive: true, nonEmpty: false });
     artifacts.push(artifact);
     blockers.push(...artifact.blockers);
   }
 
   return { artifacts, blockers };
+}
+
+function validateScreenMapContract(value) {
+  const blocker = 'invalid-screen-map-contract:screen-map.json';
+  let invalid = false;
+
+  if (!Array.isArray(value.screens) || value.screens.length === 0) return [blocker];
+
+  for (const screen of value.screens) {
+    if (!isPlainObject(screen)) {
+      invalid = true;
+      continue;
+    }
+    if (!isCleanString(screen.id)) invalid = true;
+    for (const field of SCREEN_MAP_SCREEN_FIELDS) {
+      if (!hasOwn(screen, field) || !Array.isArray(screen[field]) || screen[field].length === 0) {
+        invalid = true;
+        continue;
+      }
+      if (hasInvalidStringArrayMembers(screen[field])) invalid = true;
+    }
+  }
+
+  return invalid ? [blocker] : [];
+}
+
+function validateScreenMapArtifact(prototypeDir, change) {
+  const name = 'screen-map.json';
+  const file = path.join(prototypeDir, name);
+  const text = readTextFile(file);
+  const blockers = [];
+
+  if (!text.ok) {
+    blockers.push(text.status === 'missing' ? `missing-prototype-artifact:${name}` : `unreadable-prototype-artifact:${name}`);
+    return artifactResult(change, name, blockers);
+  }
+  if (text.value.trim() === '') blockers.push(`empty-prototype-artifact:${name}`);
+  if (/\b(?:TODO|TBD|unresolved|gap)\b/i.test(text.value)) blockers.push(`unresolved-prototype-gap:${name}`);
+
+  const parsed = readJsonFile(file);
+  if (!parsed.ok) {
+    blockers.push(parsed.status === 'invalid-json' ? `invalid-json:${name}` : `unreadable-prototype-artifact:${name}`);
+    return artifactResult(change, name, blockers);
+  }
+  if (!isPlainObject(parsed.value)) {
+    blockers.push(`invalid-json-shape:${name}`);
+    return artifactResult(change, name, blockers);
+  }
+  blockers.push(...validateScreenMapContract(parsed.value));
+
+  return artifactResult(change, name, blockers);
+}
+
+function validateHandoffContract(text) {
+  const candidates = handoffContractCandidates(text);
+  const blockers = [];
+
+  for (const topic of HANDOFF_REQUIRED_TOPICS) {
+    const found = candidates.some((candidate) => (
+      topic.termSets.some((terms) => terms.every((term) => candidate.includes(term)))
+    ));
+    if (!found) blockers.push(`invalid-prototype-handoff:${topic.id}`);
+  }
+
+  return blockers;
+}
+
+function validateHandoffArtifact(prototypeDir, change) {
+  const name = 'handoff.md';
+  const file = path.join(prototypeDir, name);
+  const text = readTextFile(file);
+  const blockers = [];
+
+  if (!text.ok) {
+    blockers.push(text.status === 'missing' ? `missing-prototype-artifact:${name}` : `unreadable-prototype-artifact:${name}`);
+    return artifactResult(change, name, blockers);
+  }
+  if (text.value.trim() === '') {
+    blockers.push(`empty-prototype-artifact:${name}`);
+    return artifactResult(change, name, blockers);
+  }
+  if (/\b(?:TODO|TBD|unresolved|gap)\b/i.test(text.value)) blockers.push(`unresolved-prototype-gap:${name}`);
+  blockers.push(...validateHandoffContract(text.value));
+
+  return artifactResult(change, name, blockers);
 }
 
 function validateStringArrayField(value, field, options = {}) {
