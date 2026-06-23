@@ -207,6 +207,7 @@ function handoffTopicMatches(anchor, topic) {
 }
 
 function handoffAnchorMatchesRequiredTopic(anchor) {
+  if (anchor.kind !== 'heading') return false;
   return HANDOFF_REQUIRED_TOPICS.some((topic) => handoffTopicMatches(anchor, topic));
 }
 
@@ -312,22 +313,22 @@ function artifactResult(change, name, blockers, extra = {}) {
   };
 }
 
-function normalizePrototypeRelativePath(value) {
+function normalizePrototypeRelativePath(value, blocker = 'invalid-prototype-entry-path') {
   if (!isCleanString(value)) {
-    return { ok: false, normalized: null, blockers: ['invalid-prototype-entry-path'] };
+    return { ok: false, normalized: null, blockers: [blocker] };
   }
   if (path.isAbsolute(value) || value.includes('\\')) {
-    return { ok: false, normalized: null, blockers: ['invalid-prototype-entry-path'] };
+    return { ok: false, normalized: null, blockers: [blocker] };
   }
 
   const segments = value.split('/');
   if (segments.some((segment) => segment === '' || segment === '.' || segment === '..')) {
-    return { ok: false, normalized: null, blockers: ['invalid-prototype-entry-path'] };
+    return { ok: false, normalized: null, blockers: [blocker] };
   }
 
   const normalized = path.posix.normalize(value);
   if (!normalized || normalized === '.' || normalized.startsWith('../') || normalized.includes('/../')) {
-    return { ok: false, normalized: null, blockers: ['invalid-prototype-entry-path'] };
+    return { ok: false, normalized: null, blockers: [blocker] };
   }
 
   return { ok: true, normalized, blockers: [] };
@@ -345,6 +346,41 @@ function resolvePrototypePath(prototypeDir, relativePath) {
   }
 
   return { ok: true, file, normalized: normalized.normalized, blockers: [] };
+}
+
+function realpathSync(file) {
+  return (fs.realpathSync.native || fs.realpathSync)(file);
+}
+
+function isRealpathContained(root, candidate) {
+  const relative = path.relative(root, candidate);
+  return relative === '' || (relative !== '' && !relative.startsWith('..') && !path.isAbsolute(relative));
+}
+
+function validateRealpathContainment(prototypeDir, candidate, relativePath, escapeBlockerPrefix) {
+  let prototypeRealpath;
+  let candidateRealpath;
+
+  try {
+    prototypeRealpath = realpathSync(prototypeDir);
+  } catch {
+    return { ok: false, status: 'unreadable', blockers: [] };
+  }
+
+  try {
+    candidateRealpath = realpathSync(candidate);
+  } catch (error) {
+    if (error && (error.code === 'ENOENT' || error.code === 'ENOTDIR')) {
+      return { ok: false, status: 'missing', blockers: [] };
+    }
+    return { ok: false, status: 'unreadable', blockers: [] };
+  }
+
+  if (!isRealpathContained(prototypeRealpath, candidateRealpath)) {
+    return { ok: false, status: 'escape', blockers: [`${escapeBlockerPrefix}:${relativePath}`] };
+  }
+
+  return { ok: true, status: 'ok', blockers: [] };
 }
 
 function validateTextArtifact(prototypeDir, change, name, options = {}) {
@@ -453,7 +489,7 @@ function validateHandoffContract(text) {
   const blockers = [];
 
   for (const topic of HANDOFF_REQUIRED_TOPICS) {
-    const matches = anchors.filter((anchor) => handoffTopicMatches(anchor, topic));
+    const matches = anchors.filter((anchor) => anchor.kind === 'heading' && handoffTopicMatches(anchor, topic));
     const found = matches.some((anchor) => handoffAnchorHasSubstantiveBody(lines, anchor, anchors));
     if (!found) blockers.push(`invalid-prototype-handoff:${topic.id}`);
   }
@@ -528,7 +564,19 @@ function validateManifest(prototypeDir, change) {
   blockers.push(...entryPath.blockers);
   if (entryPath.ok) {
     entry = entryPath.normalized;
-    if (!fs.existsSync(entryPath.file)) blockers.push('missing-prototype-entry');
+    const containment = validateRealpathContainment(
+      prototypeDir,
+      entryPath.file,
+      entryPath.normalized,
+      'prototype-path-escape'
+    );
+    if (containment.status === 'missing') {
+      blockers.push('missing-prototype-entry');
+    } else if (containment.status === 'unreadable') {
+      blockers.push('unreadable-prototype-entry');
+    } else {
+      blockers.push(...containment.blockers);
+    }
   }
 
   const branch = BRANCH_REQUIREMENTS[manifest.type];
@@ -537,6 +585,19 @@ function validateManifest(prototypeDir, change) {
     const kind = statKind(branchPath);
     const branchBlockers = [];
     if (kind !== branch.kind) branchBlockers.push(`missing-prototype-branch-artifact:${branch.required}`);
+    if (kind === branch.kind) {
+      const containment = validateRealpathContainment(
+        prototypeDir,
+        branchPath,
+        branch.required,
+        'prototype-branch-artifact-escape'
+      );
+      if (containment.status === 'unreadable') {
+        branchBlockers.push(`unreadable-prototype-branch-artifact:${branch.required}`);
+      } else {
+        branchBlockers.push(...containment.blockers);
+      }
+    }
     nestedArtifacts.push(artifactResult(change, branch.required, branchBlockers, { expected_kind: branch.kind }));
     blockers.push(...branchBlockers);
     if (entry && !branch.entry(entry)) blockers.push(branch.entryBlocker);
@@ -552,12 +613,13 @@ function validateManifest(prototypeDir, change) {
   };
 }
 
-function validateVerifier(prototypeDir, change) {
+function validateVerifier(prototypeDir, change, expectedEntry = null) {
   const name = 'verifier-report.json';
   const file = path.join(prototypeDir, name);
   const parsed = readJsonFile(file);
   const blockers = [];
   let verifier = null;
+  let checkedEntry = null;
 
   if (!parsed.ok) {
     blockers.push(parsed.status === 'invalid-json' ? `invalid-json:${name}` : `missing-prototype-artifact:${name}`);
@@ -572,8 +634,19 @@ function validateVerifier(prototypeDir, change) {
   if (verifier.schema !== VERIFIER_SCHEMA) blockers.push('invalid-prototype-verifier:schema');
   if (verifier.status !== 'green') blockers.push(`prototype-verifier-not-green:${verifier.status || 'missing'}`);
 
+  const checkedEntryPath = normalizePrototypeRelativePath(verifier.checked_entry, 'invalid-prototype-verifier:checked_entry');
+  if (!checkedEntryPath.ok) {
+    blockers.push(...checkedEntryPath.blockers);
+  } else {
+    checkedEntry = checkedEntryPath.normalized;
+    if (expectedEntry && checkedEntry !== expectedEntry) blockers.push('prototype-verifier-entry-mismatch');
+  }
+  if (!Array.isArray(verifier.checks) || verifier.checks.length === 0 || hasInvalidStringArrayMembers(verifier.checks)) {
+    blockers.push('invalid-prototype-verifier:checks');
+  }
+
   return {
-    artifact: artifactResult(change, name, blockers, { status: verifier.status || null }),
+    artifact: artifactResult(change, name, blockers, { status: verifier.status || null, checked_entry: checkedEntry }),
     blockers,
     verifier
   };
@@ -595,6 +668,7 @@ function validateDecisionShape(decision, prototypeType) {
 
   if (decision.prototype_code !== 'required_present') blockers.push('invalid-prototype-decision:prototype_code');
   if (decision.prototype_type !== prototypeType) blockers.push('invalid-prototype-decision:prototype_type');
+  if (!isCleanString(decision.approved_variant)) blockers.push('invalid-prototype-decision:approved_variant');
   if (decision.promotion !== 'requires_development_gate') blockers.push('invalid-prototype-decision:promotion');
   if (!Array.isArray(decision.blocked_reasons) || decision.blocked_reasons.length !== 0) {
     blockers.push('invalid-prototype-decision:blocked_reasons');
@@ -651,7 +725,7 @@ function validateApprovedPrototype(prototypeDir, change) {
   artifacts.push(...gapCheck.artifacts);
   blockers.push(...gapCheck.blockers);
 
-  const verifier = validateVerifier(prototypeDir, change);
+  const verifier = validateVerifier(prototypeDir, change, manifest.entry);
   artifacts.push(verifier.artifact);
   blockers.push(...verifier.blockers);
 

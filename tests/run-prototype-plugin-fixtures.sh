@@ -336,6 +336,26 @@ MD
 run_json "$WEAK_HANDOFF_PROJECT" "$TMP_DIR/weak-handoff.json" 2
 assert_blocker "$TMP_DIR/weak-handoff.json" 'invalid-prototype-handoff:required-tests'
 
+LABEL_ONLY_HANDOFF_PROJECT="$TMP_DIR/label-only-handoff-project"
+cp -R "$HAPPY_PROJECT" "$LABEL_ONLY_HANDOFF_PROJECT"
+cat >"$LABEL_ONLY_HANDOFF_PROJECT/openspec/changes/add-dashboard/prototype/handoff.md" <<'MD'
+# Prototype Handoff
+
+Approved branch and variant: ui-html balanced.
+Screens or flows to implement: Dashboard screen with summary metrics and reviewable states.
+Components to create: DashboardView.
+Components to reuse: Existing application shell and summary card primitives.
+Components, hooks, utilities, and services to extract: DashboardSummary, useDashboardState, formatDashboardMetric, dashboardSummaryService.
+API contracts: GET /api/dashboard/summary returns metric counts and permission flags for the dashboard.
+Data flows: DashboardView loads the summary API response into local view state before rendering metrics.
+State, loading, empty, error, disabled, and permission behavior: Required states cover loading, empty, error, disabled refresh, and permission denied views.
+Out-of-scope items: Live analytics filtering and export workflows stay outside this prototype handoff.
+Required tests: DashboardView covers loading, empty, error, disabled, and permission behavior.
+Open risks: Backend summary fields may need final naming during development.
+MD
+run_json "$LABEL_ONLY_HANDOFF_PROJECT" "$TMP_DIR/label-only-handoff.json" 2
+assert_blocker "$TMP_DIR/label-only-handoff.json" 'invalid-prototype-handoff:approved-branch-variant'
+
 EMPTY_HANDOFF_HEADINGS_PROJECT="$TMP_DIR/empty-handoff-headings-project"
 cp -R "$HAPPY_PROJECT" "$EMPTY_HANDOFF_HEADINGS_PROJECT"
 cat >"$EMPTY_HANDOFF_HEADINGS_PROJECT/openspec/changes/add-dashboard/prototype/handoff.md" <<'MD'
@@ -393,6 +413,39 @@ mv "$TMP_DIR/entry-escape-manifest.json" "$ENTRY_ESCAPE_PROJECT/openspec/changes
 run_json "$ENTRY_ESCAPE_PROJECT" "$TMP_DIR/entry-escape.json" 2
 assert_blocker "$TMP_DIR/entry-escape.json" 'invalid-prototype-entry-path'
 
+SYMLINK_FILE_ESCAPE_PROJECT="$TMP_DIR/symlink-file-escape-project"
+cp -R "$HAPPY_PROJECT" "$SYMLINK_FILE_ESCAPE_PROJECT"
+mkdir -p "$TMP_DIR/escaped-ui-artifact"
+printf '%s\n' '<!doctype html><title>Escaped</title>' >"$TMP_DIR/escaped-ui-artifact/index.html"
+rm "$SYMLINK_FILE_ESCAPE_PROJECT/openspec/changes/add-dashboard/prototype/artifact/index.html"
+ln -s "$TMP_DIR/escaped-ui-artifact/index.html" \
+  "$SYMLINK_FILE_ESCAPE_PROJECT/openspec/changes/add-dashboard/prototype/artifact/index.html"
+run_json "$SYMLINK_FILE_ESCAPE_PROJECT" "$TMP_DIR/symlink-file-escape.json" 2
+assert_blocker "$TMP_DIR/symlink-file-escape.json" 'prototype-path-escape:artifact/index.html'
+assert_blocker "$TMP_DIR/symlink-file-escape.json" 'prototype-branch-artifact-escape:artifact/index.html'
+
+SYMLINK_DIR_ESCAPE_PROJECT="$TMP_DIR/symlink-dir-escape-project"
+cp -R "$HAPPY_PROJECT" "$SYMLINK_DIR_ESCAPE_PROJECT"
+mkdir -p "$TMP_DIR/escaped-logic"
+printf '%s\n' 'export const state = "escaped";' >"$TMP_DIR/escaped-logic/demo.js"
+ln -s "$TMP_DIR/escaped-logic" \
+  "$SYMLINK_DIR_ESCAPE_PROJECT/openspec/changes/add-dashboard/prototype/logic"
+jq '.type = "logic-state" | .entry = "logic/demo.js"' \
+  "$SYMLINK_DIR_ESCAPE_PROJECT/openspec/changes/add-dashboard/prototype/prototype-manifest.json" \
+  >"$TMP_DIR/symlink-dir-escape-manifest.json.tmp"
+mv "$TMP_DIR/symlink-dir-escape-manifest.json.tmp" "$SYMLINK_DIR_ESCAPE_PROJECT/openspec/changes/add-dashboard/prototype/prototype-manifest.json"
+jq '.checked_entry = "logic/demo.js"' \
+  "$SYMLINK_DIR_ESCAPE_PROJECT/openspec/changes/add-dashboard/prototype/verifier-report.json" \
+  >"$TMP_DIR/symlink-dir-escape-verifier.json.tmp"
+mv "$TMP_DIR/symlink-dir-escape-verifier.json.tmp" "$SYMLINK_DIR_ESCAPE_PROJECT/openspec/changes/add-dashboard/prototype/verifier-report.json"
+jq '.prototype_type = "logic-state"' \
+  "$SYMLINK_DIR_ESCAPE_PROJECT/openspec/changes/add-dashboard/prototype/decision.json" \
+  >"$TMP_DIR/symlink-dir-escape-decision.json.tmp"
+mv "$TMP_DIR/symlink-dir-escape-decision.json.tmp" "$SYMLINK_DIR_ESCAPE_PROJECT/openspec/changes/add-dashboard/prototype/decision.json"
+run_json "$SYMLINK_DIR_ESCAPE_PROJECT" "$TMP_DIR/symlink-dir-escape.json" 2
+assert_blocker "$TMP_DIR/symlink-dir-escape.json" 'prototype-path-escape:logic/demo.js'
+assert_blocker "$TMP_DIR/symlink-dir-escape.json" 'prototype-branch-artifact-escape:logic'
+
 for status in red blocked; do
   VERIFIER_PROJECT="$TMP_DIR/verifier-$status-project"
   cp -R "$HAPPY_PROJECT" "$VERIFIER_PROJECT"
@@ -404,6 +457,25 @@ for status in red blocked; do
   assert_blocker "$TMP_DIR/verifier-$status.json" "prototype-verifier-not-green:$status"
 done
 
+MISSING_VERIFIER_DETAILS_PROJECT="$TMP_DIR/missing-verifier-details-project"
+cp -R "$HAPPY_PROJECT" "$MISSING_VERIFIER_DETAILS_PROJECT"
+jq 'del(.checked_entry, .checks)' \
+  "$MISSING_VERIFIER_DETAILS_PROJECT/openspec/changes/add-dashboard/prototype/verifier-report.json" \
+  >"$TMP_DIR/missing-verifier-details.json.tmp"
+mv "$TMP_DIR/missing-verifier-details.json.tmp" "$MISSING_VERIFIER_DETAILS_PROJECT/openspec/changes/add-dashboard/prototype/verifier-report.json"
+run_json "$MISSING_VERIFIER_DETAILS_PROJECT" "$TMP_DIR/missing-verifier-details.json" 2
+assert_blocker "$TMP_DIR/missing-verifier-details.json" 'invalid-prototype-verifier:checked_entry'
+assert_blocker "$TMP_DIR/missing-verifier-details.json" 'invalid-prototype-verifier:checks'
+
+MISMATCHED_VERIFIER_ENTRY_PROJECT="$TMP_DIR/mismatched-verifier-entry-project"
+cp -R "$HAPPY_PROJECT" "$MISMATCHED_VERIFIER_ENTRY_PROJECT"
+jq '.checked_entry = "artifact/alternate.html"' \
+  "$MISMATCHED_VERIFIER_ENTRY_PROJECT/openspec/changes/add-dashboard/prototype/verifier-report.json" \
+  >"$TMP_DIR/mismatched-verifier-entry.json.tmp"
+mv "$TMP_DIR/mismatched-verifier-entry.json.tmp" "$MISMATCHED_VERIFIER_ENTRY_PROJECT/openspec/changes/add-dashboard/prototype/verifier-report.json"
+run_json "$MISMATCHED_VERIFIER_ENTRY_PROJECT" "$TMP_DIR/mismatched-verifier-entry.json" 2
+assert_blocker "$TMP_DIR/mismatched-verifier-entry.json" 'prototype-verifier-entry-mismatch'
+
 PENDING_DECISION_PROJECT="$TMP_DIR/pending-decision-project"
 cp -R "$HAPPY_PROJECT" "$PENDING_DECISION_PROJECT"
 jq '.status = "pending"' \
@@ -412,6 +484,15 @@ jq '.status = "pending"' \
 mv "$TMP_DIR/pending-decision.json.tmp" "$PENDING_DECISION_PROJECT/openspec/changes/add-dashboard/prototype/decision.json"
 run_json "$PENDING_DECISION_PROJECT" "$TMP_DIR/pending-decision.json" 2
 assert_blocker "$TMP_DIR/pending-decision.json" 'invalid-prototype-decision-status:pending'
+
+MISSING_APPROVED_VARIANT_PROJECT="$TMP_DIR/missing-approved-variant-project"
+cp -R "$HAPPY_PROJECT" "$MISSING_APPROVED_VARIANT_PROJECT"
+jq 'del(.approved_variant)' \
+  "$MISSING_APPROVED_VARIANT_PROJECT/openspec/changes/add-dashboard/prototype/decision.json" \
+  >"$TMP_DIR/missing-approved-variant.json.tmp"
+mv "$TMP_DIR/missing-approved-variant.json.tmp" "$MISSING_APPROVED_VARIANT_PROJECT/openspec/changes/add-dashboard/prototype/decision.json"
+run_json "$MISSING_APPROVED_VARIANT_PROJECT" "$TMP_DIR/missing-approved-variant.json" 2
+assert_blocker "$TMP_DIR/missing-approved-variant.json" 'invalid-prototype-decision:approved_variant'
 
 NO_REASON_PROJECT="$TMP_DIR/no-reason-project"
 cp -R "$HAPPY_PROJECT" "$NO_REASON_PROJECT"
