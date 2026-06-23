@@ -190,7 +190,7 @@ name: "UI: Design"
 description: Geist's token contract # inline comments outside quotes are ignored
 colors:
   # semantic tokens
-  primary: "#fff"
+  primary: #fff
   secondary: "#111"
   canvas:
     default: "{colors.primary}"
@@ -226,6 +226,38 @@ components:
 MD
 run_json "$BLOCK_FRONTMATTER_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/block-frontmatter.json" 0
 jq -e '.ok == true' "$TMP_DIR/block-frontmatter.json" >/dev/null
+
+HEX_LITERAL_FRONTMATTER_PROJECT="$TMP_DIR/hex-literal-frontmatter-project"
+cp -R "$HAPPY_PROJECT" "$HEX_LITERAL_FRONTMATTER_PROJECT"
+cat >"$HEX_LITERAL_FRONTMATTER_PROJECT/openspec/specs/ui-design/design.md" <<'MD'
+---
+version: 1.0.0
+name: UI Design
+description: Test # inline comment
+colors:
+  primary: #fff
+  secondary: #ffffff
+  overlay: #ffffff12
+typography: {}
+spacing: {}
+rounded: {}
+components: []
+---
+# UI Design
+
+## Overview
+## Colors
+## Typography
+## Layout
+## Elevation & Depth
+## Motion
+## Shapes
+## Components
+## Voice & Content
+## Do's and Don'ts
+MD
+run_json "$HEX_LITERAL_FRONTMATTER_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/hex-literal-frontmatter.json" 0
+jq -e '.ok == true' "$TMP_DIR/hex-literal-frontmatter.json" >/dev/null
 
 THEME_MISMATCH_PROJECT="$TMP_DIR/theme-mismatch-project"
 cp -R "$BLOCK_FRONTMATTER_PROJECT" "$THEME_MISMATCH_PROJECT"
@@ -402,6 +434,37 @@ components: []
 MD
 run_json "$NULLISH_FRONTMATTER_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/nullish-frontmatter.json" 2
 jq -e '.blockers[] | select(. == "invalid-foundation-spec-frontmatter:ui-design")' "$TMP_DIR/nullish-frontmatter.json" >/dev/null
+
+NESTED_NULL_FRONTMATTER_PROJECT="$TMP_DIR/nested-null-frontmatter-project"
+cp -R "$HAPPY_PROJECT" "$NESTED_NULL_FRONTMATTER_PROJECT"
+cat >"$NESTED_NULL_FRONTMATTER_PROJECT/openspec/specs/ui-design/design.md" <<'MD'
+---
+version: 1.0.0
+name: UI Design
+description: Product interface standards
+colors:
+  primary:
+typography: {}
+spacing: {}
+rounded: {}
+components: []
+---
+# UI Design
+
+## Overview
+## Colors
+## Typography
+## Layout
+## Elevation & Depth
+## Motion
+## Shapes
+## Components
+## Voice & Content
+## Do's and Don'ts
+MD
+run_json "$NESTED_NULL_FRONTMATTER_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/nested-null-frontmatter.json" 2
+jq -e '.blockers[] | select(. == "invalid-foundation-spec-frontmatter:ui-design")' "$TMP_DIR/nested-null-frontmatter.json" >/dev/null
+jq -e '.specs[] | select(.id == "ui-design") | .invalid_frontmatter_values[] | select(. == "colors.primary")' "$TMP_DIR/nested-null-frontmatter.json" >/dev/null
 
 FENCED_HEADING_PROJECT="$TMP_DIR/fenced-heading-project"
 cp -R "$HAPPY_PROJECT" "$FENCED_HEADING_PROJECT"

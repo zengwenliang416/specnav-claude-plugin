@@ -83,6 +83,8 @@ const REQUIRED_FOUNDATION_SPECS = [
   }
 ];
 
+const UI_REQUIRED_TOKEN_ROOTS = ['colors', 'typography', 'spacing', 'rounded', 'components'];
+
 function unique(values) {
   return Array.from(new Set(values.filter(Boolean)));
 }
@@ -131,6 +133,13 @@ function isYamlQuoteStart(value, index) {
   return /[\s:[{,]/.test(value[index - 1]);
 }
 
+function yamlHexColorLiteralLength(line, index) {
+  const before = line.slice(0, index);
+  if (!/^\s*(?:-\s*)?[A-Za-z0-9_-]+\s*:\s*$/.test(before)) return 0;
+  const match = line.slice(index).match(/^#(?:[0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})(?=\s|$)/);
+  return match ? match[0].length : 0;
+}
+
 function stripYamlComment(line) {
   let single = false;
   let double = false;
@@ -149,6 +158,11 @@ function stripYamlComment(line) {
     if (character === "'" && !double && (single || isYamlQuoteStart(line, index))) single = !single;
     if (character === '"' && !single && (double || isYamlQuoteStart(line, index))) double = !double;
     if (character === '#' && !single && !double && (index === 0 || /\s/.test(line[index - 1]))) {
+      const hexLiteralLength = yamlHexColorLiteralLength(line, index);
+      if (hexLiteralLength) {
+        index += hexLiteralLength - 1;
+        continue;
+      }
       return line.slice(0, index).trimEnd();
     }
   }
@@ -407,33 +421,67 @@ function isValidRequiredFrontmatterValue(value) {
   return true;
 }
 
-function parseFrontmatterKeys(text, requiredKeys = []) {
+function collectInvalidFrontmatterValuePaths(value, prefix, paths = []) {
+  if (!isValidRequiredFrontmatterValue(value)) {
+    paths.push(prefix);
+    return paths;
+  }
+
+  if (Array.isArray(value)) {
+    for (let index = 0; index < value.length; index += 1) {
+      collectInvalidFrontmatterValuePaths(value[index], `${prefix}[${index}]`, paths);
+    }
+    return paths;
+  }
+
+  if (value && typeof value === 'object') {
+    for (const key of Object.keys(value).sort()) {
+      collectInvalidFrontmatterValuePaths(value[key], `${prefix}.${key}`, paths);
+    }
+  }
+
+  return paths;
+}
+
+function invalidRequiredFrontmatterValuePaths(frontmatterValue, requiredValueKeys = []) {
+  const paths = [];
+  for (const key of requiredValueKeys) {
+    if (frontmatterValue && Object.prototype.hasOwnProperty.call(frontmatterValue, key)) {
+      paths.push(...collectInvalidFrontmatterValuePaths(frontmatterValue[key], key));
+    }
+  }
+  return unique(paths);
+}
+
+function parseFrontmatterKeys(text, requiredKeys = [], requiredValueKeys = []) {
   const normalized = normalizeNewlines(text);
   if (!normalized.startsWith('---\n')) {
-    return { ok: false, parse_ok: false, keys: [], invalidKeys: [], value: null, error: 'missing-frontmatter' };
+    return { ok: false, parse_ok: false, keys: [], invalidKeys: [], invalidValues: [], value: null, error: 'missing-frontmatter' };
   }
 
   const closeMatch = normalized.slice(4).match(/\n---\s*(?:\n|$)/);
   if (!closeMatch || typeof closeMatch.index !== 'number') {
-    return { ok: false, parse_ok: false, keys: [], invalidKeys: [], value: null, error: 'unterminated-frontmatter' };
+    return { ok: false, parse_ok: false, keys: [], invalidKeys: [], invalidValues: [], value: null, error: 'unterminated-frontmatter' };
   }
 
   const frontmatter = normalized.slice(4, 4 + closeMatch.index);
   const parsed = parseYamlSubset(frontmatter);
   if (!parsed.ok) {
-    return { ok: false, parse_ok: false, keys: [], invalidKeys: [], value: null, error: parsed.error || 'unparseable-frontmatter' };
+    return { ok: false, parse_ok: false, keys: [], invalidKeys: [], invalidValues: [], value: null, error: parsed.error || 'unparseable-frontmatter' };
   }
 
   const keys = Object.keys(parsed.value);
   const invalidKeys = requiredKeys.filter((key) => Object.prototype.hasOwnProperty.call(parsed.value, key) && !isValidRequiredFrontmatterValue(parsed.value[key]));
+  const invalidValues = invalidRequiredFrontmatterValuePaths(parsed.value, requiredValueKeys);
 
   return {
-    ok: invalidKeys.length === 0,
+    ok: invalidKeys.length === 0 && invalidValues.length === 0,
     parse_ok: true,
     keys: unique(keys),
     invalidKeys: unique(invalidKeys),
+    invalidValues,
     value: parsed.value,
-    error: invalidKeys.length ? 'invalid-frontmatter-value' : null
+    error: invalidKeys.length || invalidValues.length ? 'invalid-frontmatter-value' : null
   };
 }
 
@@ -532,15 +580,18 @@ function validateSpecText(text, contract, label = null) {
   const missingKeys = [];
   const blockers = [];
   const invalidReferences = [];
+  const invalidFrontmatterValues = [];
   let frontmatter = null;
 
   if (contract.requiredFrontmatterKeys.length) {
-    frontmatter = parseFrontmatterKeys(text, contract.requiredFrontmatterKeys);
+    const requiredValueKeys = contract.id === 'ui-design' ? UI_REQUIRED_TOKEN_ROOTS : [];
+    frontmatter = parseFrontmatterKeys(text, contract.requiredFrontmatterKeys, requiredValueKeys);
     missingKeys.push(
       ...contract.requiredFrontmatterKeys
         .filter((key) => !frontmatter.keys.includes(key))
         .map((key) => labelValue(label, key))
     );
+    invalidFrontmatterValues.push(...frontmatter.invalidValues.map((value) => labelValue(label, value)));
     if (!frontmatter.ok || missingKeys.length) blockers.push(`invalid-foundation-spec-frontmatter:${contract.id}`);
 
     if (frontmatter.parse_ok && frontmatter.value) {
@@ -557,7 +608,8 @@ function validateSpecText(text, contract, label = null) {
     missingSections,
     missingKeys,
     frontmatter,
-    invalidReferences: unique(invalidReferences)
+    invalidReferences: unique(invalidReferences),
+    invalidFrontmatterValues: unique(invalidFrontmatterValues)
   };
 }
 
@@ -604,7 +656,8 @@ function validateThemeCompanions(primaryFile, primaryText, primaryValidation, co
             missingSections: [],
             missingKeys: [],
             frontmatter: null,
-            invalidReferences: []
+            invalidReferences: [],
+            invalidFrontmatterValues: []
           },
           text: '',
           unreadable: true
@@ -624,12 +677,14 @@ function validateThemeCompanions(primaryFile, primaryText, primaryValidation, co
   const missingSections = [];
   const missingKeys = [];
   const invalidReferences = [];
+  const invalidFrontmatterValues = [];
   for (const doc of docs.values()) {
     if (doc.label === path.basename(primaryFile)) continue;
     blockers.push(...doc.validation.blockers);
     missingSections.push(...doc.validation.missingSections);
     missingKeys.push(...doc.validation.missingKeys);
     invalidReferences.push(...doc.validation.invalidReferences);
+    invalidFrontmatterValues.push(...doc.validation.invalidFrontmatterValues);
   }
 
   for (const pair of existingThemePairs(primaryFile)) {
@@ -647,7 +702,8 @@ function validateThemeCompanions(primaryFile, primaryText, primaryValidation, co
     blockers: unique(blockers),
     missingSections,
     missingKeys,
-    invalidReferences: unique(invalidReferences)
+    invalidReferences: unique(invalidReferences),
+    invalidFrontmatterValues: unique(invalidFrontmatterValues)
   };
 }
 
@@ -693,6 +749,7 @@ function validateOne(root, spec) {
   const missingKeys = primary.missingKeys.slice();
   const blockers = primary.blockers.slice();
   const invalidReferences = primary.invalidReferences.slice();
+  const invalidFrontmatterValues = primary.invalidFrontmatterValues.slice();
   const frontmatter_error = primary.frontmatter ? primary.frontmatter.error : null;
 
   if (contract.id === 'ui-design') {
@@ -701,6 +758,7 @@ function validateOne(root, spec) {
     missingSections.push(...theme.missingSections);
     missingKeys.push(...theme.missingKeys);
     invalidReferences.push(...theme.invalidReferences);
+    invalidFrontmatterValues.push(...theme.invalidFrontmatterValues);
   }
 
   return {
@@ -711,7 +769,8 @@ function validateOne(root, spec) {
     missing_sections: missingSections,
     missing_frontmatter_keys: missingKeys,
     ...(frontmatter_error ? { frontmatter_error } : {}),
-    ...(invalidReferences.length ? { invalid_token_references: unique(invalidReferences) } : {})
+    ...(invalidReferences.length ? { invalid_token_references: unique(invalidReferences) } : {}),
+    ...(invalidFrontmatterValues.length ? { invalid_frontmatter_values: unique(invalidFrontmatterValues) } : {})
   };
 }
 
