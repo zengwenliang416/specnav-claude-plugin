@@ -4,6 +4,8 @@
 const fs = require('fs');
 const path = require('path');
 
+const COMMANDS = new Set(['list', 'resolve', 'require']);
+
 function readJson(file) {
   try {
     return { ok: true, value: JSON.parse(fs.readFileSync(file, 'utf8')) };
@@ -31,6 +33,14 @@ function isObject(value) {
   return !!value && typeof value === 'object' && !Array.isArray(value);
 }
 
+function hasOwn(value, property) {
+  return Object.prototype.hasOwnProperty.call(value, property);
+}
+
+function isStringArray(value) {
+  return Array.isArray(value) && value.every((item) => typeof item === 'string');
+}
+
 function valueBlocker(status, kind, name) {
   if (status === 'malformed') return `malformed-${kind}:${name}`;
   if (status === 'unreadable') return `unreadable-${kind}:${name}`;
@@ -43,12 +53,23 @@ function marketplaceBlocker(status) {
   return 'missing-marketplace-json';
 }
 
+function isValidPluginMetadata(value) {
+  return isObject(value)
+    && isNonEmpty(value.name)
+    && (!hasOwn(value, 'version') || typeof value.version === 'string');
+}
+
 function isValidStageManifest(value) {
   return isObject(value)
     && isNonEmpty(value.stage)
-    && (!Object.prototype.hasOwnProperty.call(value, 'commands') || Array.isArray(value.commands))
-    && (!Object.prototype.hasOwnProperty.call(value, 'skills') || Array.isArray(value.skills))
-    && (!Object.prototype.hasOwnProperty.call(value, 'contracts') || isObject(value.contracts));
+    && (!hasOwn(value, 'plugin') || isNonEmpty(value.plugin))
+    && (!hasOwn(value, 'required') || typeof value.required === 'boolean')
+    && (!hasOwn(value, 'commands') || isStringArray(value.commands))
+    && (!hasOwn(value, 'skills') || isStringArray(value.skills))
+    && (!hasOwn(value, 'contracts') || (
+      isObject(value.contracts)
+      && Object.values(value.contracts).every((contract) => typeof contract === 'string')
+    ));
 }
 
 function resolveMarketplaceRoot(root) {
@@ -93,7 +114,8 @@ function argValue(args, name, fallback = null) {
 }
 
 function parseArgs(args) {
-  const command = args[0] && !args[0].startsWith('--') ? args[0] : 'list';
+  let command = 'list';
+  let commandSeen = false;
   const values = {
     '--marketplace-root': [],
     '--plugin': []
@@ -106,8 +128,16 @@ function parseArgs(args) {
 
   for (let i = 0; i < args.length; i += 1) {
     const arg = args[i];
-    if (i === 0 && arg === command && !arg.startsWith('--')) continue;
     if (arg === '--json') continue;
+    if (!arg.startsWith('--')) {
+      if (!commandSeen) {
+        command = arg;
+        commandSeen = true;
+      } else {
+        blockers.push(`unknown-command:${arg}`);
+      }
+      continue;
+    }
     if (!Object.prototype.hasOwnProperty.call(values, arg)) continue;
     occurrences[arg] += 1;
 
@@ -122,6 +152,12 @@ function parseArgs(args) {
 
   if (command === 'resolve' && occurrences['--plugin'] > 1) {
     blockers.push('duplicate-argument:--plugin');
+  }
+  if (occurrences['--marketplace-root'] > 1) {
+    blockers.push('duplicate-argument:--marketplace-root');
+  }
+  if (!COMMANDS.has(command)) {
+    blockers.push(`unknown-command:${command}`);
   }
 
   return {
@@ -220,7 +256,7 @@ function pluginRecord(marketplaceRoot, entry, index) {
 
   const pluginJson = readJson(path.join(root, '.claude-plugin', 'plugin.json'));
   const stage = readJson(path.join(root, 'helm-stage.json'));
-  const pluginMetadataValid = pluginJson.ok && isObject(pluginJson.value);
+  const pluginMetadataValid = pluginJson.ok && isValidPluginMetadata(pluginJson.value);
   const stageManifestValid = stage.ok && isValidStageManifest(stage.value);
   const pluginMetadata = pluginMetadataValid ? pluginJson.value : null;
   const stageManifest = stageManifestValid ? stage.value : null;
@@ -308,19 +344,40 @@ function requirePlugins(options = {}) {
       plugins: []
     };
   }
-  const suite = listPlugins(options);
-  const blockers = [...suite.blockers];
+  const loaded = loadMarketplace(options.marketplaceRoot);
+  if (!loaded.ok) {
+    return {
+      ok: false,
+      marketplace_root: loaded.marketplaceRoot,
+      blockers: unique(loaded.blockers),
+      required,
+      plugins: []
+    };
+  }
+
+  const plugins = [];
+  const blockers = [];
   for (const name of required) {
-    const plugin = suite.plugins.find((item) => item.name === name);
+    const index = loaded.marketplace.plugins.findIndex((entry) => (
+      isObject(entry)
+      && isNonEmpty(entry.name)
+      && entry.name.trim() === name
+    ));
+    const plugin = index >= 0
+      ? pluginRecord(loaded.marketplaceRoot, loaded.marketplace.plugins[index], index)
+      : null;
     if (!plugin) blockers.push(`missing-plugin:${name}`);
-    else blockers.push(...plugin.blockers);
+    else {
+      plugins.push(plugin);
+      blockers.push(...plugin.blockers);
+    }
   }
   return {
     ok: blockers.length === 0,
-    marketplace_root: suite.marketplace_root,
+    marketplace_root: loaded.marketplaceRoot,
     blockers: unique(blockers),
     required,
-    plugins: suite.plugins.filter((item) => required.includes(item.name))
+    plugins
   };
 }
 

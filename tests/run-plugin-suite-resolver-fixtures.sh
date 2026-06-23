@@ -58,6 +58,12 @@ jq -e '.blockers[] | select(. == "missing-argument:--plugin")' "$tmp_dir/resolve
 run_failure "$tmp_dir/resolve-duplicate-plugin.json" resolve --marketplace-root "$ROOT" --plugin helm-core --plugin helm-requirements
 jq -e '.blockers[] | select(. == "duplicate-argument:--plugin")' "$tmp_dir/resolve-duplicate-plugin.json" >/dev/null
 
+run_failure "$tmp_dir/list-duplicate-marketplace-root.json" list --marketplace-root "$ROOT" --marketplace-root "$ROOT"
+jq -e '.blockers[] | select(. == "duplicate-argument:--marketplace-root")' "$tmp_dir/list-duplicate-marketplace-root.json" >/dev/null
+
+run_failure "$tmp_dir/flag-after-bare-command.json" --marketplace-root "$ROOT" inspect
+jq -e '.blockers[] | select(. == "unknown-command:inspect")' "$tmp_dir/flag-after-bare-command.json" >/dev/null
+
 malformed_marketplace="$tmp_dir/malformed-marketplace"
 mkdir -p "$malformed_marketplace/.claude-plugin"
 printf '{ "plugins": [ ' >"$malformed_marketplace/.claude-plugin/marketplace.json"
@@ -200,7 +206,11 @@ invalid_plugin_stage="$tmp_dir/invalid-plugin-stage"
 mkdir -p \
   "$invalid_plugin_stage/.claude-plugin" \
   "$invalid_plugin_stage/plugins/bad-plugin-shape/.claude-plugin" \
-  "$invalid_plugin_stage/plugins/bad-stage-shape/.claude-plugin"
+  "$invalid_plugin_stage/plugins/bad-stage-plugin-field/.claude-plugin" \
+  "$invalid_plugin_stage/plugins/bad-stage-required-field/.claude-plugin" \
+  "$invalid_plugin_stage/plugins/bad-stage-commands-field/.claude-plugin" \
+  "$invalid_plugin_stage/plugins/bad-stage-skills-field/.claude-plugin" \
+  "$invalid_plugin_stage/plugins/bad-stage-contracts-field/.claude-plugin"
 cat >"$invalid_plugin_stage/.claude-plugin/marketplace.json" <<'JSON'
 {
   "name": "invalid-plugin-stage-fixture",
@@ -211,17 +221,37 @@ cat >"$invalid_plugin_stage/.claude-plugin/marketplace.json" <<'JSON'
       "version": "0.0.0"
     },
     {
-      "name": "bad-stage-shape",
-      "source": "plugins/bad-stage-shape",
+      "name": "bad-stage-plugin-field",
+      "source": "plugins/bad-stage-plugin-field",
+      "version": "0.0.0"
+    },
+    {
+      "name": "bad-stage-required-field",
+      "source": "plugins/bad-stage-required-field",
+      "version": "0.0.0"
+    },
+    {
+      "name": "bad-stage-commands-field",
+      "source": "plugins/bad-stage-commands-field",
+      "version": "0.0.0"
+    },
+    {
+      "name": "bad-stage-skills-field",
+      "source": "plugins/bad-stage-skills-field",
+      "version": "0.0.0"
+    },
+    {
+      "name": "bad-stage-contracts-field",
+      "source": "plugins/bad-stage-contracts-field",
       "version": "0.0.0"
     }
   ]
 }
 JSON
 cat >"$invalid_plugin_stage/plugins/bad-plugin-shape/.claude-plugin/plugin.json" <<'JSON'
-[
-  "bad-plugin-shape"
-]
+{
+  "version": "0.0.0"
+}
 JSON
 cat >"$invalid_plugin_stage/plugins/bad-plugin-shape/helm-stage.json" <<'JSON'
 {
@@ -229,22 +259,138 @@ cat >"$invalid_plugin_stage/plugins/bad-plugin-shape/helm-stage.json" <<'JSON'
   "stage": "broken"
 }
 JSON
-cat >"$invalid_plugin_stage/plugins/bad-stage-shape/.claude-plugin/plugin.json" <<'JSON'
+cat >"$invalid_plugin_stage/plugins/bad-stage-plugin-field/.claude-plugin/plugin.json" <<'JSON'
 {
-  "name": "bad-stage-shape",
+  "name": "bad-stage-plugin-field",
   "version": "0.0.0"
 }
 JSON
-cat >"$invalid_plugin_stage/plugins/bad-stage-shape/helm-stage.json" <<'JSON'
+cat >"$invalid_plugin_stage/plugins/bad-stage-plugin-field/helm-stage.json" <<'JSON'
 {
-  "plugin": "bad-stage-shape",
+  "plugin": 123,
+  "stage": "broken"
+}
+JSON
+cat >"$invalid_plugin_stage/plugins/bad-stage-required-field/.claude-plugin/plugin.json" <<'JSON'
+{
+  "name": "bad-stage-required-field",
+  "version": "0.0.0"
+}
+JSON
+cat >"$invalid_plugin_stage/plugins/bad-stage-required-field/helm-stage.json" <<'JSON'
+{
+  "plugin": "bad-stage-required-field",
   "stage": "broken",
-  "commands": "not-an-array"
+  "required": "yes"
+}
+JSON
+cat >"$invalid_plugin_stage/plugins/bad-stage-commands-field/.claude-plugin/plugin.json" <<'JSON'
+{
+  "name": "bad-stage-commands-field",
+  "version": "0.0.0"
+}
+JSON
+cat >"$invalid_plugin_stage/plugins/bad-stage-commands-field/helm-stage.json" <<'JSON'
+{
+  "plugin": "bad-stage-commands-field",
+  "stage": "broken",
+  "commands": [
+    "ok",
+    123
+  ]
+}
+JSON
+cat >"$invalid_plugin_stage/plugins/bad-stage-skills-field/.claude-plugin/plugin.json" <<'JSON'
+{
+  "name": "bad-stage-skills-field",
+  "version": "0.0.0"
+}
+JSON
+cat >"$invalid_plugin_stage/plugins/bad-stage-skills-field/helm-stage.json" <<'JSON'
+{
+  "plugin": "bad-stage-skills-field",
+  "stage": "broken",
+  "skills": [
+    "ok",
+    false
+  ]
+}
+JSON
+cat >"$invalid_plugin_stage/plugins/bad-stage-contracts-field/.claude-plugin/plugin.json" <<'JSON'
+{
+  "name": "bad-stage-contracts-field",
+  "version": "0.0.0"
+}
+JSON
+cat >"$invalid_plugin_stage/plugins/bad-stage-contracts-field/helm-stage.json" <<'JSON'
+{
+  "plugin": "bad-stage-contracts-field",
+  "stage": "broken",
+  "contracts": {
+    "bad": 123
+  }
 }
 JSON
 run_failure "$tmp_dir/invalid-plugin-stage.json" list --marketplace-root "$invalid_plugin_stage"
 jq -e '.blockers[] | select(. == "invalid-plugin-json:bad-plugin-shape")' "$tmp_dir/invalid-plugin-stage.json" >/dev/null
-jq -e '.blockers[] | select(. == "invalid-stage-manifest:bad-stage-shape")' "$tmp_dir/invalid-plugin-stage.json" >/dev/null
+jq -e '.blockers[] | select(. == "invalid-stage-manifest:bad-stage-plugin-field")' "$tmp_dir/invalid-plugin-stage.json" >/dev/null
+jq -e '.blockers[] | select(. == "invalid-stage-manifest:bad-stage-required-field")' "$tmp_dir/invalid-plugin-stage.json" >/dev/null
+jq -e '.blockers[] | select(. == "invalid-stage-manifest:bad-stage-commands-field")' "$tmp_dir/invalid-plugin-stage.json" >/dev/null
+jq -e '.blockers[] | select(. == "invalid-stage-manifest:bad-stage-skills-field")' "$tmp_dir/invalid-plugin-stage.json" >/dev/null
+jq -e '.blockers[] | select(. == "invalid-stage-manifest:bad-stage-contracts-field")' "$tmp_dir/invalid-plugin-stage.json" >/dev/null
+
+good_bad_marketplace="$tmp_dir/good-bad-marketplace"
+mkdir -p \
+  "$good_bad_marketplace/.claude-plugin" \
+  "$good_bad_marketplace/plugins/good/.claude-plugin" \
+  "$good_bad_marketplace/plugins/bad/.claude-plugin"
+cat >"$good_bad_marketplace/.claude-plugin/marketplace.json" <<'JSON'
+{
+  "name": "good-bad-marketplace-fixture",
+  "plugins": [
+    {
+      "name": "good",
+      "source": "plugins/good",
+      "version": "0.0.0"
+    },
+    {
+      "name": "bad",
+      "source": "plugins/bad",
+      "version": "0.0.0"
+    }
+  ]
+}
+JSON
+cat >"$good_bad_marketplace/plugins/good/.claude-plugin/plugin.json" <<'JSON'
+{
+  "name": "good",
+  "version": "0.0.0"
+}
+JSON
+cat >"$good_bad_marketplace/plugins/good/helm-stage.json" <<'JSON'
+{
+  "plugin": "good",
+  "stage": "ok"
+}
+JSON
+cat >"$good_bad_marketplace/plugins/bad/.claude-plugin/plugin.json" <<'JSON'
+{
+  "version": "0.0.0"
+}
+JSON
+cat >"$good_bad_marketplace/plugins/bad/helm-stage.json" <<'JSON'
+{
+  "plugin": "bad",
+  "stage": "broken"
+}
+JSON
+node "$ROOT/plugins/helm-core/scripts/plugin-suite.js" require --marketplace-root "$good_bad_marketplace" --plugin good --json >"$tmp_dir/good-bad-require-good.json"
+jq -e '.ok == true' "$tmp_dir/good-bad-require-good.json" >/dev/null
+jq -e '.blockers | length == 0' "$tmp_dir/good-bad-require-good.json" >/dev/null
+jq -e '.plugins | length == 1' "$tmp_dir/good-bad-require-good.json" >/dev/null
+jq -e '.plugins[] | select(.name == "good")' "$tmp_dir/good-bad-require-good.json" >/dev/null
+run_failure "$tmp_dir/good-bad-list.json" list --marketplace-root "$good_bad_marketplace"
+jq -e '.blockers[] | select(. == "invalid-plugin-json:bad")' "$tmp_dir/good-bad-list.json" >/dev/null
 
 unreadable_plugin_stage="$tmp_dir/unreadable-plugin-stage"
 mkdir -p \
