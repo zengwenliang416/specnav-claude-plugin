@@ -22,7 +22,7 @@ function createOverride(root, args) {
   const gate = argValue(args, '--gate');
   const reason = argValue(args, '--reason');
   if (!gate || !reason) {
-    console.error('Usage: node scripts/override.js create --gate <gate> --reason <reason> [--path <path>] [--command <command>] [--ttl-minutes 30] [--requested-by <name>]');
+    console.error('Usage: node "$CLAUDE_PLUGIN_ROOT/scripts/override.js" create --gate <gate> --reason <reason> [--path <path>] [--command <command>] [--ttl-minutes 30] [--requested-by <name>]');
     process.exit(2);
   }
   const ttlMinutes = Number(argValue(args, '--ttl-minutes', '30'));
@@ -80,7 +80,7 @@ function main() {
   if (command === 'create') return createOverride(root, args.slice(1));
   if (command === 'list') return list(root);
   if (command === 'prune') return prune(root);
-  console.error('Usage: node scripts/override.js <create|list|prune>');
+  console.error('Usage: node "$CLAUDE_PLUGIN_ROOT/scripts/override.js" <create|list|prune>');
   process.exit(2);
 }
 
