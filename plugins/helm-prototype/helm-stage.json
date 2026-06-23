@@ -6,7 +6,7 @@
   "depends_on": ["helm-core", "helm-requirements"],
   "commands": ["helm-prototype"],
   "skills": ["prototype", "prototype-verify", "prototype-handoff"],
-  "planned_contracts": {
+  "contracts": {
     "prototype": "scripts/prototype-contract.js"
   },
   "state_outputs": ["openspec/changes/<change>/prototype/"]
