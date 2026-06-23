@@ -26,6 +26,7 @@ assert_active_change_only_blocker() {
 
   jq -e '.active_change == null' "$output" >/dev/null
   jq -e '.blockers | sort == ["active-change"]' "$output" >/dev/null
+  jq -e '.artifacts | length == 0' "$output" >/dev/null
   jq -e '.blockers | map(select(startswith("missing-requirements-artifact:"))) | length == 0' "$output" >/dev/null
 }
 
@@ -519,6 +520,16 @@ cp -R "$HAPPY_PROJECT" "$EMPTY_ACTIVE_CHANGE_PROJECT"
 : >"$EMPTY_ACTIVE_CHANGE_PROJECT/openspec/.helm/active-change"
 run_json "$EMPTY_ACTIVE_CHANGE_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/empty-active-change.json" 2
 assert_active_change_only_blocker "$TMP_DIR/empty-active-change.json"
+
+DOT_ACTIVE_CHANGE_PROJECT="$TMP_DIR/dot-active-change-project"
+cp -R "$HAPPY_PROJECT" "$DOT_ACTIVE_CHANGE_PROJECT"
+cp "$DOT_ACTIVE_CHANGE_PROJECT/openspec/changes/add-dashboard/requirements.md" "$DOT_ACTIVE_CHANGE_PROJECT/openspec/changes/requirements.md"
+cp "$DOT_ACTIVE_CHANGE_PROJECT/openspec/changes/add-dashboard/acceptance.md" "$DOT_ACTIVE_CHANGE_PROJECT/openspec/changes/acceptance.md"
+cp "$DOT_ACTIVE_CHANGE_PROJECT/openspec/changes/add-dashboard/spec-map.json" "$DOT_ACTIVE_CHANGE_PROJECT/openspec/changes/spec-map.json"
+cp "$DOT_ACTIVE_CHANGE_PROJECT/openspec/changes/add-dashboard/component-impact-map.json" "$DOT_ACTIVE_CHANGE_PROJECT/openspec/changes/component-impact-map.json"
+printf '%s\n' '.' >"$DOT_ACTIVE_CHANGE_PROJECT/openspec/.helm/active-change"
+run_json "$DOT_ACTIVE_CHANGE_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/dot-active-change.json" 2
+assert_active_change_only_blocker "$TMP_DIR/dot-active-change.json"
 
 INVALID_ACTIVE_CHANGE_PROJECT="$TMP_DIR/invalid-active-change-project"
 cp -R "$HAPPY_PROJECT" "$INVALID_ACTIVE_CHANGE_PROJECT"

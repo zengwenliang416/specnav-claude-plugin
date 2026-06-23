@@ -69,7 +69,13 @@ function readTextFile(file) {
 }
 
 function invalidChangeId(value) {
-  return value.includes('/') || value.includes('\\') || value.includes('..') || /\s/.test(value);
+  if (!value || value === '.' || value === '..') return true;
+  if (value.includes('/') || value.includes('\\') || value.includes('..') || /\s/.test(value)) return true;
+
+  const changesRoot = path.resolve(path.sep, 'openspec', 'changes');
+  const resolved = path.resolve(changesRoot, value);
+  const relative = path.relative(changesRoot, resolved);
+  return !relative || relative.startsWith('..') || path.isAbsolute(relative) || relative.includes(path.sep);
 }
 
 function strictActiveChange(projectRoot) {
