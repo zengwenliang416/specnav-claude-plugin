@@ -31,6 +31,10 @@ function readJsonFile(file) {
   }
 }
 
+function isPlainObject(value) {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
 function validateArtifact(dir, change, name) {
   const relativePath = artifactPath(change, name);
   const file = dir ? path.join(dir, name) : null;
@@ -47,10 +51,13 @@ function validateArtifact(dir, change, name) {
   }
 
   if (!name.endsWith('.json')) {
+    if (fs.readFileSync(file, 'utf8').trim().length === 0) {
+      blockers.push(`empty-requirements-artifact:${name}`);
+    }
     return {
       name,
       path: relativePath,
-      ok: true,
+      ok: blockers.length === 0,
       blockers
     };
   }
@@ -58,8 +65,14 @@ function validateArtifact(dir, change, name) {
   const parsed = readJsonFile(file);
   if (!parsed.ok) {
     blockers.push(parsed.status === 'invalid-json' ? `invalid-json:${name}` : `unreadable-requirements-artifact:${name}`);
-  } else if (Array.isArray(parsed.value.unresolved_gaps) && parsed.value.unresolved_gaps.length > 0) {
-    blockers.push(`unresolved-gaps:${name}`);
+  } else if (!isPlainObject(parsed.value)) {
+    blockers.push(`invalid-json-shape:${name}`);
+  } else if (Object.prototype.hasOwnProperty.call(parsed.value, 'unresolved_gaps')) {
+    if (!Array.isArray(parsed.value.unresolved_gaps)) {
+      blockers.push(`invalid-unresolved-gaps:${name}`);
+    } else if (parsed.value.unresolved_gaps.length > 0) {
+      blockers.push(`unresolved-gaps:${name}`);
+    }
   }
 
   return {

@@ -95,37 +95,95 @@ function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+function stripFencedCodeBlocks(text) {
+  const lines = normalizeNewlines(text).split('\n');
+  const kept = [];
+  let fence = null;
+
+  for (const line of lines) {
+    const match = line.match(/^\s{0,3}(`{3,}|~{3,})/);
+    if (match) {
+      const marker = match[1][0];
+      const length = match[1].length;
+      if (!fence) {
+        fence = { marker, length };
+        continue;
+      }
+      if (marker === fence.marker && match[1].length >= fence.length) {
+        fence = null;
+      }
+      continue;
+    }
+    if (!fence) kept.push(line);
+  }
+
+  return kept.join('\n');
+}
+
 function markdownHasSection(text, heading) {
-  const normalized = normalizeNewlines(text);
+  const normalized = stripFencedCodeBlocks(text);
   if (heading === '# ') return /^#\s+\S+/m.test(normalized);
   return new RegExp(`^${escapeRegExp(heading)}\\s*$`, 'm').test(normalized);
+}
+
+function hasBalancedQuotes(value) {
+  let single = false;
+  let double = false;
+  let escaped = false;
+
+  for (const character of value) {
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (character === '\\') {
+      escaped = true;
+      continue;
+    }
+    if (character === "'" && !double) single = !single;
+    if (character === '"' && !single) double = !double;
+  }
+
+  return !single && !double;
+}
+
+function isSupportedFrontmatterValue(value) {
+  const trimmed = value.trim();
+  if (!trimmed) return false;
+  if (!hasBalancedQuotes(trimmed)) return false;
+  if (trimmed === '{}' || trimmed === '[]') return true;
+  if (trimmed.startsWith('[') || trimmed.endsWith(']')) return /^\[[^\[\]{}]*\]$/.test(trimmed);
+  if (trimmed.startsWith('{') || trimmed.endsWith('}')) return /^\{[^\[\]{}]*\}$/.test(trimmed);
+  return true;
 }
 
 function parseFrontmatterKeys(text) {
   const normalized = normalizeNewlines(text);
   if (!normalized.startsWith('---\n')) {
-    return { ok: false, keys: [], error: 'missing-frontmatter' };
+    return { ok: false, keys: [], invalidKeys: [], error: 'missing-frontmatter' };
   }
 
   const closeMatch = normalized.slice(4).match(/\n---\s*(?:\n|$)/);
   if (!closeMatch || typeof closeMatch.index !== 'number') {
-    return { ok: false, keys: [], error: 'unterminated-frontmatter' };
+    return { ok: false, keys: [], invalidKeys: [], error: 'unterminated-frontmatter' };
   }
 
   const frontmatter = normalized.slice(4, 4 + closeMatch.index);
   const keys = [];
+  const invalidKeys = [];
   for (const line of frontmatter.split('\n')) {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith('#')) continue;
     if (/^\s/.test(line)) continue;
-    const match = line.match(/^([A-Za-z0-9_-]+)\s*:/);
+    const match = line.match(/^([A-Za-z0-9_-]+)\s*:\s*(.*)$/);
     if (!match) {
-      return { ok: false, keys: unique(keys), error: 'unparseable-frontmatter' };
+      return { ok: false, keys: unique(keys), invalidKeys: unique(invalidKeys), error: 'unparseable-frontmatter' };
     }
     keys.push(match[1]);
+    if (!isSupportedFrontmatterValue(match[2])) invalidKeys.push(match[1]);
   }
 
-  return { ok: true, keys: unique(keys), error: null };
+  return { ok: invalidKeys.length === 0, keys: unique(keys), invalidKeys: unique(invalidKeys), error: invalidKeys.length ? 'invalid-frontmatter-value' : null };
 }
 
 function specById(id) {
