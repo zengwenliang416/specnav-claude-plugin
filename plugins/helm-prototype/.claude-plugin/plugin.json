@@ -1,0 +1,12 @@
+{
+  "name": "helm-prototype",
+  "version": "0.3.0",
+  "description": "Prototype stage plugin for the Helm OpenSpec lifecycle suite.",
+  "author": {
+    "name": "Wenliang Zeng"
+  },
+  "homepage": "https://github.com/zengwenliang416/helm",
+  "license": "MIT",
+  "keywords": ["claude-code", "openspec", "prototype", "ux"],
+  "skills": "./skills/"
+}

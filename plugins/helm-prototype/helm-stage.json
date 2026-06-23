@@ -1,0 +1,13 @@
+{
+  "schema": "helm.stagePlugin.v1",
+  "plugin": "helm-prototype",
+  "stage": "prototype",
+  "required": true,
+  "depends_on": ["helm-core", "helm-requirements"],
+  "commands": ["helm-prototype"],
+  "skills": ["prototype", "prototype-verify", "prototype-handoff"],
+  "contracts": {
+    "prototype": "scripts/prototype-contract.js"
+  },
+  "state_outputs": ["openspec/changes/<change>/prototype/"]
+}

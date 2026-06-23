@@ -1,0 +1,23 @@
+{
+  "schema": "helm.stagePlugin.v1",
+  "plugin": "helm-requirements",
+  "stage": "requirements",
+  "required": true,
+  "depends_on": ["helm-core"],
+  "commands": ["helm-requirements"],
+  "skills": ["foundation-spec", "requirements"],
+  "contracts": {
+    "foundation": "scripts/foundation-specs.js",
+    "requirements": "scripts/requirements-contract.js"
+  },
+  "state_outputs": [
+    "openspec/specs/ui-design/design.md",
+    "openspec/specs/system-architecture/design.md",
+    "openspec/specs/frontend-backend-data-flow/design.md",
+    "openspec/specs/component-architecture/design.md",
+    "openspec/changes/<change>/requirements.md",
+    "openspec/changes/<change>/acceptance.md",
+    "openspec/changes/<change>/spec-map.json",
+    "openspec/changes/<change>/component-impact-map.json"
+  ]
+}

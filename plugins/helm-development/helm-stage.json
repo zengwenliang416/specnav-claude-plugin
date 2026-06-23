@@ -1,0 +1,13 @@
+{
+  "schema": "helm.stagePlugin.v1",
+  "plugin": "helm-development",
+  "stage": "development",
+  "required": true,
+  "depends_on": ["helm-core", "helm-requirements", "helm-prototype"],
+  "commands": ["helm-implement"],
+  "skills": ["before-dev", "scope-lock", "vertical-slice-tasking"],
+  "contracts": {
+    "development": "scripts/development-contract.js"
+  },
+  "state_outputs": ["openspec/changes/<change>/development/"]
+}

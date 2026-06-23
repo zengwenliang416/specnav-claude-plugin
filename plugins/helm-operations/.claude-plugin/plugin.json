@@ -1,0 +1,12 @@
+{
+  "name": "helm-operations",
+  "version": "0.3.0",
+  "description": "Operations and archive plugin for the Helm OpenSpec lifecycle suite.",
+  "author": {
+    "name": "Wenliang Zeng"
+  },
+  "homepage": "https://github.com/zengwenliang416/helm",
+  "license": "MIT",
+  "keywords": ["claude-code", "openspec", "release", "operations"],
+  "skills": "./skills/"
+}
