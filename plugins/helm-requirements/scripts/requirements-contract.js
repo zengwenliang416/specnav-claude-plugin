@@ -114,7 +114,7 @@ function isPlainObject(value) {
 }
 
 function hasInvalidArrayMembers(values) {
-  return values.some((item) => typeof item !== 'string' || item.trim().length === 0);
+  return values.some((item) => typeof item !== 'string' || item.length === 0 || item !== item.trim());
 }
 
 function validateArrayFieldContract(value, fields, blocker) {
@@ -155,7 +155,7 @@ function validateSpecMapContract(value) {
 
   const touchedSpecs = value.touched_specs;
   const hasTouchedSpecs = Array.isArray(touchedSpecs) && touchedSpecs.length > 0;
-  const hasUnknownTouchedSpecs = Array.isArray(touchedSpecs) && touchedSpecs.some((id) => typeof id !== 'string' || !FOUNDATION_SPEC_IDS.has(id.trim()));
+  const hasUnknownTouchedSpecs = Array.isArray(touchedSpecs) && touchedSpecs.some((id) => typeof id !== 'string' || !FOUNDATION_SPEC_IDS.has(id));
 
   return invalidField || !hasTouchedSpecs || hasUnknownTouchedSpecs ? [blocker] : [];
 }

@@ -862,6 +862,42 @@ JSON
 run_json "$EMPTY_SPEC_MAP_MEMBER_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/empty-spec-map-member.json" 2
 jq -e '.blockers[] | select(. == "invalid-spec-map-contract:spec-map.json")' "$TMP_DIR/empty-spec-map-member.json" >/dev/null
 
+PADDED_TOUCHED_SPEC_PROJECT="$TMP_DIR/padded-touched-spec-project"
+cp -R "$HAPPY_PROJECT" "$PADDED_TOUCHED_SPEC_PROJECT"
+cat >"$PADDED_TOUCHED_SPEC_PROJECT/openspec/changes/add-dashboard/spec-map.json" <<'JSON'
+{
+  "touched_specs": [" ui-design "],
+  "ui_rules": ["dashboard-layout"],
+  "architecture_modules": ["dashboard-shell"],
+  "api_contracts": [],
+  "database_entities": [],
+  "permissions": [],
+  "operational_constraints": [],
+  "data_flows": [],
+  "unresolved_gaps": []
+}
+JSON
+run_json "$PADDED_TOUCHED_SPEC_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/padded-touched-spec.json" 2
+jq -e '.blockers[] | select(. == "invalid-spec-map-contract:spec-map.json")' "$TMP_DIR/padded-touched-spec.json" >/dev/null
+
+PADDED_SPEC_MAP_MEMBER_PROJECT="$TMP_DIR/padded-spec-map-member-project"
+cp -R "$HAPPY_PROJECT" "$PADDED_SPEC_MAP_MEMBER_PROJECT"
+cat >"$PADDED_SPEC_MAP_MEMBER_PROJECT/openspec/changes/add-dashboard/spec-map.json" <<'JSON'
+{
+  "touched_specs": ["ui-design"],
+  "ui_rules": [" dashboard-layout "],
+  "architecture_modules": [],
+  "api_contracts": [],
+  "database_entities": [],
+  "permissions": [],
+  "operational_constraints": [],
+  "data_flows": [],
+  "unresolved_gaps": []
+}
+JSON
+run_json "$PADDED_SPEC_MAP_MEMBER_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/padded-spec-map-member.json" 2
+jq -e '.blockers[] | select(. == "invalid-spec-map-contract:spec-map.json")' "$TMP_DIR/padded-spec-map-member.json" >/dev/null
+
 UNKNOWN_TOUCHED_SPEC_PROJECT="$TMP_DIR/unknown-touched-spec-project"
 cp -R "$HAPPY_PROJECT" "$UNKNOWN_TOUCHED_SPEC_PROJECT"
 cat >"$UNKNOWN_TOUCHED_SPEC_PROJECT/openspec/changes/add-dashboard/spec-map.json" <<'JSON'
@@ -977,6 +1013,24 @@ cat >"$BLANK_COMPONENT_IMPACT_MEMBER_PROJECT/openspec/changes/add-dashboard/comp
 JSON
 run_json "$BLANK_COMPONENT_IMPACT_MEMBER_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/blank-component-impact-member.json" 2
 jq -e '.blockers[] | select(. == "invalid-component-impact-map-contract:component-impact-map.json")' "$TMP_DIR/blank-component-impact-member.json" >/dev/null
+
+PADDED_COMPONENT_IMPACT_MEMBER_PROJECT="$TMP_DIR/padded-component-impact-member-project"
+cp -R "$HAPPY_PROJECT" "$PADDED_COMPONENT_IMPACT_MEMBER_PROJECT"
+cat >"$PADDED_COMPONENT_IMPACT_MEMBER_PROJECT/openspec/changes/add-dashboard/component-impact-map.json" <<'JSON'
+{
+  "new_components": [" DashboardView "],
+  "reused_components": [],
+  "extraction_triggers": [],
+  "forbidden_dependencies": [],
+  "hooks": [],
+  "utilities": [],
+  "services": [],
+  "required_component_tests": ["DashboardView renders loading empty error states"],
+  "unresolved_gaps": []
+}
+JSON
+run_json "$PADDED_COMPONENT_IMPACT_MEMBER_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/padded-component-impact-member.json" 2
+jq -e '.blockers[] | select(. == "invalid-component-impact-map-contract:component-impact-map.json")' "$TMP_DIR/padded-component-impact-member.json" >/dev/null
 
 MISSING_COMPONENT_IMPACT_FIELD_PROJECT="$TMP_DIR/missing-component-impact-field-project"
 cp -R "$HAPPY_PROJECT" "$MISSING_COMPONENT_IMPACT_FIELD_PROJECT"
