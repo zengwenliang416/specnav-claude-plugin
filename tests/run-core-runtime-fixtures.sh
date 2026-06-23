@@ -6,13 +6,26 @@ CORE="$ROOT/plugins/helm-core"
 PROJECT="$ROOT/tests/fixtures/simple-project"
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
+EXTERNAL_PROJECT="$TMP_DIR/external-project"
+mkdir -p "$EXTERNAL_PROJECT"
 
 assert_grep() {
   local pattern="$1"
   local file="$2"
   local message="$3"
 
-  if ! grep -q "$pattern" "$file"; then
+  if ! grep -q -- "$pattern" "$file"; then
+    echo "$message" >&2
+    exit 1
+  fi
+}
+
+assert_grep_fixed() {
+  local pattern="$1"
+  local file="$2"
+  local message="$3"
+
+  if ! grep -Fq -- "$pattern" "$file"; then
     echo "$message" >&2
     exit 1
   fi
@@ -36,20 +49,37 @@ assert_grep 'helm-doctor.js' "$CORE/commands/helm-doctor.md" "helm-doctor comman
 assert_grep 'helm-requirements' "$CORE/skills/helm-router/SKILL.md" "helm router does not mention helm-requirements"
 assert_grep 'helm-verification' "$CORE/skills/helm-router/SKILL.md" "helm router does not mention helm-verification"
 assert_grep 'helm-operations' "$CORE/skills/helm-router/SKILL.md" "helm router does not mention helm-operations"
+assert_grep_fixed '--marketplace-root "$CLAUDE_PLUGIN_ROOT/../.."' "$CORE/commands/helm.md" "helm command does not document cwd-independent marketplace root"
+assert_grep_fixed '--plugin helm-core --plugin <target-plugin>' "$CORE/commands/helm.md" "helm command does not document core plus target plugin require"
+assert_grep_fixed '--marketplace-root "$CLAUDE_PLUGIN_ROOT/../.."' "$CORE/skills/helm-router/SKILL.md" "helm router does not document cwd-independent marketplace root"
+assert_grep_fixed '--plugin helm-core --plugin <target-plugin>' "$CORE/skills/helm-router/SKILL.md" "helm router does not document core plus target plugin require"
 
 suite_json="$TMP_DIR/plugin-suite-require.json"
 suite_status=0
 (
-  cd "$PROJECT"
+  cd "$EXTERNAL_PROJECT"
   export CLAUDE_PLUGIN_ROOT="$CORE"
   node "$CLAUDE_PLUGIN_ROOT/scripts/plugin-suite.js" require --marketplace-root "$CLAUDE_PLUGIN_ROOT/../.." --plugin helm-core --json >"$suite_json"
 ) || suite_status=$?
 if [ "$suite_status" -ne 0 ]; then
-  echo "plugin-suite require failed from project cwd with exit $suite_status" >&2
+  echo "plugin-suite require failed from external project cwd with exit $suite_status" >&2
   exit 1
 fi
 assert_jq '.ok == true' "$suite_json" "plugin-suite require did not return ok true"
 assert_jq '.plugins[] | select(.name == "helm-core" and .ok == true)' "$suite_json" "plugin-suite require did not include ok helm-core plugin"
+
+suite_missing_root_json="$TMP_DIR/plugin-suite-require-missing-root.json"
+suite_missing_root_status=0
+(
+  cd "$EXTERNAL_PROJECT"
+  export CLAUDE_PLUGIN_ROOT="$CORE"
+  node "$CLAUDE_PLUGIN_ROOT/scripts/plugin-suite.js" require --plugin helm-core --json >"$suite_missing_root_json"
+) || suite_missing_root_status=$?
+if [ "$suite_missing_root_status" -ne 2 ]; then
+  echo "plugin-suite require without marketplace root exited $suite_missing_root_status, expected 2" >&2
+  exit 1
+fi
+assert_jq '.blockers | index("missing-marketplace-json")' "$suite_missing_root_json" "plugin-suite require without marketplace root did not report missing marketplace"
 
 workflow_state_json="$TMP_DIR/workflow-state.json"
 workflow_state_status=0
