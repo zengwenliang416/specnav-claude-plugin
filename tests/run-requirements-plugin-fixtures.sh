@@ -265,6 +265,36 @@ run_json "$HAPPY_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/happy-fou
 jq -e '.ok == true' "$TMP_DIR/happy-foundation-specs.json" >/dev/null
 jq -e '.blockers | index("invalid-foundation-spec-theme-parity:ui-design") == null' "$TMP_DIR/happy-foundation-specs.json" >/dev/null
 
+PLAIN_SCALAR_SUFFIX_FRONTMATTER_PROJECT="$TMP_DIR/plain-scalar-suffix-frontmatter-project"
+cp -R "$HAPPY_PROJECT" "$PLAIN_SCALAR_SUFFIX_FRONTMATTER_PROJECT"
+cat >"$PLAIN_SCALAR_SUFFIX_FRONTMATTER_PROJECT/openspec/specs/ui-design/design.md" <<'MD'
+---
+version: 1.0.0
+name: UI Design {stable}
+description: Product interface standards [stable]
+colors: {}
+typography: {}
+spacing: {}
+rounded: {}
+components: []
+---
+# UI Design
+
+## Overview
+## Colors
+## Typography
+## Layout
+## Elevation & Depth
+## Motion
+## Shapes
+## Components
+## Voice & Content
+## Do's and Don'ts
+MD
+run_json "$PLAIN_SCALAR_SUFFIX_FRONTMATTER_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/plain-scalar-suffix-frontmatter.json" 0
+jq -e '.ok == true' "$TMP_DIR/plain-scalar-suffix-frontmatter.json" >/dev/null
+jq -e '.blockers | index("invalid-foundation-spec-frontmatter:ui-design") == null' "$TMP_DIR/plain-scalar-suffix-frontmatter.json" >/dev/null
+
 MULTI_COMPANION_PROJECT="$TMP_DIR/multi-companion-project"
 cp -R "$HAPPY_PROJECT" "$MULTI_COMPANION_PROJECT"
 cat >"$MULTI_COMPANION_PROJECT/openspec/specs/ui-design/marketing.light.md" <<'MD'
@@ -506,6 +536,35 @@ components: [{name: Button, note: 'Bob's inline component'}]
 MD
 run_json "$INLINE_UNESCAPED_SINGLE_QUOTE_FRONTMATTER_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/inline-unescaped-single-quote-frontmatter.json" 2
 jq -e '.blockers[] | select(. == "invalid-foundation-spec-frontmatter:ui-design")' "$TMP_DIR/inline-unescaped-single-quote-frontmatter.json" >/dev/null
+
+UNCLOSED_INLINE_FRONTMATTER_PROJECT="$TMP_DIR/unclosed-inline-frontmatter-project"
+cp -R "$HAPPY_PROJECT" "$UNCLOSED_INLINE_FRONTMATTER_PROJECT"
+cat >"$UNCLOSED_INLINE_FRONTMATTER_PROJECT/openspec/specs/ui-design/design.md" <<'MD'
+---
+version: 1.0.0
+name: UI Design
+description: Product interface standards
+colors: [brand
+typography: {body: system
+spacing: {}
+rounded: {}
+components: []
+---
+# UI Design
+
+## Overview
+## Colors
+## Typography
+## Layout
+## Elevation & Depth
+## Motion
+## Shapes
+## Components
+## Voice & Content
+## Do's and Don'ts
+MD
+run_json "$UNCLOSED_INLINE_FRONTMATTER_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/unclosed-inline-frontmatter.json" 2
+jq -e '.blockers[] | select(. == "invalid-foundation-spec-frontmatter:ui-design")' "$TMP_DIR/unclosed-inline-frontmatter.json" >/dev/null
 
 HEX_LITERAL_FRONTMATTER_PROJECT="$TMP_DIR/hex-literal-frontmatter-project"
 cp -R "$HAPPY_PROJECT" "$HEX_LITERAL_FRONTMATTER_PROJECT"

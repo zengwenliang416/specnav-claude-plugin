@@ -311,8 +311,8 @@ function parseYamlScalar(value) {
   if (trimmed === '{}') return { ok: true, value: {} };
   if (trimmed === '[]') return { ok: true, value: [] };
   if (trimmed.startsWith('"') || trimmed.startsWith("'")) return unquoteYamlString(trimmed);
-  if (trimmed.startsWith('[') || trimmed.endsWith(']')) return parseInlineArray(trimmed);
-  if (trimmed.startsWith('{') || trimmed.endsWith('}')) return parseInlineObject(trimmed);
+  if (trimmed.startsWith('[')) return parseInlineArray(trimmed);
+  if (trimmed.startsWith('{')) return parseInlineObject(trimmed);
   return { ok: true, value: trimmed };
 }
 
