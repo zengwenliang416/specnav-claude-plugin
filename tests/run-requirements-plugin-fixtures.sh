@@ -183,6 +183,13 @@ MD
   cat >"$project/openspec/changes/$change/spec-map.json" <<'JSON'
 {
   "touched_specs": ["ui-design", "system-architecture"],
+  "ui_rules": ["dashboard-layout"],
+  "architecture_modules": ["dashboard-shell"],
+  "api_contracts": [],
+  "database_entities": [],
+  "permissions": [],
+  "operational_constraints": [],
+  "data_flows": [],
   "unresolved_gaps": []
 }
 JSON
@@ -191,6 +198,12 @@ JSON
 {
   "new_components": ["DashboardView"],
   "reused_components": [],
+  "extraction_triggers": [],
+  "forbidden_dependencies": [],
+  "hooks": [],
+  "utilities": [],
+  "services": [],
+  "required_component_tests": ["DashboardView renders loading empty error states"],
   "unresolved_gaps": []
 }
 JSON
@@ -529,6 +542,23 @@ JSON
 run_json "$UNKNOWN_TOUCHED_SPEC_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/unknown-touched-spec.json" 2
 jq -e '.blockers[] | select(. == "invalid-spec-map-contract:spec-map.json")' "$TMP_DIR/unknown-touched-spec.json" >/dev/null
 
+MISSING_SPEC_MAP_FIELD_PROJECT="$TMP_DIR/missing-spec-map-field-project"
+cp -R "$HAPPY_PROJECT" "$MISSING_SPEC_MAP_FIELD_PROJECT"
+cat >"$MISSING_SPEC_MAP_FIELD_PROJECT/openspec/changes/add-dashboard/spec-map.json" <<'JSON'
+{
+  "touched_specs": ["ui-design"],
+  "ui_rules": ["layout:grid"],
+  "architecture_modules": [],
+  "api_contracts": [],
+  "database_entities": [],
+  "permissions": [],
+  "operational_constraints": [],
+  "unresolved_gaps": []
+}
+JSON
+run_json "$MISSING_SPEC_MAP_FIELD_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/missing-spec-map-field.json" 2
+jq -e '.blockers[] | select(. == "invalid-spec-map-contract:spec-map.json")' "$TMP_DIR/missing-spec-map-field.json" >/dev/null
+
 EMPTY_TOUCHED_SPECS_WITH_OTHER_FIELDS_PROJECT="$TMP_DIR/empty-touched-specs-with-other-fields-project"
 cp -R "$HAPPY_PROJECT" "$EMPTY_TOUCHED_SPECS_WITH_OTHER_FIELDS_PROJECT"
 cat >"$EMPTY_TOUCHED_SPECS_WITH_OTHER_FIELDS_PROJECT/openspec/changes/add-dashboard/spec-map.json" <<'JSON'
@@ -558,6 +588,23 @@ cat >"$EMPTY_SPEC_MAP_FIELDS_PROJECT/openspec/changes/add-dashboard/spec-map.jso
 JSON
 run_json "$EMPTY_SPEC_MAP_FIELDS_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/empty-spec-map-fields.json" 2
 jq -e '.blockers[] | select(. == "invalid-spec-map-contract:spec-map.json")' "$TMP_DIR/empty-spec-map-fields.json" >/dev/null
+
+MISSING_SPEC_UNRESOLVED_GAPS_PROJECT="$TMP_DIR/missing-spec-unresolved-gaps-project"
+cp -R "$HAPPY_PROJECT" "$MISSING_SPEC_UNRESOLVED_GAPS_PROJECT"
+cat >"$MISSING_SPEC_UNRESOLVED_GAPS_PROJECT/openspec/changes/add-dashboard/spec-map.json" <<'JSON'
+{
+  "touched_specs": ["ui-design"],
+  "ui_rules": ["layout:grid"],
+  "architecture_modules": [],
+  "api_contracts": [],
+  "database_entities": [],
+  "permissions": [],
+  "operational_constraints": [],
+  "data_flows": []
+}
+JSON
+run_json "$MISSING_SPEC_UNRESOLVED_GAPS_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/missing-spec-unresolved-gaps.json" 2
+jq -e '.blockers[] | select(. == "invalid-unresolved-gaps:spec-map.json")' "$TMP_DIR/missing-spec-unresolved-gaps.json" >/dev/null
 
 EMPTY_COMPONENT_IMPACT_MAP_PROJECT="$TMP_DIR/empty-component-impact-map-project"
 cp -R "$HAPPY_PROJECT" "$EMPTY_COMPONENT_IMPACT_MAP_PROJECT"
@@ -600,6 +647,23 @@ JSON
 run_json "$BLANK_COMPONENT_IMPACT_MEMBER_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/blank-component-impact-member.json" 2
 jq -e '.blockers[] | select(. == "invalid-component-impact-map-contract:component-impact-map.json")' "$TMP_DIR/blank-component-impact-member.json" >/dev/null
 
+MISSING_COMPONENT_IMPACT_FIELD_PROJECT="$TMP_DIR/missing-component-impact-field-project"
+cp -R "$HAPPY_PROJECT" "$MISSING_COMPONENT_IMPACT_FIELD_PROJECT"
+cat >"$MISSING_COMPONENT_IMPACT_FIELD_PROJECT/openspec/changes/add-dashboard/component-impact-map.json" <<'JSON'
+{
+  "new_components": ["DashboardView"],
+  "reused_components": [],
+  "extraction_triggers": [],
+  "forbidden_dependencies": [],
+  "hooks": [],
+  "utilities": [],
+  "services": [],
+  "unresolved_gaps": []
+}
+JSON
+run_json "$MISSING_COMPONENT_IMPACT_FIELD_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/missing-component-impact-field.json" 2
+jq -e '.blockers[] | select(. == "invalid-component-impact-map-contract:component-impact-map.json")' "$TMP_DIR/missing-component-impact-field.json" >/dev/null
+
 EMPTY_COMPONENT_IMPACT_FIELDS_PROJECT="$TMP_DIR/empty-component-impact-fields-project"
 cp -R "$HAPPY_PROJECT" "$EMPTY_COMPONENT_IMPACT_FIELDS_PROJECT"
 cat >"$EMPTY_COMPONENT_IMPACT_FIELDS_PROJECT/openspec/changes/add-dashboard/component-impact-map.json" <<'JSON'
@@ -617,6 +681,23 @@ cat >"$EMPTY_COMPONENT_IMPACT_FIELDS_PROJECT/openspec/changes/add-dashboard/comp
 JSON
 run_json "$EMPTY_COMPONENT_IMPACT_FIELDS_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/empty-component-impact-fields.json" 2
 jq -e '.blockers[] | select(. == "invalid-component-impact-map-contract:component-impact-map.json")' "$TMP_DIR/empty-component-impact-fields.json" >/dev/null
+
+MISSING_COMPONENT_UNRESOLVED_GAPS_PROJECT="$TMP_DIR/missing-component-unresolved-gaps-project"
+cp -R "$HAPPY_PROJECT" "$MISSING_COMPONENT_UNRESOLVED_GAPS_PROJECT"
+cat >"$MISSING_COMPONENT_UNRESOLVED_GAPS_PROJECT/openspec/changes/add-dashboard/component-impact-map.json" <<'JSON'
+{
+  "new_components": ["DashboardView"],
+  "reused_components": [],
+  "extraction_triggers": [],
+  "forbidden_dependencies": [],
+  "hooks": [],
+  "utilities": [],
+  "services": [],
+  "required_component_tests": []
+}
+JSON
+run_json "$MISSING_COMPONENT_UNRESOLVED_GAPS_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/missing-component-unresolved-gaps.json" 2
+jq -e '.blockers[] | select(. == "invalid-unresolved-gaps:component-impact-map.json")' "$TMP_DIR/missing-component-unresolved-gaps.json" >/dev/null
 
 UNRESOLVED_GAPS_PROJECT="$TMP_DIR/invalid-unresolved-gaps-project"
 cp -R "$HAPPY_PROJECT" "$UNRESOLVED_GAPS_PROJECT"

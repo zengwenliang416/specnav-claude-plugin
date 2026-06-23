@@ -114,7 +114,10 @@ function validateArrayFieldContract(value, fields, blocker) {
   let invalidField = false;
 
   for (const field of fields) {
-    if (!Object.prototype.hasOwnProperty.call(value, field)) continue;
+    if (!Object.prototype.hasOwnProperty.call(value, field)) {
+      invalidField = true;
+      continue;
+    }
     if (!Array.isArray(value[field])) {
       invalidField = true;
       continue;
@@ -131,7 +134,10 @@ function validateSpecMapContract(value) {
   let invalidField = false;
 
   for (const field of SPEC_MAP_FIELDS) {
-    if (!Object.prototype.hasOwnProperty.call(value, field)) continue;
+    if (!Object.prototype.hasOwnProperty.call(value, field)) {
+      invalidField = true;
+      continue;
+    }
     if (!Array.isArray(value[field])) {
       invalidField = true;
       continue;
@@ -146,14 +152,29 @@ function validateSpecMapContract(value) {
   return invalidField || !hasTouchedSpecs || hasUnknownTouchedSpecs ? [blocker] : [];
 }
 
-function validateJsonArtifactContract(name, value) {
-  if (name === 'spec-map.json') {
-    return validateSpecMapContract(value);
+function validateUnresolvedGapsContract(name, value) {
+  if (!Object.prototype.hasOwnProperty.call(value, 'unresolved_gaps') || !Array.isArray(value.unresolved_gaps)) {
+    return [`invalid-unresolved-gaps:${name}`];
   }
-  if (name === 'component-impact-map.json') {
-    return validateArrayFieldContract(value, COMPONENT_IMPACT_MAP_FIELDS, 'invalid-component-impact-map-contract:component-impact-map.json');
+  if (value.unresolved_gaps.length > 0) {
+    return [`unresolved-gaps:${name}`];
   }
   return [];
+}
+
+function validateJsonArtifactContract(name, value) {
+  const blockers = [];
+  if (name === 'spec-map.json') {
+    blockers.push(...validateSpecMapContract(value));
+    blockers.push(...validateUnresolvedGapsContract(name, value));
+    return blockers;
+  }
+  if (name === 'component-impact-map.json') {
+    blockers.push(...validateArrayFieldContract(value, COMPONENT_IMPACT_MAP_FIELDS, 'invalid-component-impact-map-contract:component-impact-map.json'));
+    blockers.push(...validateUnresolvedGapsContract(name, value));
+    return blockers;
+  }
+  return blockers;
 }
 
 function validateArtifact(dir, change, name) {
@@ -193,13 +214,6 @@ function validateArtifact(dir, change, name) {
     blockers.push(`invalid-json-shape:${name}`);
   } else {
     blockers.push(...validateJsonArtifactContract(name, parsed.value));
-    if (Object.prototype.hasOwnProperty.call(parsed.value, 'unresolved_gaps')) {
-      if (!Array.isArray(parsed.value.unresolved_gaps)) {
-        blockers.push(`invalid-unresolved-gaps:${name}`);
-      } else if (parsed.value.unresolved_gaps.length > 0) {
-        blockers.push(`unresolved-gaps:${name}`);
-      }
-    }
   }
 
   return {
