@@ -31,6 +31,8 @@ done
 
 test -f "$ROOT/plugins/helm-core/hooks/hooks.json"
 test -f "$ROOT/plugins/helm-core/scripts/helm-lib.js"
+test -f "$ROOT/plugins/helm-core/scripts/workflow-state.js"
+test -f "$ROOT/plugins/helm-core/scripts/helm-doctor.js"
 test ! -e "$ROOT/plugins/helm-core/commands/helm-verify.md"
 test ! -e "$ROOT/plugins/helm-core/commands/helm-archive.md"
 
