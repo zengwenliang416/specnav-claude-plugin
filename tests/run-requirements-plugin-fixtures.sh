@@ -320,6 +320,51 @@ MD
 run_json "$THEME_MISMATCH_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/theme-mismatch.json" 2
 jq -e '.blockers[] | select(. == "invalid-foundation-spec-theme-parity:ui-design")' "$TMP_DIR/theme-mismatch.json" >/dev/null
 
+NAMED_THEME_MISMATCH_PROJECT="$TMP_DIR/named-theme-mismatch-project"
+cp -R "$BLOCK_FRONTMATTER_PROJECT" "$NAMED_THEME_MISMATCH_PROJECT"
+cp "$NAMED_THEME_MISMATCH_PROJECT/openspec/specs/ui-design/design.md" "$NAMED_THEME_MISMATCH_PROJECT/openspec/specs/ui-design/Light-Theme.md"
+cat >"$NAMED_THEME_MISMATCH_PROJECT/openspec/specs/ui-design/dark-theme.md" <<'MD'
+---
+version: "1.0.0"
+name: "UI Dark Design"
+description: "Dark mode token contract"
+colors:
+  primary: "#000"
+  canvas:
+    default: "{colors.primary}"
+typography:
+  heading-72:
+    fontSize: 72px
+    lineHeight: "80px"
+  button-14:
+    fontSize: 14px
+spacing:
+  sm: 8px
+rounded:
+  sm: 4px
+components:
+  - name: Button
+    backgroundColor: "{colors.primary}"
+    textStyle: "{typography.button-14}"
+    radius: "{rounded.sm}"
+    note: "token reference: {colors.canvas.default}"
+---
+# UI Design
+
+## Overview
+## Colors
+## Typography
+## Layout
+## Elevation & Depth
+## Motion
+## Shapes
+## Components
+## Voice & Content
+## Do's and Don'ts
+MD
+run_json "$NAMED_THEME_MISMATCH_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/named-theme-mismatch.json" 2
+jq -e '.blockers[] | select(. == "invalid-foundation-spec-theme-parity:ui-design")' "$TMP_DIR/named-theme-mismatch.json" >/dev/null
+
 INVALID_TOKEN_REF_PROJECT="$TMP_DIR/invalid-token-ref-project"
 cp -R "$BLOCK_FRONTMATTER_PROJECT" "$INVALID_TOKEN_REF_PROJECT"
 perl -0pi -e 's/backgroundColor: "\{colors\.primary\}"/backgroundColor: "{colors.missing}"/' "$INVALID_TOKEN_REF_PROJECT/openspec/specs/ui-design/design.md"

@@ -620,21 +620,58 @@ function existingThemePairs(primaryFile) {
   const light = path.join(directory, 'light.md');
   const dark = path.join(directory, 'dark.md');
   const pairs = [];
+  const pairKeys = new Set();
+
+  const addPair = (leftFile, rightFile) => {
+    const key = `${leftFile}\0${rightFile}`;
+    if (pairKeys.has(key)) return;
+    pairKeys.add(key);
+    pairs.push({ left: leftFile, right: rightFile });
+  };
 
   if (fs.existsSync(designDark)) {
-    pairs.push({
-      left: fs.existsSync(designLight) ? designLight : primaryFile,
-      right: designDark
-    });
+    addPair(fs.existsSync(designLight) ? designLight : primaryFile, designDark);
   }
   if (fs.existsSync(light) && fs.existsSync(dark)) {
-    pairs.push({ left: light, right: dark });
+    addPair(light, dark);
+  }
+
+  const themeSegment = (filename, theme) => {
+    const basename = filename.replace(/\.md$/i, '');
+    return new RegExp(`(^|[^a-z0-9])${theme}([^a-z0-9]|$)`, 'i').test(basename);
+  };
+  let entries = [];
+  try {
+    entries = fs.readdirSync(directory, { withFileTypes: true });
+  } catch (_error) {
+    return pairs;
+  }
+
+  const markdownFiles = entries
+    .filter((entry) => entry.isFile() && /\.md$/i.test(entry.name))
+    .map((entry) => ({
+      name: entry.name,
+      file: path.join(directory, entry.name)
+    }))
+    .sort((leftEntry, rightEntry) => leftEntry.name.localeCompare(rightEntry.name));
+  const lightDocs = markdownFiles
+    .filter((entry) => themeSegment(entry.name, 'light'))
+    .map((entry) => entry.file);
+  const darkDocs = markdownFiles
+    .filter((entry) => themeSegment(entry.name, 'dark'))
+    .map((entry) => entry.file);
+
+  for (const lightDoc of lightDocs) {
+    for (const darkDoc of darkDocs) {
+      addPair(lightDoc, darkDoc);
+    }
   }
 
   return pairs;
 }
 
 function validateThemeCompanions(primaryFile, primaryText, primaryValidation, contract) {
+  const themePairs = existingThemePairs(primaryFile);
   const docs = new Map();
   docs.set(primaryFile, {
     label: path.basename(primaryFile),
@@ -643,7 +680,7 @@ function validateThemeCompanions(primaryFile, primaryText, primaryValidation, co
     unreadable: false
   });
 
-  for (const pair of existingThemePairs(primaryFile)) {
+  for (const pair of themePairs) {
     for (const file of [pair.left, pair.right]) {
       if (docs.has(file)) continue;
       const label = path.basename(file);
@@ -687,7 +724,7 @@ function validateThemeCompanions(primaryFile, primaryText, primaryValidation, co
     invalidFrontmatterValues.push(...doc.validation.invalidFrontmatterValues);
   }
 
-  for (const pair of existingThemePairs(primaryFile)) {
+  for (const pair of themePairs) {
     const left = docs.get(pair.left);
     const right = docs.get(pair.right);
     if (!left || !right || left.unreadable || right.unreadable) continue;
