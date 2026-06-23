@@ -6,10 +6,12 @@
   "commands": ["helm", "helm-status", "helm-doctor"],
   "skills": ["using-helm", "helm-router", "status", "doctor", "debug", "break-loop"],
   "contracts": {
-    "suite": "scripts/plugin-suite.js",
     "state": "scripts/workflow-state.js",
     "doctor": "scripts/helm-doctor.js",
     "guard": "scripts/helm-guard.js"
+  },
+  "planned_contracts": {
+    "suite": "scripts/plugin-suite.js"
   },
   "state_outputs": ["openspec/.helm/workflow-state.json", "openspec/.helm/affordances.json"]
 }

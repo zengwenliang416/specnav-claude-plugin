@@ -6,7 +6,7 @@
   "depends_on": ["helm-core"],
   "commands": ["helm-requirements"],
   "skills": ["foundation-spec", "requirements"],
-  "contracts": {
+  "planned_contracts": {
     "foundation": "scripts/foundation-specs.js",
     "requirements": "scripts/requirements-contract.js"
   },

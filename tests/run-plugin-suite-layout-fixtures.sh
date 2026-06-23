@@ -27,6 +27,10 @@ for plugin in helm-core helm-requirements helm-prototype helm-development helm-v
   while IFS= read -r skill; do
     test -f "$ROOT/plugins/$plugin/skills/$skill/SKILL.md"
   done < <(jq -r '.skills[]?' "$ROOT/plugins/$plugin/helm-stage.json")
+
+  while IFS= read -r contract; do
+    test -f "$ROOT/plugins/$plugin/$contract"
+  done < <(jq -r '(.contracts // {})[]' "$ROOT/plugins/$plugin/helm-stage.json")
 done
 
 test -f "$ROOT/plugins/helm-core/hooks/hooks.json"
