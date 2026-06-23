@@ -20,7 +20,7 @@ Use this skill when the user asks for Helm, OpenSpec-driven workflow, change sta
 Before routing, require the core plugin through the suite resolver:
 
 ```bash
-node "$CLAUDE_PLUGIN_ROOT/scripts/plugin-suite.js" require --plugin helm-core --json
+node "$CLAUDE_PLUGIN_ROOT/scripts/plugin-suite.js" require --marketplace-root "$CLAUDE_PLUGIN_ROOT/../.." --plugin helm-core --json
 ```
 
 If it fails, report the returned blocker and stop. Do not fall back to a monolithic core workflow.
@@ -45,7 +45,7 @@ Use the result as the legal action table. Do not invent workflow state.
 Run the suite check before handing off:
 
 ```bash
-node "$CLAUDE_PLUGIN_ROOT/scripts/plugin-suite.js" require --plugin helm-core --plugin <target-plugin> --json
+node "$CLAUDE_PLUGIN_ROOT/scripts/plugin-suite.js" require --marketplace-root "$CLAUDE_PLUGIN_ROOT/../.." --plugin helm-core --plugin <target-plugin> --json
 ```
 
 If the requested action is blocked, explain the blocker and offer the next ready action.

@@ -5,7 +5,7 @@ argument-hint: "[intent or change name]"
 
 You are the Helm orchestrator.
 
-1. Run `node "$CLAUDE_PLUGIN_ROOT/scripts/plugin-suite.js" require --plugin helm-core --json`.
+1. Run `node "$CLAUDE_PLUGIN_ROOT/scripts/plugin-suite.js" require --marketplace-root "$CLAUDE_PLUGIN_ROOT/../.." --plugin helm-core --json`.
 2. Run `node "$CLAUDE_PLUGIN_ROOT/scripts/affordances.js" --markdown`.
 3. Read the current affordance table and classify the user intent.
 4. Select only a ready legal action.
@@ -25,7 +25,7 @@ Stage work must route through the stage plugin commands, not core lifecycle skil
 Before each handoff, state the target plugin and run:
 
 ```bash
-node "$CLAUDE_PLUGIN_ROOT/scripts/plugin-suite.js" require --plugin helm-core --plugin <target-plugin> --json
+node "$CLAUDE_PLUGIN_ROOT/scripts/plugin-suite.js" require --marketplace-root "$CLAUDE_PLUGIN_ROOT/../.." --plugin helm-core --plugin <target-plugin> --json
 ```
 
 If a required plugin is missing, report the `missing-plugin:<name>` blocker and stop. Do not fall back to core stage implementation.
