@@ -114,9 +114,24 @@ function validateArrayFieldContract(value, fields, blocker) {
   return invalidFieldType || !hasNonEmptyArray ? [blocker] : [];
 }
 
+function validateSpecMapContract(value) {
+  const blocker = 'invalid-spec-map-contract:spec-map.json';
+  let invalidFieldType = false;
+
+  for (const field of SPEC_MAP_FIELDS) {
+    if (!Object.prototype.hasOwnProperty.call(value, field)) continue;
+    if (!Array.isArray(value[field])) invalidFieldType = true;
+  }
+
+  const touchedSpecs = value.touched_specs;
+  const hasTouchedSpecs = Array.isArray(touchedSpecs) && touchedSpecs.length > 0;
+
+  return invalidFieldType || !hasTouchedSpecs ? [blocker] : [];
+}
+
 function validateJsonArtifactContract(name, value) {
   if (name === 'spec-map.json') {
-    return validateArrayFieldContract(value, SPEC_MAP_FIELDS, 'invalid-spec-map-contract:spec-map.json');
+    return validateSpecMapContract(value);
   }
   if (name === 'component-impact-map.json') {
     return validateArrayFieldContract(value, COMPONENT_IMPACT_MAP_FIELDS, 'invalid-component-impact-map-contract:component-impact-map.json');

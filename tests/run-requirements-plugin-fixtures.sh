@@ -386,6 +386,17 @@ JSON
 run_json "$EMPTY_SPEC_MAP_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/empty-spec-map.json" 2
 jq -e '.blockers[] | select(. == "invalid-spec-map-contract:spec-map.json")' "$TMP_DIR/empty-spec-map.json" >/dev/null
 
+MISSING_TOUCHED_SPECS_PROJECT="$TMP_DIR/missing-touched-specs-project"
+cp -R "$HAPPY_PROJECT" "$MISSING_TOUCHED_SPECS_PROJECT"
+cat >"$MISSING_TOUCHED_SPECS_PROJECT/openspec/changes/add-dashboard/spec-map.json" <<'JSON'
+{
+  "ui_rules": ["layout:grid"],
+  "unresolved_gaps": []
+}
+JSON
+run_json "$MISSING_TOUCHED_SPECS_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/missing-touched-specs.json" 2
+jq -e '.blockers[] | select(. == "invalid-spec-map-contract:spec-map.json")' "$TMP_DIR/missing-touched-specs.json" >/dev/null
+
 INVALID_SPEC_MAP_FIELD_PROJECT="$TMP_DIR/invalid-spec-map-field-project"
 cp -R "$HAPPY_PROJECT" "$INVALID_SPEC_MAP_FIELD_PROJECT"
 cat >"$INVALID_SPEC_MAP_FIELD_PROJECT/openspec/changes/add-dashboard/spec-map.json" <<'JSON'
@@ -396,6 +407,18 @@ cat >"$INVALID_SPEC_MAP_FIELD_PROJECT/openspec/changes/add-dashboard/spec-map.js
 JSON
 run_json "$INVALID_SPEC_MAP_FIELD_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/invalid-spec-map-field.json" 2
 jq -e '.blockers[] | select(. == "invalid-spec-map-contract:spec-map.json")' "$TMP_DIR/invalid-spec-map-field.json" >/dev/null
+
+EMPTY_TOUCHED_SPECS_WITH_OTHER_FIELDS_PROJECT="$TMP_DIR/empty-touched-specs-with-other-fields-project"
+cp -R "$HAPPY_PROJECT" "$EMPTY_TOUCHED_SPECS_WITH_OTHER_FIELDS_PROJECT"
+cat >"$EMPTY_TOUCHED_SPECS_WITH_OTHER_FIELDS_PROJECT/openspec/changes/add-dashboard/spec-map.json" <<'JSON'
+{
+  "touched_specs": [],
+  "ui_rules": ["layout:grid"],
+  "unresolved_gaps": []
+}
+JSON
+run_json "$EMPTY_TOUCHED_SPECS_WITH_OTHER_FIELDS_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/empty-touched-specs-with-other-fields.json" 2
+jq -e '.blockers[] | select(. == "invalid-spec-map-contract:spec-map.json")' "$TMP_DIR/empty-touched-specs-with-other-fields.json" >/dev/null
 
 EMPTY_SPEC_MAP_FIELDS_PROJECT="$TMP_DIR/empty-spec-map-fields-project"
 cp -R "$HAPPY_PROJECT" "$EMPTY_SPEC_MAP_FIELDS_PROJECT"
