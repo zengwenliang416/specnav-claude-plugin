@@ -614,11 +614,13 @@ function validateSpecText(text, contract, label = null) {
   if (contract.requiredFrontmatterKeys.length) {
     const requiredValueKeys = contract.id === 'ui-design' ? UI_REQUIRED_TOKEN_ROOTS : [];
     frontmatter = parseFrontmatterKeys(text, contract.requiredFrontmatterKeys, requiredValueKeys);
-    missingKeys.push(
-      ...contract.requiredFrontmatterKeys
-        .filter((key) => !frontmatter.keys.includes(key))
-        .map((key) => labelValue(label, key))
-    );
+    if (frontmatter.parse_ok) {
+      missingKeys.push(
+        ...contract.requiredFrontmatterKeys
+          .filter((key) => !frontmatter.keys.includes(key))
+          .map((key) => labelValue(label, key))
+      );
+    }
     invalidFrontmatterValues.push(...frontmatter.invalidValues.map((value) => labelValue(label, value)));
     if (!frontmatter.ok || missingKeys.length) blockers.push(`invalid-foundation-spec-frontmatter:${contract.id}`);
 
@@ -758,6 +760,7 @@ function validateThemeCompanions(primaryFile, primaryText, primaryValidation, co
   const missingKeys = [];
   const invalidReferences = [];
   const invalidFrontmatterValues = [];
+  const frontmatterErrors = [];
   for (const doc of docs.values()) {
     if (doc.label === path.basename(primaryFile)) continue;
     blockers.push(...doc.validation.blockers);
@@ -765,6 +768,9 @@ function validateThemeCompanions(primaryFile, primaryText, primaryValidation, co
     missingKeys.push(...doc.validation.missingKeys);
     invalidReferences.push(...doc.validation.invalidReferences);
     invalidFrontmatterValues.push(...doc.validation.invalidFrontmatterValues);
+    if (doc.validation.frontmatter && doc.validation.frontmatter.parse_ok === false && doc.validation.frontmatter.error) {
+      frontmatterErrors.push(labelValue(doc.label, doc.validation.frontmatter.error));
+    }
   }
 
   for (const pair of themePairs) {
@@ -783,7 +789,8 @@ function validateThemeCompanions(primaryFile, primaryText, primaryValidation, co
     missingSections,
     missingKeys,
     invalidReferences: unique(invalidReferences),
-    invalidFrontmatterValues: unique(invalidFrontmatterValues)
+    invalidFrontmatterValues: unique(invalidFrontmatterValues),
+    frontmatterErrors: unique(frontmatterErrors)
   };
 }
 
@@ -830,6 +837,7 @@ function validateOne(root, spec) {
   const blockers = primary.blockers.slice();
   const invalidReferences = primary.invalidReferences.slice();
   const invalidFrontmatterValues = primary.invalidFrontmatterValues.slice();
+  const frontmatterErrors = [];
   const frontmatter_error = primary.frontmatter ? primary.frontmatter.error : null;
 
   if (contract.id === 'ui-design') {
@@ -839,6 +847,7 @@ function validateOne(root, spec) {
     missingKeys.push(...theme.missingKeys);
     invalidReferences.push(...theme.invalidReferences);
     invalidFrontmatterValues.push(...theme.invalidFrontmatterValues);
+    frontmatterErrors.push(...theme.frontmatterErrors);
   }
 
   return {
@@ -849,6 +858,7 @@ function validateOne(root, spec) {
     missing_sections: missingSections,
     missing_frontmatter_keys: missingKeys,
     ...(frontmatter_error ? { frontmatter_error } : {}),
+    ...(frontmatterErrors.length ? { frontmatter_errors: unique(frontmatterErrors) } : {}),
     ...(invalidReferences.length ? { invalid_token_references: unique(invalidReferences) } : {}),
     ...(invalidFrontmatterValues.length ? { invalid_frontmatter_values: unique(invalidFrontmatterValues) } : {})
   };

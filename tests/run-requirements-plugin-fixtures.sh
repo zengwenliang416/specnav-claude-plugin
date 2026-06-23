@@ -702,6 +702,37 @@ MD
 run_json "$THEME_MISMATCH_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/theme-mismatch.json" 2
 jq -e '.blockers[] | select(. == "invalid-foundation-spec-theme-parity:ui-design")' "$TMP_DIR/theme-mismatch.json" >/dev/null
 
+COMPANION_BAD_FRONTMATTER_PROJECT="$TMP_DIR/companion-bad-frontmatter-project"
+cp -R "$HAPPY_PROJECT" "$COMPANION_BAD_FRONTMATTER_PROJECT"
+cat >"$COMPANION_BAD_FRONTMATTER_PROJECT/openspec/specs/ui-design/design.dark.md" <<'MD'
+---
+version: 1.0.0
+name: UI Dark Design
+description: Dark mode token contract
+colors: [
+typography: {}
+spacing: {}
+rounded: {}
+components: []
+---
+# UI Design
+
+## Overview
+## Colors
+## Typography
+## Layout
+## Elevation & Depth
+## Motion
+## Shapes
+## Components
+## Voice & Content
+## Do's and Don'ts
+MD
+run_json "$COMPANION_BAD_FRONTMATTER_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/companion-bad-frontmatter.json" 2
+jq -e '.blockers[] | select(. == "invalid-foundation-spec-frontmatter:ui-design")' "$TMP_DIR/companion-bad-frontmatter.json" >/dev/null
+jq -e '.specs[] | select(.id == "ui-design") | .missing_frontmatter_keys | map(select(startswith("design.dark.md:"))) | length == 0' "$TMP_DIR/companion-bad-frontmatter.json" >/dev/null
+jq -e '.specs[] | select(.id == "ui-design") | .frontmatter_errors[] | select(. == "design.dark.md:unparseable-frontmatter")' "$TMP_DIR/companion-bad-frontmatter.json" >/dev/null
+
 NAMED_THEME_MISMATCH_PROJECT="$TMP_DIR/named-theme-mismatch-project"
 cp -R "$BLOCK_FRONTMATTER_PROJECT" "$NAMED_THEME_MISMATCH_PROJECT"
 cp "$NAMED_THEME_MISMATCH_PROJECT/openspec/specs/ui-design/design.md" "$NAMED_THEME_MISMATCH_PROJECT/openspec/specs/ui-design/Light-Theme.md"
@@ -856,6 +887,13 @@ cp -R "$HAPPY_PROJECT" "$EMPTY_SPEC_MAP_MEMBER_PROJECT"
 cat >"$EMPTY_SPEC_MAP_MEMBER_PROJECT/openspec/changes/add-dashboard/spec-map.json" <<'JSON'
 {
   "touched_specs": [""],
+  "ui_rules": ["dashboard-layout"],
+  "architecture_modules": ["dashboard-shell"],
+  "api_contracts": [],
+  "database_entities": [],
+  "permissions": [],
+  "operational_constraints": [],
+  "data_flows": [],
   "unresolved_gaps": []
 }
 JSON
@@ -903,6 +941,13 @@ cp -R "$HAPPY_PROJECT" "$UNKNOWN_TOUCHED_SPEC_PROJECT"
 cat >"$UNKNOWN_TOUCHED_SPEC_PROJECT/openspec/changes/add-dashboard/spec-map.json" <<'JSON'
 {
   "touched_specs": ["unknown-spec"],
+  "ui_rules": ["dashboard-layout"],
+  "architecture_modules": ["dashboard-shell"],
+  "api_contracts": [],
+  "database_entities": [],
+  "permissions": [],
+  "operational_constraints": [],
+  "data_flows": [],
   "unresolved_gaps": []
 }
 JSON
@@ -997,6 +1042,13 @@ cp -R "$HAPPY_PROJECT" "$INVALID_COMPONENT_IMPACT_MEMBER_PROJECT"
 cat >"$INVALID_COMPONENT_IMPACT_MEMBER_PROJECT/openspec/changes/add-dashboard/component-impact-map.json" <<'JSON'
 {
   "new_components": [null],
+  "reused_components": [],
+  "extraction_triggers": [],
+  "forbidden_dependencies": [],
+  "hooks": [],
+  "utilities": [],
+  "services": [],
+  "required_component_tests": ["DashboardView renders loading empty error states"],
   "unresolved_gaps": []
 }
 JSON
@@ -1008,6 +1060,13 @@ cp -R "$HAPPY_PROJECT" "$BLANK_COMPONENT_IMPACT_MEMBER_PROJECT"
 cat >"$BLANK_COMPONENT_IMPACT_MEMBER_PROJECT/openspec/changes/add-dashboard/component-impact-map.json" <<'JSON'
 {
   "new_components": ["   "],
+  "reused_components": [],
+  "extraction_triggers": [],
+  "forbidden_dependencies": [],
+  "hooks": [],
+  "utilities": [],
+  "services": [],
+  "required_component_tests": ["DashboardView renders loading empty error states"],
   "unresolved_gaps": []
 }
 JSON
