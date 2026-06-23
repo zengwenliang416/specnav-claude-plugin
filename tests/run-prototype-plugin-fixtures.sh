@@ -446,6 +446,16 @@ run_json "$SYMLINK_DIR_ESCAPE_PROJECT" "$TMP_DIR/symlink-dir-escape.json" 2
 assert_blocker "$TMP_DIR/symlink-dir-escape.json" 'prototype-path-escape:logic/demo.js'
 assert_blocker "$TMP_DIR/symlink-dir-escape.json" 'prototype-branch-artifact-escape:logic'
 
+PROTOTYPE_DIR_ESCAPE_PROJECT="$TMP_DIR/prototype-dir-escape-project"
+cp -R "$HAPPY_PROJECT" "$PROTOTYPE_DIR_ESCAPE_PROJECT"
+EXTERNAL_PROTOTYPE="$TMP_DIR/external-prototype"
+mkdir -p "$EXTERNAL_PROTOTYPE"
+cp -R "$HAPPY_PROJECT/openspec/changes/add-dashboard/prototype/." "$EXTERNAL_PROTOTYPE/"
+rm -rf "$PROTOTYPE_DIR_ESCAPE_PROJECT/openspec/changes/add-dashboard/prototype"
+ln -s "$EXTERNAL_PROTOTYPE" "$PROTOTYPE_DIR_ESCAPE_PROJECT/openspec/changes/add-dashboard/prototype"
+run_json "$PROTOTYPE_DIR_ESCAPE_PROJECT" "$TMP_DIR/prototype-dir-escape.json" 2
+assert_blocker "$TMP_DIR/prototype-dir-escape.json" 'prototype-dir-escape'
+
 for status in red blocked; do
   VERIFIER_PROJECT="$TMP_DIR/verifier-$status-project"
   cp -R "$HAPPY_PROJECT" "$VERIFIER_PROJECT"

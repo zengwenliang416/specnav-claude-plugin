@@ -383,6 +383,29 @@ function validateRealpathContainment(prototypeDir, candidate, relativePath, esca
   return { ok: true, status: 'ok', blockers: [] };
 }
 
+function validatePrototypeDirContainment(changeDir, prototypeDir) {
+  let changeRealpath;
+  let prototypeRealpath;
+
+  try {
+    changeRealpath = realpathSync(changeDir);
+  } catch {
+    return { ok: false, status: 'unreadable', blockers: ['unreadable-change-dir'] };
+  }
+
+  try {
+    prototypeRealpath = realpathSync(prototypeDir);
+  } catch {
+    return { ok: false, status: 'unreadable', blockers: ['unreadable-prototype-dir'] };
+  }
+
+  if (!isRealpathContained(changeRealpath, prototypeRealpath)) {
+    return { ok: false, status: 'escape', blockers: ['prototype-dir-escape'] };
+  }
+
+  return { ok: true, status: 'ok', blockers: [] };
+}
+
 function validateTextArtifact(prototypeDir, change, name, options = {}) {
   const file = path.join(prototypeDir, name);
   const text = readTextFile(file);
@@ -767,7 +790,8 @@ function validatePrototype(root = lib.projectRoot()) {
   }
 
   const activeChange = requirements.active_change;
-  const prototypeDir = path.join(projectRoot, 'openspec', 'changes', activeChange, 'prototype');
+  const changeDir = lib.changeDir(projectRoot, activeChange);
+  const prototypeDir = path.join(changeDir, 'prototype');
   const blockers = [];
   let artifacts = [];
   let manifest = null;
@@ -783,6 +807,20 @@ function validatePrototype(root = lib.projectRoot()) {
       active_change: activeChange,
       prototype_dir: prototypeDir,
       blockers: unique([...blockers, ...artifacts.flatMap((artifact) => artifact.blockers)]),
+      requirements,
+      artifacts
+    };
+  }
+
+  const prototypeDirContainment = validatePrototypeDirContainment(changeDir, prototypeDir);
+  if (!prototypeDirContainment.ok) {
+    blockers.push(...prototypeDirContainment.blockers);
+    return {
+      ok: false,
+      project_root: projectRoot,
+      active_change: activeChange,
+      prototype_dir: prototypeDir,
+      blockers: unique(blockers),
       requirements,
       artifacts
     };
