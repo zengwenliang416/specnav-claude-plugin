@@ -3,6 +3,22 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
+assert_first_before() {
+  local file="$1"
+  local first="$2"
+  local second="$3"
+  local first_line
+  local second_line
+
+  first_line="$(grep -nF "$first" "$file" | head -n1 | cut -d: -f1 || true)"
+  second_line="$(grep -nF "$second" "$file" | head -n1 | cut -d: -f1 || true)"
+
+  if [[ -z "$first_line" || -z "$second_line" || "$first_line" -ge "$second_line" ]]; then
+    echo "expected '$first' before '$second' in $file" >&2
+    exit 1
+  fi
+}
+
 jq -e '.plugins | length == 6' "$ROOT/.claude-plugin/marketplace.json" >/dev/null
 jq -e '.plugins[].name' "$ROOT/.claude-plugin/marketplace.json" >/tmp/helm-plugin-names.txt
 grep -q '"helm-core"' /tmp/helm-plugin-names.txt
@@ -45,6 +61,10 @@ for plugin in helm-core helm-requirements helm-prototype helm-development helm-v
   while IFS= read -r contract; do
     test -f "$ROOT/plugins/$plugin/$contract"
   done < <(jq -r '(.contracts // {})[]' "$ROOT/plugins/$plugin/helm-stage.json")
+
+  while IFS= read -r planned_contract; do
+    test ! -e "$ROOT/plugins/$plugin/$planned_contract"
+  done < <(jq -r '(.planned_contracts // {})[]' "$ROOT/plugins/$plugin/helm-stage.json")
 done
 
 test -f "$ROOT/plugins/helm-core/hooks/hooks.json"
@@ -67,7 +87,20 @@ for command_file in \
   grep -q 'not-implemented:helm-core/plugin-suite' "$command_file"
 done
 
+for command_file in "$ROOT"/plugins/*/commands/*.md; do
+  if grep -qF '../helm-core/scripts/plugin-suite.js' "$command_file"; then
+    assert_first_before \
+      "$command_file" \
+      'not-implemented:helm-core/plugin-suite' \
+      'node "$CLAUDE_PLUGIN_ROOT/../helm-core/scripts/plugin-suite.js"'
+  fi
+done
+
 grep -q 'not-implemented:helm-operations/archive-gate' "$ROOT/plugins/helm-operations/commands/helm-archive.md"
+assert_first_before \
+  "$ROOT/plugins/helm-operations/commands/helm-archive.md" \
+  'not-implemented:helm-operations/archive-gate' \
+  'node "$CLAUDE_PLUGIN_ROOT/scripts/archive-gate.js"'
 
 for routing_file in \
   "$ROOT/plugins/helm-core/commands/helm.md" \

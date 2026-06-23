@@ -3,25 +3,26 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 BASE="$ROOT/tests/fixtures/simple-project"
+CORE="$ROOT/plugins/helm-core"
 TMP="$(mktemp -d)"
 cp -R "$BASE/." "$TMP/"
 trap 'rm -rf "$TMP"' EXIT
 
 CHANGE_DIR="$TMP/openspec/changes/add-dark-mode"
 
-PROJECT_DIR="$TMP" node "$ROOT/scripts/verify.js" >/tmp/helm-policy-verify.md
-PROJECT_DIR="$TMP" node "$ROOT/scripts/archive-gate.js" >/tmp/helm-policy-archive.txt
+PROJECT_DIR="$TMP" node "$CORE/scripts/verify.js" >/tmp/helm-policy-verify.md
+PROJECT_DIR="$TMP" node "$CORE/scripts/archive-gate.js" >/tmp/helm-policy-archive.txt
 
 printf '{"tool_name":"Write","tool_input":{"file_path":"src/ui/theme.ts"}}' | \
-  PROJECT_DIR="$TMP" node "$ROOT/scripts/helm-post-tool.js"
+  PROJECT_DIR="$TMP" node "$CORE/scripts/helm-post-tool.js"
 
-if PROJECT_DIR="$TMP" node "$ROOT/scripts/archive-gate.js" >/tmp/helm-policy-stale.out 2>/tmp/helm-policy-stale.err; then
+if PROJECT_DIR="$TMP" node "$CORE/scripts/archive-gate.js" >/tmp/helm-policy-stale.out 2>/tmp/helm-policy-stale.err; then
   echo "expected archive gate to block stale verify report" >&2
   exit 1
 fi
 
-PROJECT_DIR="$TMP" node "$ROOT/scripts/verify.js" >/tmp/helm-policy-verify.md
-PROJECT_DIR="$TMP" node "$ROOT/scripts/archive-gate.js" >/tmp/helm-policy-archive.txt
+PROJECT_DIR="$TMP" node "$CORE/scripts/verify.js" >/tmp/helm-policy-verify.md
+PROJECT_DIR="$TMP" node "$CORE/scripts/archive-gate.js" >/tmp/helm-policy-archive.txt
 
 cat >"$CHANGE_DIR/risk-tier.json" <<'JSON'
 {
@@ -33,7 +34,7 @@ cat >"$CHANGE_DIR/risk-tier.json" <<'JSON'
 }
 JSON
 
-if PROJECT_DIR="$TMP" node "$ROOT/scripts/archive-gate.js" >/tmp/helm-policy-signoff.out 2>/tmp/helm-policy-signoff.err; then
+if PROJECT_DIR="$TMP" node "$CORE/scripts/archive-gate.js" >/tmp/helm-policy-signoff.out 2>/tmp/helm-policy-signoff.err; then
   echo "expected archive gate to require high-risk signoff" >&2
   exit 1
 fi
@@ -47,6 +48,6 @@ policy: high-risk-human-signoff
 decision: approved
 YAML
 
-PROJECT_DIR="$TMP" node "$ROOT/scripts/archive-gate.js" >/tmp/helm-policy-archive.txt
+PROJECT_DIR="$TMP" node "$CORE/scripts/archive-gate.js" >/tmp/helm-policy-archive.txt
 
 echo "helm archive policy fixtures ok"

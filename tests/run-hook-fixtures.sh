@@ -2,6 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+CORE="$ROOT/plugins/helm-core"
 PROJECT="$ROOT/tests/fixtures/simple-project"
 NO_STATE="$ROOT/tests/fixtures/no-state"
 PAYLOADS="$ROOT/tests/fixtures/hook-payloads"
@@ -15,7 +16,7 @@ run_case() {
   local err="/tmp/helm-hook-$name.err"
 
   set +e
-  PROJECT_DIR="$project" node "$ROOT/scripts/helm-guard.js" <"$payload" >"$out" 2>"$err"
+  PROJECT_DIR="$project" node "$CORE/scripts/helm-guard.js" <"$payload" >"$out" 2>"$err"
   local status=$?
   set -e
 
