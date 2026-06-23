@@ -43,35 +43,36 @@ const SCREEN_MAP_SCREEN_FIELDS = [
 const HANDOFF_REQUIRED_TOPICS = [
   {
     id: 'approved-branch-variant',
-    termSets: [['approved', 'branch', 'variant']]
+    termSets: [['approved', 'branch', 'variant'], ['approved', 'branch'], ['approved', 'variant']]
   },
   {
     id: 'screens-or-flows',
-    termSets: [['screens'], ['flows']]
+    termSets: [['screen'], ['flow']],
+    excludeTermSets: [['data', 'flow']]
   },
   {
     id: 'components-to-create',
-    termSets: [['components', 'create']]
+    termSets: [['component', 'create']]
   },
   {
     id: 'components-to-reuse',
-    termSets: [['components', 'reuse']]
+    termSets: [['component', 'reuse']]
   },
   {
     id: 'extraction-targets',
-    termSets: [['components', 'hooks', 'utilities', 'services', 'extract']]
+    termSets: [['extraction', 'targets'], ['extract'], ['components', 'hooks', 'utilities', 'services', 'extract']]
   },
   {
     id: 'api-contracts',
-    termSets: [['api', 'contracts']]
+    termSets: [['api', 'contract']]
   },
   {
     id: 'data-flows',
-    termSets: [['data', 'flows']]
+    termSets: [['data', 'flow']]
   },
   {
     id: 'state-behavior',
-    termSets: [['state', 'loading', 'empty', 'error', 'disabled', 'permission']]
+    termSets: [['state', 'behavior'], ['state', 'loading', 'empty', 'error', 'disabled', 'permission']]
   },
   {
     id: 'out-of-scope-items',
@@ -79,11 +80,11 @@ const HANDOFF_REQUIRED_TOPICS = [
   },
   {
     id: 'required-tests',
-    termSets: [['required', 'tests']]
+    termSets: [['required', 'test']]
   },
   {
     id: 'open-risks',
-    termSets: [['open', 'risks']]
+    termSets: [['open', 'risk']]
   }
 ];
 
@@ -157,13 +158,114 @@ function normalizeContractText(value) {
     .trim();
 }
 
-function handoffContractCandidates(text) {
-  return text
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter((line) => /^(?:#{1,6}\s+|[-*]\s+|[A-Za-z][A-Za-z0-9 /,&()-]+:)/.test(line))
-    .map(normalizeContractText)
-    .filter(Boolean);
+function stripHandoffListMarker(line) {
+  return line
+    .trim()
+    .replace(/^(?:[-*+]|\d+[.)])\s+/, '')
+    .replace(/^\[[ xX]\]\s+/, '')
+    .trim();
+}
+
+function parseHandoffHeading(line) {
+  const match = line.trim().match(/^(#{1,6})\s+(.+?)\s*#*\s*$/);
+  if (!match) return null;
+  return {
+    kind: 'heading',
+    level: match[1].length,
+    label: match[2].trim(),
+    inlineBody: ''
+  };
+}
+
+function parseHandoffLabel(line) {
+  const value = stripHandoffListMarker(line);
+  const match = value.match(/^([A-Za-z][A-Za-z0-9 /,&()'-]+?):\s*(.*)$/);
+  if (!match) return null;
+  return {
+    kind: 'label',
+    level: 7,
+    label: match[1].trim(),
+    inlineBody: match[2].trim()
+  };
+}
+
+function parseHandoffAnchor(line, index) {
+  const heading = parseHandoffHeading(line);
+  if (heading) return { ...heading, index, normalizedLabel: normalizeContractText(heading.label) };
+
+  const label = parseHandoffLabel(line);
+  if (label) return { ...label, index, normalizedLabel: normalizeContractText(label.label) };
+
+  return null;
+}
+
+function handoffTopicMatches(anchor, topic) {
+  if ((topic.excludeTermSets || []).some((terms) => terms.every((term) => anchor.normalizedLabel.includes(term)))) {
+    return false;
+  }
+  return topic.termSets.some((terms) => terms.every((term) => anchor.normalizedLabel.includes(term)));
+}
+
+function handoffAnchorMatchesRequiredTopic(anchor) {
+  return HANDOFF_REQUIRED_TOPICS.some((topic) => handoffTopicMatches(anchor, topic));
+}
+
+function handoffBodyRange(lines, anchor, anchors) {
+  let end = lines.length;
+
+  for (const next of anchors) {
+    if (next.index <= anchor.index) continue;
+    if (anchor.kind === 'heading') {
+      if (next.kind === 'heading' && next.level <= anchor.level) {
+        end = next.index;
+        break;
+      }
+      if (next.kind === 'label' && handoffAnchorMatchesRequiredTopic(next)) {
+        end = next.index;
+        break;
+      }
+      continue;
+    }
+
+    end = next.index;
+    break;
+  }
+
+  return lines.slice(anchor.index + 1, end);
+}
+
+function isHandoffPlaceholder(value) {
+  const cleaned = value
+    .trim()
+    .toLowerCase()
+    .replace(/^[`*_()[\]{}:;,.!?\\|]+|[`*_()[\]{}:;,.!?\\|]+$/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!cleaned || /^-+$/.test(cleaned)) return true;
+  return new Set(['n/a', 'na', 'none', 'not applicable']).has(cleaned);
+}
+
+function isSubstantiveHandoffLine(line) {
+  if (parseHandoffHeading(line)) return false;
+
+  const label = parseHandoffLabel(line);
+  if (label) {
+    return label.inlineBody !== ''
+      && !/\b(?:TODO|TBD|unresolved|gap)\b/i.test(label.inlineBody)
+      && !isHandoffPlaceholder(label.inlineBody);
+  }
+
+  const value = stripHandoffListMarker(line);
+  return value !== ''
+    && !/\b(?:TODO|TBD|unresolved|gap)\b/i.test(value)
+    && !isHandoffPlaceholder(value);
+}
+
+function handoffAnchorHasSubstantiveBody(lines, anchor, anchors) {
+  const bodyLines = handoffBodyRange(lines, anchor, anchors);
+  const candidates = anchor.inlineBody ? [anchor.inlineBody, ...bodyLines] : bodyLines;
+  return candidates.some((line) => isSubstantiveHandoffLine(line));
 }
 
 function readJsonFile(file) {
@@ -344,13 +446,15 @@ function validateScreenMapArtifact(prototypeDir, change) {
 }
 
 function validateHandoffContract(text) {
-  const candidates = handoffContractCandidates(text);
+  const lines = text.split(/\r?\n/);
+  const anchors = lines
+    .map((line, index) => parseHandoffAnchor(line, index))
+    .filter(Boolean);
   const blockers = [];
 
   for (const topic of HANDOFF_REQUIRED_TOPICS) {
-    const found = candidates.some((candidate) => (
-      topic.termSets.some((terms) => terms.every((term) => candidate.includes(term)))
-    ));
+    const matches = anchors.filter((anchor) => handoffTopicMatches(anchor, topic));
+    const found = matches.some((anchor) => handoffAnchorHasSubstantiveBody(lines, anchor, anchors));
     if (!found) blockers.push(`invalid-prototype-handoff:${topic.id}`);
   }
 

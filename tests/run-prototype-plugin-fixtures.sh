@@ -336,6 +336,36 @@ MD
 run_json "$WEAK_HANDOFF_PROJECT" "$TMP_DIR/weak-handoff.json" 2
 assert_blocker "$TMP_DIR/weak-handoff.json" 'invalid-prototype-handoff:required-tests'
 
+EMPTY_HANDOFF_HEADINGS_PROJECT="$TMP_DIR/empty-handoff-headings-project"
+cp -R "$HAPPY_PROJECT" "$EMPTY_HANDOFF_HEADINGS_PROJECT"
+cat >"$EMPTY_HANDOFF_HEADINGS_PROJECT/openspec/changes/add-dashboard/prototype/handoff.md" <<'MD'
+# Prototype Handoff
+
+## Approved branch and variant
+
+## Screens or flows to implement
+
+## Components to create
+
+## Components to reuse
+
+## Components, hooks, utilities, and services to extract
+
+## API contracts
+
+## Data flows
+
+## State, loading, empty, error, disabled, and permission behavior
+
+## Out-of-scope items
+
+## Required tests
+
+## Open risks
+MD
+run_json "$EMPTY_HANDOFF_HEADINGS_PROJECT" "$TMP_DIR/empty-handoff-headings.json" 2
+assert_blocker "$TMP_DIR/empty-handoff-headings.json" 'invalid-prototype-handoff:required-tests'
+
 MISSING_SCREEN_IMPLEMENTATION_PROJECT="$TMP_DIR/missing-screen-implementation-project"
 cp -R "$HAPPY_PROJECT" "$MISSING_SCREEN_IMPLEMENTATION_PROJECT"
 jq 'del(.screens[0].implementation_files)' \
