@@ -37,8 +37,8 @@ function hasOwn(value, property) {
   return Object.prototype.hasOwnProperty.call(value, property);
 }
 
-function isStringArray(value) {
-  return Array.isArray(value) && value.every((item) => typeof item === 'string');
+function isNonEmptyStringArray(value) {
+  return Array.isArray(value) && value.every(isNonEmpty);
 }
 
 function valueBlocker(status, kind, name) {
@@ -62,13 +62,13 @@ function isValidPluginMetadata(value) {
 function isValidStageManifest(value) {
   return isObject(value)
     && isNonEmpty(value.stage)
-    && (!hasOwn(value, 'plugin') || isNonEmpty(value.plugin))
+    && isNonEmpty(value.plugin)
     && (!hasOwn(value, 'required') || typeof value.required === 'boolean')
-    && (!hasOwn(value, 'commands') || isStringArray(value.commands))
-    && (!hasOwn(value, 'skills') || isStringArray(value.skills))
+    && (!hasOwn(value, 'commands') || isNonEmptyStringArray(value.commands))
+    && (!hasOwn(value, 'skills') || isNonEmptyStringArray(value.skills))
     && (!hasOwn(value, 'contracts') || (
       isObject(value.contracts)
-      && Object.values(value.contracts).every((contract) => typeof contract === 'string')
+      && Object.values(value.contracts).every(isNonEmpty)
     ));
 }
 
@@ -138,7 +138,11 @@ function parseArgs(args) {
       }
       continue;
     }
-    if (!Object.prototype.hasOwnProperty.call(values, arg)) continue;
+    if (!Object.prototype.hasOwnProperty.call(values, arg)) {
+      blockers.push(`unknown-argument:${arg}`);
+      if (isNonEmpty(args[i + 1]) && !args[i + 1].startsWith('--')) i += 1;
+      continue;
+    }
     occurrences[arg] += 1;
 
     const value = args[i + 1];

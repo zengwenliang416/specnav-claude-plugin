@@ -43,6 +43,13 @@ jq -e '.blockers[] | select(. == "missing-plugin:helm-missing")' /tmp/helm-suite
 run_failure "$tmp_dir/unknown-command.json" inspect --marketplace-root "$ROOT"
 jq -e '.blockers[] | select(. == "unknown-command:inspect")' "$tmp_dir/unknown-command.json" >/dev/null
 
+run_failure "$tmp_dir/unknown-flag.json" list --marketplace-root "$ROOT" --bogus
+jq -e '.blockers[] | select(. == "unknown-argument:--bogus")' "$tmp_dir/unknown-flag.json" >/dev/null
+
+run_failure "$tmp_dir/unknown-flag-with-value.json" list --marketplace-root "$ROOT" --bogus value
+jq -e '.blockers[] | select(. == "unknown-argument:--bogus")' "$tmp_dir/unknown-flag-with-value.json" >/dev/null
+jq -e '[.blockers[] | select(. == "unknown-command:value")] | length == 0' "$tmp_dir/unknown-flag-with-value.json" >/dev/null
+
 run_failure "$tmp_dir/resolve-missing-plugin.json" resolve --marketplace-root "$ROOT"
 jq -e '.blockers[] | select(. == "missing-argument:--plugin")' "$tmp_dir/resolve-missing-plugin.json" >/dev/null
 
@@ -206,6 +213,7 @@ invalid_plugin_stage="$tmp_dir/invalid-plugin-stage"
 mkdir -p \
   "$invalid_plugin_stage/.claude-plugin" \
   "$invalid_plugin_stage/plugins/bad-plugin-shape/.claude-plugin" \
+  "$invalid_plugin_stage/plugins/bad-stage-missing-plugin/.claude-plugin" \
   "$invalid_plugin_stage/plugins/bad-stage-plugin-field/.claude-plugin" \
   "$invalid_plugin_stage/plugins/bad-stage-required-field/.claude-plugin" \
   "$invalid_plugin_stage/plugins/bad-stage-commands-field/.claude-plugin" \
@@ -218,6 +226,11 @@ cat >"$invalid_plugin_stage/.claude-plugin/marketplace.json" <<'JSON'
     {
       "name": "bad-plugin-shape",
       "source": "plugins/bad-plugin-shape",
+      "version": "0.0.0"
+    },
+    {
+      "name": "bad-stage-missing-plugin",
+      "source": "plugins/bad-stage-missing-plugin",
       "version": "0.0.0"
     },
     {
@@ -259,6 +272,17 @@ cat >"$invalid_plugin_stage/plugins/bad-plugin-shape/helm-stage.json" <<'JSON'
   "stage": "broken"
 }
 JSON
+cat >"$invalid_plugin_stage/plugins/bad-stage-missing-plugin/.claude-plugin/plugin.json" <<'JSON'
+{
+  "name": "bad-stage-missing-plugin",
+  "version": "0.0.0"
+}
+JSON
+cat >"$invalid_plugin_stage/plugins/bad-stage-missing-plugin/helm-stage.json" <<'JSON'
+{
+  "stage": "requirements"
+}
+JSON
 cat >"$invalid_plugin_stage/plugins/bad-stage-plugin-field/.claude-plugin/plugin.json" <<'JSON'
 {
   "name": "bad-stage-plugin-field",
@@ -296,6 +320,8 @@ cat >"$invalid_plugin_stage/plugins/bad-stage-commands-field/helm-stage.json" <<
   "stage": "broken",
   "commands": [
     "ok",
+    "",
+    "   ",
     123
   ]
 }
@@ -312,6 +338,8 @@ cat >"$invalid_plugin_stage/plugins/bad-stage-skills-field/helm-stage.json" <<'J
   "stage": "broken",
   "skills": [
     "ok",
+    "",
+    "   ",
     false
   ]
 }
@@ -327,12 +355,15 @@ cat >"$invalid_plugin_stage/plugins/bad-stage-contracts-field/helm-stage.json" <
   "plugin": "bad-stage-contracts-field",
   "stage": "broken",
   "contracts": {
+    "empty": "",
+    "blank": "   ",
     "bad": 123
   }
 }
 JSON
 run_failure "$tmp_dir/invalid-plugin-stage.json" list --marketplace-root "$invalid_plugin_stage"
 jq -e '.blockers[] | select(. == "invalid-plugin-json:bad-plugin-shape")' "$tmp_dir/invalid-plugin-stage.json" >/dev/null
+jq -e '.blockers[] | select(. == "invalid-stage-manifest:bad-stage-missing-plugin")' "$tmp_dir/invalid-plugin-stage.json" >/dev/null
 jq -e '.blockers[] | select(. == "invalid-stage-manifest:bad-stage-plugin-field")' "$tmp_dir/invalid-plugin-stage.json" >/dev/null
 jq -e '.blockers[] | select(. == "invalid-stage-manifest:bad-stage-required-field")' "$tmp_dir/invalid-plugin-stage.json" >/dev/null
 jq -e '.blockers[] | select(. == "invalid-stage-manifest:bad-stage-commands-field")' "$tmp_dir/invalid-plugin-stage.json" >/dev/null
