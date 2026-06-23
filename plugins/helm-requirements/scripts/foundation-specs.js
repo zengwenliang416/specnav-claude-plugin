@@ -300,8 +300,10 @@ function unquoteYamlString(value) {
     const hexLength = hexLengths[escaped];
     const hex = inner.slice(index + 2, index + 2 + hexLength);
     if (hex.length !== hexLength || !/^[0-9A-Fa-f]+$/.test(hex)) return { ok: false, value: null };
+    const codePoint = Number.parseInt(hex, 16);
+    if (codePoint >= 0xd800 && codePoint <= 0xdfff) return { ok: false, value: null };
     try {
-      unquoted += String.fromCodePoint(Number.parseInt(hex, 16));
+      unquoted += String.fromCodePoint(codePoint);
     } catch (_error) {
       return { ok: false, value: null };
     }

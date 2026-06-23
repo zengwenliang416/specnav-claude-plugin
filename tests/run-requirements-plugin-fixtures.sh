@@ -485,8 +485,8 @@ cp -R "$HAPPY_PROJECT" "$DOUBLE_QUOTE_ESCAPE_FRONTMATTER_PROJECT"
 cat >"$DOUBLE_QUOTE_ESCAPE_FRONTMATTER_PROJECT/openspec/specs/ui-design/design.md" <<'MD'
 ---
 version: 1.0.0
-name: "UI \"Design\""
-description: "Product interface \/ standards"
+name: "UI \"\u0044esign\""
+description: "Product interface \/ standards \U00000021"
 colors: {}
 typography: {}
 spacing: {}
@@ -509,6 +509,35 @@ MD
 run_json "$DOUBLE_QUOTE_ESCAPE_FRONTMATTER_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/double-quote-escape-frontmatter.json" 0
 jq -e '.ok == true' "$TMP_DIR/double-quote-escape-frontmatter.json" >/dev/null
 jq -e '.blockers | index("invalid-foundation-spec-frontmatter:ui-design") == null' "$TMP_DIR/double-quote-escape-frontmatter.json" >/dev/null
+
+SURROGATE_DOUBLE_ESCAPE_FRONTMATTER_PROJECT="$TMP_DIR/surrogate-double-escape-frontmatter-project"
+cp -R "$HAPPY_PROJECT" "$SURROGATE_DOUBLE_ESCAPE_FRONTMATTER_PROJECT"
+cat >"$SURROGATE_DOUBLE_ESCAPE_FRONTMATTER_PROJECT/openspec/specs/ui-design/design.md" <<'MD'
+---
+version: 1.0.0
+name: "Bad \uD800"
+description: Product interface standards
+colors: {}
+typography: {}
+spacing: {}
+rounded: {}
+components: []
+---
+# UI Design
+
+## Overview
+## Colors
+## Typography
+## Layout
+## Elevation & Depth
+## Motion
+## Shapes
+## Components
+## Voice & Content
+## Do's and Don'ts
+MD
+run_json "$SURROGATE_DOUBLE_ESCAPE_FRONTMATTER_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/surrogate-double-escape-frontmatter.json" 2
+jq -e '.blockers[] | select(. == "invalid-foundation-spec-frontmatter:ui-design")' "$TMP_DIR/surrogate-double-escape-frontmatter.json" >/dev/null
 
 SINGLE_QUOTE_BACKSLASH_COMMENT_FRONTMATTER_PROJECT="$TMP_DIR/single-quote-backslash-comment-frontmatter-project"
 cp -R "$HAPPY_PROJECT" "$SINGLE_QUOTE_BACKSLASH_COMMENT_FRONTMATTER_PROJECT"
