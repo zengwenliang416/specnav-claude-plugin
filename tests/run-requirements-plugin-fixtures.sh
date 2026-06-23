@@ -369,6 +369,80 @@ for shape in null '[]' 42 '"bad"'; do
   jq -e '.blockers[] | select(. == "invalid-json-shape:spec-map.json")' "$TMP_DIR/json-shape-${shape//[^A-Za-z0-9]/_}.json" >/dev/null
 done
 
+EMPTY_SPEC_MAP_PROJECT="$TMP_DIR/empty-spec-map-project"
+cp -R "$HAPPY_PROJECT" "$EMPTY_SPEC_MAP_PROJECT"
+cat >"$EMPTY_SPEC_MAP_PROJECT/openspec/changes/add-dashboard/spec-map.json" <<'JSON'
+{}
+JSON
+run_json "$EMPTY_SPEC_MAP_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/empty-spec-map.json" 2
+jq -e '.blockers[] | select(. == "invalid-spec-map-contract:spec-map.json")' "$TMP_DIR/empty-spec-map.json" >/dev/null
+
+INVALID_SPEC_MAP_FIELD_PROJECT="$TMP_DIR/invalid-spec-map-field-project"
+cp -R "$HAPPY_PROJECT" "$INVALID_SPEC_MAP_FIELD_PROJECT"
+cat >"$INVALID_SPEC_MAP_FIELD_PROJECT/openspec/changes/add-dashboard/spec-map.json" <<'JSON'
+{
+  "touched_specs": "ui-design",
+  "unresolved_gaps": []
+}
+JSON
+run_json "$INVALID_SPEC_MAP_FIELD_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/invalid-spec-map-field.json" 2
+jq -e '.blockers[] | select(. == "invalid-spec-map-contract:spec-map.json")' "$TMP_DIR/invalid-spec-map-field.json" >/dev/null
+
+EMPTY_SPEC_MAP_FIELDS_PROJECT="$TMP_DIR/empty-spec-map-fields-project"
+cp -R "$HAPPY_PROJECT" "$EMPTY_SPEC_MAP_FIELDS_PROJECT"
+cat >"$EMPTY_SPEC_MAP_FIELDS_PROJECT/openspec/changes/add-dashboard/spec-map.json" <<'JSON'
+{
+  "touched_specs": [],
+  "ui_rules": [],
+  "architecture_modules": [],
+  "api_contracts": [],
+  "database_entities": [],
+  "permissions": [],
+  "operational_constraints": [],
+  "data_flows": [],
+  "unresolved_gaps": []
+}
+JSON
+run_json "$EMPTY_SPEC_MAP_FIELDS_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/empty-spec-map-fields.json" 2
+jq -e '.blockers[] | select(. == "invalid-spec-map-contract:spec-map.json")' "$TMP_DIR/empty-spec-map-fields.json" >/dev/null
+
+EMPTY_COMPONENT_IMPACT_MAP_PROJECT="$TMP_DIR/empty-component-impact-map-project"
+cp -R "$HAPPY_PROJECT" "$EMPTY_COMPONENT_IMPACT_MAP_PROJECT"
+cat >"$EMPTY_COMPONENT_IMPACT_MAP_PROJECT/openspec/changes/add-dashboard/component-impact-map.json" <<'JSON'
+{}
+JSON
+run_json "$EMPTY_COMPONENT_IMPACT_MAP_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/empty-component-impact-map.json" 2
+jq -e '.blockers[] | select(. == "invalid-component-impact-map-contract:component-impact-map.json")' "$TMP_DIR/empty-component-impact-map.json" >/dev/null
+
+INVALID_COMPONENT_IMPACT_FIELD_PROJECT="$TMP_DIR/invalid-component-impact-field-project"
+cp -R "$HAPPY_PROJECT" "$INVALID_COMPONENT_IMPACT_FIELD_PROJECT"
+cat >"$INVALID_COMPONENT_IMPACT_FIELD_PROJECT/openspec/changes/add-dashboard/component-impact-map.json" <<'JSON'
+{
+  "new_components": "DashboardView",
+  "unresolved_gaps": []
+}
+JSON
+run_json "$INVALID_COMPONENT_IMPACT_FIELD_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/invalid-component-impact-field.json" 2
+jq -e '.blockers[] | select(. == "invalid-component-impact-map-contract:component-impact-map.json")' "$TMP_DIR/invalid-component-impact-field.json" >/dev/null
+
+EMPTY_COMPONENT_IMPACT_FIELDS_PROJECT="$TMP_DIR/empty-component-impact-fields-project"
+cp -R "$HAPPY_PROJECT" "$EMPTY_COMPONENT_IMPACT_FIELDS_PROJECT"
+cat >"$EMPTY_COMPONENT_IMPACT_FIELDS_PROJECT/openspec/changes/add-dashboard/component-impact-map.json" <<'JSON'
+{
+  "new_components": [],
+  "reused_components": [],
+  "extraction_triggers": [],
+  "forbidden_dependencies": [],
+  "hooks": [],
+  "utilities": [],
+  "services": [],
+  "required_component_tests": [],
+  "unresolved_gaps": []
+}
+JSON
+run_json "$EMPTY_COMPONENT_IMPACT_FIELDS_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/empty-component-impact-fields.json" 2
+jq -e '.blockers[] | select(. == "invalid-component-impact-map-contract:component-impact-map.json")' "$TMP_DIR/empty-component-impact-fields.json" >/dev/null
+
 UNRESOLVED_GAPS_PROJECT="$TMP_DIR/invalid-unresolved-gaps-project"
 cp -R "$HAPPY_PROJECT" "$UNRESOLVED_GAPS_PROJECT"
 cat >"$UNRESOLVED_GAPS_PROJECT/openspec/changes/add-dashboard/component-impact-map.json" <<'JSON'

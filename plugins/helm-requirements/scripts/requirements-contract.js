@@ -13,6 +13,28 @@ const REQUIRED_ARTIFACTS = [
   'component-impact-map.json'
 ];
 
+const SPEC_MAP_FIELDS = [
+  'touched_specs',
+  'ui_rules',
+  'architecture_modules',
+  'api_contracts',
+  'database_entities',
+  'permissions',
+  'operational_constraints',
+  'data_flows'
+];
+
+const COMPONENT_IMPACT_MAP_FIELDS = [
+  'new_components',
+  'reused_components',
+  'extraction_triggers',
+  'forbidden_dependencies',
+  'hooks',
+  'utilities',
+  'services',
+  'required_component_tests'
+];
+
 function unique(values) {
   return Array.from(new Set(values.filter(Boolean)));
 }
@@ -76,6 +98,32 @@ function isPlainObject(value) {
   return !!value && typeof value === 'object' && !Array.isArray(value);
 }
 
+function validateArrayFieldContract(value, fields, blocker) {
+  let hasNonEmptyArray = false;
+  let invalidFieldType = false;
+
+  for (const field of fields) {
+    if (!Object.prototype.hasOwnProperty.call(value, field)) continue;
+    if (!Array.isArray(value[field])) {
+      invalidFieldType = true;
+      continue;
+    }
+    if (value[field].length > 0) hasNonEmptyArray = true;
+  }
+
+  return invalidFieldType || !hasNonEmptyArray ? [blocker] : [];
+}
+
+function validateJsonArtifactContract(name, value) {
+  if (name === 'spec-map.json') {
+    return validateArrayFieldContract(value, SPEC_MAP_FIELDS, 'invalid-spec-map-contract:spec-map.json');
+  }
+  if (name === 'component-impact-map.json') {
+    return validateArrayFieldContract(value, COMPONENT_IMPACT_MAP_FIELDS, 'invalid-component-impact-map-contract:component-impact-map.json');
+  }
+  return [];
+}
+
 function validateArtifact(dir, change, name) {
   const relativePath = artifactPath(change, name);
   const file = dir ? path.join(dir, name) : null;
@@ -111,11 +159,14 @@ function validateArtifact(dir, change, name) {
     blockers.push(parsed.status === 'invalid-json' ? `invalid-json:${name}` : `unreadable-requirements-artifact:${name}`);
   } else if (!isPlainObject(parsed.value)) {
     blockers.push(`invalid-json-shape:${name}`);
-  } else if (Object.prototype.hasOwnProperty.call(parsed.value, 'unresolved_gaps')) {
-    if (!Array.isArray(parsed.value.unresolved_gaps)) {
-      blockers.push(`invalid-unresolved-gaps:${name}`);
-    } else if (parsed.value.unresolved_gaps.length > 0) {
-      blockers.push(`unresolved-gaps:${name}`);
+  } else {
+    blockers.push(...validateJsonArtifactContract(name, parsed.value));
+    if (Object.prototype.hasOwnProperty.call(parsed.value, 'unresolved_gaps')) {
+      if (!Array.isArray(parsed.value.unresolved_gaps)) {
+        blockers.push(`invalid-unresolved-gaps:${name}`);
+      } else if (parsed.value.unresolved_gaps.length > 0) {
+        blockers.push(`unresolved-gaps:${name}`);
+      }
     }
   }
 
