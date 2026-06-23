@@ -1035,7 +1035,10 @@ git commit -m "feat: update core runtime for plugin suite"
 - Create: `plugins/helm-requirements/skills/foundation-spec/SKILL.md`
 - Create: `plugins/helm-requirements/skills/requirements/SKILL.md`
 - Modify: `plugins/helm-requirements/commands/helm-requirements.md`
+- Modify: `plugins/helm-requirements/helm-stage.json`
 - Test: `tests/run-requirements-plugin-fixtures.sh`
+
+Implementation note: `plugins/helm-requirements/helm-stage.json` promotes the requirements plugin's implemented `contracts.foundation` and `contracts.requirements` entries from `planned_contracts` once the scripts exist. Requirements plugin scripts import shared helpers from `../../helm-core/scripts/helm-lib`; there is no core `contracts.js` module in the current suite.
 
 - [ ] **Step 1: Write the requirements plugin fixture**
 
@@ -1093,7 +1096,6 @@ When these scripts need shared helpers, import them from core through an explici
 
 ```js
 const coreLib = require('../../helm-core/scripts/helm-lib');
-const contracts = require('../../helm-core/scripts/contracts');
 ```
 
 - [ ] **Step 4: Create requirements skills**
