@@ -56,7 +56,7 @@ function marketplaceBlocker(status) {
 function isValidPluginMetadata(value) {
   return isObject(value)
     && isNonEmpty(value.name)
-    && (!hasOwn(value, 'version') || typeof value.version === 'string');
+    && isNonEmpty(value.version);
 }
 
 function isValidStageManifest(value) {
@@ -68,7 +68,9 @@ function isValidStageManifest(value) {
     && (!hasOwn(value, 'skills') || isNonEmptyStringArray(value.skills))
     && (!hasOwn(value, 'contracts') || (
       isObject(value.contracts)
-      && Object.values(value.contracts).every(isNonEmpty)
+      && Object.entries(value.contracts).every(([key, contract]) => (
+        isNonEmpty(key) && isNonEmpty(contract)
+      ))
     ));
 }
 
@@ -262,15 +264,29 @@ function pluginRecord(marketplaceRoot, entry, index) {
   const stage = readJson(path.join(root, 'helm-stage.json'));
   const pluginMetadataValid = pluginJson.ok && isValidPluginMetadata(pluginJson.value);
   const stageManifestValid = stage.ok && isValidStageManifest(stage.value);
+  const pluginNameMatches = pluginJson.ok
+    && isObject(pluginJson.value)
+    && isNonEmpty(pluginJson.value.name)
+    && pluginJson.value.name === name;
+  const stagePluginMatches = stage.ok
+    && isObject(stage.value)
+    && isNonEmpty(stage.value.plugin)
+    && stage.value.plugin === name;
   const pluginMetadata = pluginMetadataValid ? pluginJson.value : null;
   const stageManifest = stageManifestValid ? stage.value : null;
   const blockers = [
     pluginJson.ok
       ? (pluginMetadataValid ? null : `invalid-plugin-json:${name}`)
       : valueBlocker(pluginJson.status, 'plugin-json', name),
+    pluginJson.ok && isObject(pluginJson.value) && isNonEmpty(pluginJson.value.name) && !pluginNameMatches
+      ? `plugin-name-mismatch:${name}`
+      : null,
     stage.ok
       ? (stageManifestValid ? null : `invalid-stage-manifest:${name}`)
-      : valueBlocker(stage.status, 'stage-manifest', name)
+      : valueBlocker(stage.status, 'stage-manifest', name),
+    stage.ok && isObject(stage.value) && isNonEmpty(stage.value.plugin) && !stagePluginMatches
+      ? `stage-plugin-mismatch:${name}`
+      : null
   ];
 
   return {
@@ -283,7 +299,7 @@ function pluginRecord(marketplaceRoot, entry, index) {
     commands: stageManifest ? (stageManifest.commands || []) : null,
     skills: stageManifest ? (stageManifest.skills || []) : null,
     contracts: stageManifest ? (stageManifest.contracts || {}) : null,
-    ok: pluginMetadataValid && stageManifestValid,
+    ok: pluginMetadataValid && stageManifestValid && pluginNameMatches && stagePluginMatches,
     blockers: unique(blockers)
   };
 }
