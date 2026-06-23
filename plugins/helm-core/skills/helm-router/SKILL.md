@@ -17,7 +17,15 @@ Use this skill when the user asks for Helm, OpenSpec-driven workflow, change sta
 
 ## Required First Step
 
-Run:
+Before routing, require the suite resolver:
+
+```bash
+test -f "$CLAUDE_PLUGIN_ROOT/scripts/plugin-suite.js"
+```
+
+If it is missing, report `not-implemented:helm-core/plugin-suite` and stop.
+
+Then run:
 
 ```bash
 node "$CLAUDE_PLUGIN_ROOT/scripts/affordances.js" --markdown
@@ -27,13 +35,12 @@ Use the result as the legal action table. Do not invent workflow state.
 
 ## Routing
 
-- INVESTIGATE -> `explore`
-- DEFINE -> `propose`
-- REFINE -> `design` / `tasks`
-- BUILD -> `implement`
-- FIX -> `fix`
-- CHECK -> `verify`
-- FINISH -> `archive`
-- STATUS -> `status`
+- INVESTIGATE / REQUIREMENTS / DEFINE / REFINE -> `/helm-requirements`
+- PROTOTYPE -> `/helm-prototype`
+- DEVELOPMENT / BUILD / FIX -> `/helm-implement`
+- VERIFICATION / CHECK -> `/helm-verify`
+- OPERATIONS / RELEASE -> `/helm-release`
+- ARCHIVE -> `/helm-archive`
+- STATUS -> `/helm-status`
 
 If the requested action is blocked, explain the blocker and offer the next ready action.
