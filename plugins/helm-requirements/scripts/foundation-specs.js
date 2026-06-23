@@ -636,10 +636,18 @@ function existingThemePairs(primaryFile) {
     addPair(light, dark);
   }
 
-  const themeSegment = (filename, theme) => {
-    const basename = filename.replace(/\.md$/i, '');
-    return new RegExp(`(^|[^a-z0-9])${theme}([^a-z0-9]|$)`, 'i').test(basename);
+  const themeStem = (filename, theme) => {
+    const segments = filename
+      .replace(/\.md$/i, '')
+      .split(/[^a-z0-9]+/i)
+      .filter(Boolean);
+    if (!segments.some((segment) => segment.toLowerCase() === theme)) return null;
+    const stemSegments = segments
+      .filter((segment) => segment.toLowerCase() !== theme)
+      .map((segment) => segment.toLowerCase());
+    return stemSegments.length ? stemSegments.join('-') : null;
   };
+
   let entries = [];
   try {
     entries = fs.readdirSync(directory, { withFileTypes: true });
@@ -654,16 +662,27 @@ function existingThemePairs(primaryFile) {
       file: path.join(directory, entry.name)
     }))
     .sort((leftEntry, rightEntry) => leftEntry.name.localeCompare(rightEntry.name));
-  const lightDocs = markdownFiles
-    .filter((entry) => themeSegment(entry.name, 'light'))
-    .map((entry) => entry.file);
-  const darkDocs = markdownFiles
-    .filter((entry) => themeSegment(entry.name, 'dark'))
-    .map((entry) => entry.file);
 
-  for (const lightDoc of lightDocs) {
-    for (const darkDoc of darkDocs) {
-      addPair(lightDoc, darkDoc);
+  const groupByThemeStem = (theme) => {
+    const groups = new Map();
+    for (const entry of markdownFiles) {
+      const stem = themeStem(entry.name, theme);
+      if (!stem) continue;
+      const docs = groups.get(stem) || [];
+      docs.push(entry.file);
+      groups.set(stem, docs);
+    }
+    return groups;
+  };
+
+  const darkDocsByStem = groupByThemeStem('dark');
+  for (const [stem, lightDocs] of groupByThemeStem('light')) {
+    const darkDocs = darkDocsByStem.get(stem);
+    if (!darkDocs) continue;
+    for (const lightDoc of lightDocs) {
+      for (const darkDoc of darkDocs) {
+        if (lightDoc !== darkDoc) addPair(lightDoc, darkDoc);
+      }
     }
   }
 

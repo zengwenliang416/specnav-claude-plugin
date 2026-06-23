@@ -68,6 +68,58 @@ components: []
 ## Do's and Don'ts
 MD
 
+  cat >"$project/openspec/specs/ui-design/marketing.light.md" <<'MD'
+---
+version: 1.0.0
+name: Marketing Light Design
+description: Marketing-facing light theme notes
+colors: {}
+typography: {}
+spacing: {}
+rounded: {}
+components: []
+---
+# UI Design
+
+## Overview
+## Colors
+## Typography
+## Layout
+## Elevation & Depth
+## Motion
+## Shapes
+## Components
+## Voice & Content
+## Do's and Don'ts
+MD
+
+  cat >"$project/openspec/specs/ui-design/admin.dark.md" <<'MD'
+---
+version: 1.0.0
+name: Admin Dark Design
+description: Admin-facing dark theme notes
+colors:
+  primary: "#111111"
+typography: {}
+spacing: {}
+rounded: {}
+components:
+  - name: AdminShell
+---
+# UI Design
+
+## Overview
+## Colors
+## Typography
+## Layout
+## Elevation & Depth
+## Motion
+## Shapes
+## Components
+## Voice & Content
+## Do's and Don'ts
+MD
+
   cat >"$project/openspec/specs/system-architecture/design.md" <<'MD'
 # System Architecture & Database Spec
 
@@ -197,6 +249,7 @@ write_happy_project "$HAPPY_PROJECT"
 
 run_json "$HAPPY_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/happy-foundation-specs.json" 0
 jq -e '.ok == true' "$TMP_DIR/happy-foundation-specs.json" >/dev/null
+jq -e '.blockers | index("invalid-foundation-spec-theme-parity:ui-design") == null' "$TMP_DIR/happy-foundation-specs.json" >/dev/null
 
 BLOCK_FRONTMATTER_PROJECT="$TMP_DIR/block-frontmatter-project"
 cp -R "$HAPPY_PROJECT" "$BLOCK_FRONTMATTER_PROJECT"
@@ -243,6 +296,7 @@ components:
 MD
 run_json "$BLOCK_FRONTMATTER_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/block-frontmatter.json" 0
 jq -e '.ok == true' "$TMP_DIR/block-frontmatter.json" >/dev/null
+jq -e '.blockers | index("invalid-foundation-spec-theme-parity:ui-design") == null' "$TMP_DIR/block-frontmatter.json" >/dev/null
 
 HEX_LITERAL_FRONTMATTER_PROJECT="$TMP_DIR/hex-literal-frontmatter-project"
 cp -R "$HAPPY_PROJECT" "$HEX_LITERAL_FRONTMATTER_PROJECT"
