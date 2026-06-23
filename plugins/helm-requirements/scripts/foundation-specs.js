@@ -126,12 +126,18 @@ function markdownHasSection(text, heading) {
   return new RegExp(`^${escapeRegExp(heading)}\\s*$`, 'm').test(normalized);
 }
 
-function hasBalancedQuotes(value) {
+function isYamlQuoteStart(value, index) {
+  if (index === 0) return true;
+  return /[\s:[{,]/.test(value[index - 1]);
+}
+
+function stripYamlComment(line) {
   let single = false;
   let double = false;
   let escaped = false;
 
-  for (const character of value) {
+  for (let index = 0; index < line.length; index += 1) {
+    const character = line[index];
     if (escaped) {
       escaped = false;
       continue;
@@ -140,58 +146,509 @@ function hasBalancedQuotes(value) {
       escaped = true;
       continue;
     }
-    if (character === "'" && !double) single = !single;
-    if (character === '"' && !single) double = !double;
+    if (character === "'" && !double && (single || isYamlQuoteStart(line, index))) single = !single;
+    if (character === '"' && !single && (double || isYamlQuoteStart(line, index))) double = !double;
+    if (character === '#' && !single && !double && (index === 0 || /\s/.test(line[index - 1]))) {
+      return line.slice(0, index).trimEnd();
+    }
   }
 
-  return !single && !double;
+  return line.trimEnd();
 }
 
-function isSupportedFrontmatterValue(value) {
-  const trimmed = value.trim();
-  if (!trimmed) return false;
-  if (!hasBalancedQuotes(trimmed)) return false;
-  if (/^(?:null|~)$/i.test(trimmed)) return false;
-  if ((trimmed.startsWith('"') && trimmed.endsWith('"')) || (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
-    if (trimmed.slice(1, -1).trim().length === 0) return false;
+function preprocessYamlLines(yaml) {
+  const lines = [];
+  for (const rawLine of yaml.split('\n')) {
+    if (/^\s*\t/.test(rawLine)) return { ok: false, lines: [], error: 'tab-indentation' };
+    const line = stripYamlComment(rawLine);
+    if (!line.trim()) continue;
+    const indent = line.match(/^ */)[0].length;
+    lines.push({ indent, text: line.slice(indent).trimEnd() });
   }
-  if (trimmed === '{}' || trimmed === '[]') return true;
-  if (trimmed.startsWith('[') || trimmed.endsWith(']')) return /^\[[^\[\]{}]*\]$/.test(trimmed);
-  if (trimmed.startsWith('{') || trimmed.endsWith('}')) return /^\{[^\[\]{}]*\}$/.test(trimmed);
+  return { ok: true, lines, error: null };
+}
+
+function splitTopLevel(value, delimiter) {
+  const parts = [];
+  let start = 0;
+  let single = false;
+  let double = false;
+  let escaped = false;
+  let squareDepth = 0;
+  let curlyDepth = 0;
+
+  for (let index = 0; index < value.length; index += 1) {
+    const character = value[index];
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (character === '\\') {
+      escaped = true;
+      continue;
+    }
+    if (character === "'" && !double && (single || isYamlQuoteStart(value, index))) {
+      single = !single;
+      continue;
+    }
+    if (character === '"' && !single && (double || isYamlQuoteStart(value, index))) {
+      double = !double;
+      continue;
+    }
+    if (single || double) continue;
+    if (character === '[') squareDepth += 1;
+    if (character === ']') squareDepth -= 1;
+    if (character === '{') curlyDepth += 1;
+    if (character === '}') curlyDepth -= 1;
+    if (squareDepth < 0 || curlyDepth < 0) return null;
+    if (character === delimiter && squareDepth === 0 && curlyDepth === 0) {
+      parts.push(value.slice(start, index).trim());
+      start = index + 1;
+    }
+  }
+
+  if (single || double || squareDepth !== 0 || curlyDepth !== 0) return null;
+  parts.push(value.slice(start).trim());
+  return parts;
+}
+
+function unquoteYamlString(value) {
+  const quote = value[0];
+  if (value[value.length - 1] !== quote) return { ok: false, value: null };
+  const inner = value.slice(1, -1);
+  if (quote === "'") return { ok: true, value: inner.replace(/''/g, "'") };
+  return {
+    ok: true,
+    value: inner.replace(/\\(["\\/bfnrt])/g, (_match, escaped) => {
+      if (escaped === 'n') return '\n';
+      if (escaped === 'r') return '\r';
+      if (escaped === 't') return '\t';
+      if (escaped === 'b') return '\b';
+      if (escaped === 'f') return '\f';
+      return escaped;
+    })
+  };
+}
+
+function parseInlineArray(value) {
+  if (!value.endsWith(']')) return { ok: false, value: null };
+  const inner = value.slice(1, -1).trim();
+  if (!inner) return { ok: true, value: [] };
+  const parts = splitTopLevel(inner, ',');
+  if (!parts || parts.some((part) => !part)) return { ok: false, value: null };
+  const parsed = [];
+  for (const part of parts) {
+    const item = parseYamlScalar(part);
+    if (!item.ok) return item;
+    parsed.push(item.value);
+  }
+  return { ok: true, value: parsed };
+}
+
+function parseInlineObject(value) {
+  if (!value.endsWith('}')) return { ok: false, value: null };
+  const inner = value.slice(1, -1).trim();
+  if (!inner) return { ok: true, value: {} };
+  const parts = splitTopLevel(inner, ',');
+  if (!parts || parts.some((part) => !part)) return { ok: false, value: null };
+  const object = {};
+  for (const part of parts) {
+    const match = part.match(/^([A-Za-z0-9_-]+)\s*:\s*(.*)$/);
+    if (!match) return { ok: false, value: null };
+    const item = parseYamlScalar(match[2]);
+    if (!item.ok) return item;
+    object[match[1]] = item.value;
+  }
+  return { ok: true, value: object };
+}
+
+function parseYamlScalar(value) {
+  const trimmed = value.trim();
+  if (!trimmed) return { ok: true, value: null };
+  if (/^(?:null|~)$/i.test(trimmed)) return { ok: true, value: null };
+  if (trimmed === '{}') return { ok: true, value: {} };
+  if (trimmed === '[]') return { ok: true, value: [] };
+  if (trimmed.startsWith('"') || trimmed.startsWith("'")) return unquoteYamlString(trimmed);
+  if (trimmed.startsWith('[') || trimmed.endsWith(']')) return parseInlineArray(trimmed);
+  if (trimmed.startsWith('{') || trimmed.endsWith('}')) return parseInlineObject(trimmed);
+  return { ok: true, value: trimmed };
+}
+
+function parseYamlPair(text) {
+  const match = text.match(/^([A-Za-z0-9_-]+)\s*:\s*(.*)$/);
+  if (!match) return null;
+  return { key: match[1], rest: match[2] };
+}
+
+function parseYamlBlock(state, indent) {
+  if (state.index >= state.lines.length) return { ok: true, value: null };
+  const line = state.lines[state.index];
+  if (line.indent !== indent) return { ok: false, value: null, error: 'unexpected-indentation' };
+  if (line.text.startsWith('- ')) return parseYamlArray(state, indent);
+  return parseYamlObject(state, indent);
+}
+
+function parseYamlObject(state, indent) {
+  const object = {};
+  while (state.index < state.lines.length) {
+    const line = state.lines[state.index];
+    if (line.indent < indent) break;
+    if (line.indent > indent || line.text.startsWith('- ')) {
+      return { ok: false, value: null, error: 'unexpected-indentation' };
+    }
+
+    const pair = parseYamlPair(line.text);
+    if (!pair) return { ok: false, value: null, error: 'unparseable-frontmatter' };
+    state.index += 1;
+
+    if (pair.rest.trim()) {
+      const scalar = parseYamlScalar(pair.rest);
+      if (!scalar.ok) return { ok: false, value: null, error: 'unparseable-frontmatter' };
+      object[pair.key] = scalar.value;
+      continue;
+    }
+
+    if (state.index < state.lines.length && state.lines[state.index].indent > indent) {
+      const child = parseYamlBlock(state, state.lines[state.index].indent);
+      if (!child.ok) return child;
+      object[pair.key] = child.value;
+    } else {
+      object[pair.key] = null;
+    }
+  }
+  return { ok: true, value: object };
+}
+
+function parseYamlArray(state, indent) {
+  const array = [];
+  const itemKeyIndent = indent + 2;
+
+  while (state.index < state.lines.length) {
+    const line = state.lines[state.index];
+    if (line.indent < indent) break;
+    if (line.indent > indent || !line.text.startsWith('- ')) {
+      return { ok: false, value: null, error: 'unexpected-indentation' };
+    }
+
+    const itemText = line.text.slice(2).trim();
+    state.index += 1;
+
+    if (!itemText) {
+      if (state.index < state.lines.length && state.lines[state.index].indent > indent) {
+        const child = parseYamlBlock(state, state.lines[state.index].indent);
+        if (!child.ok) return child;
+        array.push(child.value);
+      } else {
+        array.push(null);
+      }
+      continue;
+    }
+
+    const pair = parseYamlPair(itemText);
+    if (pair) {
+      const object = {};
+      if (pair.rest.trim()) {
+        const scalar = parseYamlScalar(pair.rest);
+        if (!scalar.ok) return { ok: false, value: null, error: 'unparseable-frontmatter' };
+        object[pair.key] = scalar.value;
+      } else if (state.index < state.lines.length && state.lines[state.index].indent > itemKeyIndent) {
+        const child = parseYamlBlock(state, state.lines[state.index].indent);
+        if (!child.ok) return child;
+        object[pair.key] = child.value;
+      } else {
+        object[pair.key] = null;
+      }
+
+      if (state.index < state.lines.length && state.lines[state.index].indent > indent) {
+        if (state.lines[state.index].indent !== itemKeyIndent) {
+          return { ok: false, value: null, error: 'unexpected-indentation' };
+        }
+        const rest = parseYamlObject(state, itemKeyIndent);
+        if (!rest.ok || !rest.value || Array.isArray(rest.value)) return { ok: false, value: null, error: 'unparseable-frontmatter' };
+        Object.assign(object, rest.value);
+      }
+      array.push(object);
+      continue;
+    }
+
+    const scalar = parseYamlScalar(itemText);
+    if (!scalar.ok) return { ok: false, value: null, error: 'unparseable-frontmatter' };
+    if (state.index < state.lines.length && state.lines[state.index].indent > indent) {
+      return { ok: false, value: null, error: 'unexpected-indentation' };
+    }
+    array.push(scalar.value);
+  }
+
+  return { ok: true, value: array };
+}
+
+function parseYamlSubset(yaml) {
+  const prepared = preprocessYamlLines(yaml);
+  if (!prepared.ok) return { ok: false, value: null, error: prepared.error };
+  if (!prepared.lines.length) return { ok: true, value: {} };
+  if (prepared.lines[0].indent !== 0) return { ok: false, value: null, error: 'unexpected-indentation' };
+  const state = { lines: prepared.lines, index: 0 };
+  const parsed = parseYamlBlock(state, 0);
+  if (!parsed.ok) return parsed;
+  if (state.index !== prepared.lines.length) return { ok: false, value: null, error: 'unparseable-frontmatter' };
+  if (!parsed.value || typeof parsed.value !== 'object' || Array.isArray(parsed.value)) {
+    return { ok: false, value: null, error: 'unparseable-frontmatter' };
+  }
+  return { ok: true, value: parsed.value, error: null };
+}
+
+function isValidRequiredFrontmatterValue(value) {
+  if (value === null || value === undefined) return false;
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return false;
+    if (/^(?:null|~)$/i.test(trimmed)) return false;
+  }
   return true;
 }
 
-function parseFrontmatterKeys(text) {
+function parseFrontmatterKeys(text, requiredKeys = []) {
   const normalized = normalizeNewlines(text);
   if (!normalized.startsWith('---\n')) {
-    return { ok: false, keys: [], invalidKeys: [], error: 'missing-frontmatter' };
+    return { ok: false, parse_ok: false, keys: [], invalidKeys: [], value: null, error: 'missing-frontmatter' };
   }
 
   const closeMatch = normalized.slice(4).match(/\n---\s*(?:\n|$)/);
   if (!closeMatch || typeof closeMatch.index !== 'number') {
-    return { ok: false, keys: [], invalidKeys: [], error: 'unterminated-frontmatter' };
+    return { ok: false, parse_ok: false, keys: [], invalidKeys: [], value: null, error: 'unterminated-frontmatter' };
   }
 
   const frontmatter = normalized.slice(4, 4 + closeMatch.index);
-  const keys = [];
-  const invalidKeys = [];
-  for (const line of frontmatter.split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    if (/^\s/.test(line)) continue;
-    const match = line.match(/^([A-Za-z0-9_-]+)\s*:\s*(.*)$/);
-    if (!match) {
-      return { ok: false, keys: unique(keys), invalidKeys: unique(invalidKeys), error: 'unparseable-frontmatter' };
-    }
-    keys.push(match[1]);
-    if (!isSupportedFrontmatterValue(match[2])) invalidKeys.push(match[1]);
+  const parsed = parseYamlSubset(frontmatter);
+  if (!parsed.ok) {
+    return { ok: false, parse_ok: false, keys: [], invalidKeys: [], value: null, error: parsed.error || 'unparseable-frontmatter' };
   }
 
-  return { ok: invalidKeys.length === 0, keys: unique(keys), invalidKeys: unique(invalidKeys), error: invalidKeys.length ? 'invalid-frontmatter-value' : null };
+  const keys = Object.keys(parsed.value);
+  const invalidKeys = requiredKeys.filter((key) => Object.prototype.hasOwnProperty.call(parsed.value, key) && !isValidRequiredFrontmatterValue(parsed.value[key]));
+
+  return {
+    ok: invalidKeys.length === 0,
+    parse_ok: true,
+    keys: unique(keys),
+    invalidKeys: unique(invalidKeys),
+    value: parsed.value,
+    error: invalidKeys.length ? 'invalid-frontmatter-value' : null
+  };
 }
 
 function specById(id) {
   return REQUIRED_FOUNDATION_SPECS.find((spec) => spec.id === id) || null;
+}
+
+function readRequiredSpecText(file) {
+  try {
+    const stat = fs.statSync(file);
+    if (!stat.isFile()) return { ok: false, text: '', error: 'not-file' };
+    return { ok: true, text: fs.readFileSync(file, 'utf8'), error: null };
+  } catch (error) {
+    return { ok: false, text: '', error: error && error.code ? error.code : 'read-error' };
+  }
+}
+
+function labelValue(label, value) {
+  return label ? `${label}:${value}` : value;
+}
+
+function hasDotPath(root, dotPath) {
+  let cursor = root;
+  for (const part of dotPath.split('.')) {
+    if (!cursor || typeof cursor !== 'object' || !Object.prototype.hasOwnProperty.call(cursor, part)) {
+      return false;
+    }
+    cursor = cursor[part];
+  }
+  return true;
+}
+
+function collectTokenReferences(value, references = []) {
+  if (typeof value === 'string') {
+    const pattern = /\{([A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)+)\}/g;
+    let match = pattern.exec(value);
+    while (match) {
+      references.push(match[1]);
+      match = pattern.exec(value);
+    }
+    return references;
+  }
+  if (Array.isArray(value)) {
+    for (const item of value) collectTokenReferences(item, references);
+    return references;
+  }
+  if (value && typeof value === 'object') {
+    for (const item of Object.values(value)) collectTokenReferences(item, references);
+  }
+  return references;
+}
+
+function invalidTokenReferences(frontmatterValue) {
+  return unique(collectTokenReferences(frontmatterValue)).filter((reference) => !hasDotPath(frontmatterValue, reference));
+}
+
+function collectShapePaths(value, prefix) {
+  const paths = prefix ? [prefix] : [];
+  if (Array.isArray(value)) {
+    const arrayPrefix = `${prefix}[]`;
+    paths.push(arrayPrefix);
+    for (const item of value) paths.push(...collectShapePaths(item, arrayPrefix));
+    return unique(paths).sort();
+  }
+  if (value && typeof value === 'object') {
+    for (const key of Object.keys(value).sort()) {
+      const childPrefix = prefix ? `${prefix}.${key}` : key;
+      paths.push(...collectShapePaths(value[key], childPrefix));
+    }
+  }
+  return unique(paths).sort();
+}
+
+function themeContractShape(frontmatterValue) {
+  const shapeKeys = ['colors', 'typography', 'spacing', 'rounded', 'components'];
+  const paths = [];
+  for (const key of shapeKeys) {
+    if (frontmatterValue && Object.prototype.hasOwnProperty.call(frontmatterValue, key)) {
+      paths.push(...collectShapePaths(frontmatterValue[key], key));
+    } else {
+      paths.push(`${key}:<missing>`);
+    }
+  }
+  return unique(paths).sort();
+}
+
+function sameStringList(left, right) {
+  if (left.length !== right.length) return false;
+  return left.every((value, index) => value === right[index]);
+}
+
+function validateSpecText(text, contract, label = null) {
+  const missingSections = contract.requiredSections
+    .filter((heading) => !markdownHasSection(text, heading))
+    .map((heading) => labelValue(label, heading));
+  const missingKeys = [];
+  const blockers = [];
+  const invalidReferences = [];
+  let frontmatter = null;
+
+  if (contract.requiredFrontmatterKeys.length) {
+    frontmatter = parseFrontmatterKeys(text, contract.requiredFrontmatterKeys);
+    missingKeys.push(
+      ...contract.requiredFrontmatterKeys
+        .filter((key) => !frontmatter.keys.includes(key))
+        .map((key) => labelValue(label, key))
+    );
+    if (!frontmatter.ok || missingKeys.length) blockers.push(`invalid-foundation-spec-frontmatter:${contract.id}`);
+
+    if (frontmatter.parse_ok && frontmatter.value) {
+      invalidReferences.push(...invalidTokenReferences(frontmatter.value).map((reference) => labelValue(label, reference)));
+      if (invalidReferences.length) blockers.push(`invalid-foundation-spec-token-reference:${contract.id}`);
+    }
+  }
+
+  if (missingSections.length) blockers.push(`invalid-foundation-spec-sections:${contract.id}`);
+
+  return {
+    ok: blockers.length === 0,
+    blockers: unique(blockers),
+    missingSections,
+    missingKeys,
+    frontmatter,
+    invalidReferences: unique(invalidReferences)
+  };
+}
+
+function existingThemePairs(primaryFile) {
+  const directory = path.dirname(primaryFile);
+  const designLight = path.join(directory, 'design.light.md');
+  const designDark = path.join(directory, 'design.dark.md');
+  const light = path.join(directory, 'light.md');
+  const dark = path.join(directory, 'dark.md');
+  const pairs = [];
+
+  if (fs.existsSync(designDark)) {
+    pairs.push({
+      left: fs.existsSync(designLight) ? designLight : primaryFile,
+      right: designDark
+    });
+  }
+  if (fs.existsSync(light) && fs.existsSync(dark)) {
+    pairs.push({ left: light, right: dark });
+  }
+
+  return pairs;
+}
+
+function validateThemeCompanions(primaryFile, primaryText, primaryValidation, contract) {
+  const docs = new Map();
+  docs.set(primaryFile, {
+    label: path.basename(primaryFile),
+    validation: primaryValidation,
+    text: primaryText,
+    unreadable: false
+  });
+
+  for (const pair of existingThemePairs(primaryFile)) {
+    for (const file of [pair.left, pair.right]) {
+      if (docs.has(file)) continue;
+      const label = path.basename(file);
+      const read = readRequiredSpecText(file);
+      if (!read.ok) {
+        docs.set(file, {
+          label,
+          validation: {
+            blockers: [`unreadable-foundation-spec:${contract.id}`],
+            missingSections: [],
+            missingKeys: [],
+            frontmatter: null,
+            invalidReferences: []
+          },
+          text: '',
+          unreadable: true
+        });
+        continue;
+      }
+      docs.set(file, {
+        label,
+        validation: validateSpecText(read.text, contract, label),
+        text: read.text,
+        unreadable: false
+      });
+    }
+  }
+
+  const blockers = [];
+  const missingSections = [];
+  const missingKeys = [];
+  const invalidReferences = [];
+  for (const doc of docs.values()) {
+    if (doc.label === path.basename(primaryFile)) continue;
+    blockers.push(...doc.validation.blockers);
+    missingSections.push(...doc.validation.missingSections);
+    missingKeys.push(...doc.validation.missingKeys);
+    invalidReferences.push(...doc.validation.invalidReferences);
+  }
+
+  for (const pair of existingThemePairs(primaryFile)) {
+    const left = docs.get(pair.left);
+    const right = docs.get(pair.right);
+    if (!left || !right || left.unreadable || right.unreadable) continue;
+    if (!left.validation.frontmatter || !right.validation.frontmatter) continue;
+    if (!left.validation.frontmatter.parse_ok || !right.validation.frontmatter.parse_ok) continue;
+    const leftShape = themeContractShape(left.validation.frontmatter.value);
+    const rightShape = themeContractShape(right.validation.frontmatter.value);
+    if (!sameStringList(leftShape, rightShape)) blockers.push(`invalid-foundation-spec-theme-parity:${contract.id}`);
+  }
+
+  return {
+    blockers: unique(blockers),
+    missingSections,
+    missingKeys,
+    invalidReferences: unique(invalidReferences)
+  };
 }
 
 function validateOne(root, spec) {
@@ -219,20 +676,32 @@ function validateOne(root, spec) {
     };
   }
 
-  const text = lib.readText(file);
-  const missingSections = contract.requiredSections.filter((heading) => !markdownHasSection(text, heading));
-  const missingKeys = [];
-  const blockers = [];
-  let frontmatter_error = null;
-
-  if (contract.requiredFrontmatterKeys.length) {
-    const frontmatter = parseFrontmatterKeys(text);
-    frontmatter_error = frontmatter.error;
-    missingKeys.push(...contract.requiredFrontmatterKeys.filter((key) => !frontmatter.keys.includes(key)));
-    if (!frontmatter.ok || missingKeys.length) blockers.push(`invalid-foundation-spec-frontmatter:${contract.id}`);
+  const read = readRequiredSpecText(file);
+  if (!read.ok) {
+    return {
+      id: contract.id,
+      path: contract.path,
+      ok: false,
+      blockers: [`unreadable-foundation-spec:${contract.id}`],
+      missing_sections: [],
+      missing_frontmatter_keys: []
+    };
   }
 
-  if (missingSections.length) blockers.push(`invalid-foundation-spec-sections:${contract.id}`);
+  const primary = validateSpecText(read.text, contract);
+  const missingSections = primary.missingSections.slice();
+  const missingKeys = primary.missingKeys.slice();
+  const blockers = primary.blockers.slice();
+  const invalidReferences = primary.invalidReferences.slice();
+  const frontmatter_error = primary.frontmatter ? primary.frontmatter.error : null;
+
+  if (contract.id === 'ui-design') {
+    const theme = validateThemeCompanions(file, read.text, primary, contract);
+    blockers.push(...theme.blockers);
+    missingSections.push(...theme.missingSections);
+    missingKeys.push(...theme.missingKeys);
+    invalidReferences.push(...theme.invalidReferences);
+  }
 
   return {
     id: contract.id,
@@ -241,7 +710,8 @@ function validateOne(root, spec) {
     blockers: unique(blockers),
     missing_sections: missingSections,
     missing_frontmatter_keys: missingKeys,
-    ...(frontmatter_error ? { frontmatter_error } : {})
+    ...(frontmatter_error ? { frontmatter_error } : {}),
+    ...(invalidReferences.length ? { invalid_token_references: unique(invalidReferences) } : {})
   };
 }
 

@@ -181,6 +181,111 @@ write_happy_project "$HAPPY_PROJECT"
 run_json "$HAPPY_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/happy-foundation-specs.json" 0
 jq -e '.ok == true' "$TMP_DIR/happy-foundation-specs.json" >/dev/null
 
+BLOCK_FRONTMATTER_PROJECT="$TMP_DIR/block-frontmatter-project"
+cp -R "$HAPPY_PROJECT" "$BLOCK_FRONTMATTER_PROJECT"
+cat >"$BLOCK_FRONTMATTER_PROJECT/openspec/specs/ui-design/design.md" <<'MD'
+---
+version: "1.0.0"
+name: "UI: Design"
+description: Geist's token contract # inline comments outside quotes are ignored
+colors:
+  # semantic tokens
+  primary: "#fff"
+  secondary: "#111"
+  canvas:
+    default: "{colors.primary}"
+typography:
+  heading-72:
+    fontSize: 72px
+    lineHeight: "80px"
+  button-14:
+    fontSize: 14px
+spacing:
+  sm: 8px
+rounded:
+  sm: 4px
+components:
+  - name: Button
+    backgroundColor: "{colors.primary}"
+    textStyle: "{typography.button-14}"
+    radius: "{rounded.sm}"
+    note: "token reference: {colors.canvas.default}"
+---
+# UI Design
+
+## Overview
+## Colors
+## Typography
+## Layout
+## Elevation & Depth
+## Motion
+## Shapes
+## Components
+## Voice & Content
+## Do's and Don'ts
+MD
+run_json "$BLOCK_FRONTMATTER_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/block-frontmatter.json" 0
+jq -e '.ok == true' "$TMP_DIR/block-frontmatter.json" >/dev/null
+
+THEME_MISMATCH_PROJECT="$TMP_DIR/theme-mismatch-project"
+cp -R "$BLOCK_FRONTMATTER_PROJECT" "$THEME_MISMATCH_PROJECT"
+cat >"$THEME_MISMATCH_PROJECT/openspec/specs/ui-design/design.dark.md" <<'MD'
+---
+version: "1.0.0"
+name: "UI Dark Design"
+description: "Dark mode token contract"
+colors:
+  primary: "#000"
+  canvas:
+    default: "{colors.primary}"
+typography:
+  heading-72:
+    fontSize: 72px
+    lineHeight: "80px"
+  button-14:
+    fontSize: 14px
+spacing:
+  sm: 8px
+rounded:
+  sm: 4px
+components:
+  - name: Button
+    backgroundColor: "{colors.primary}"
+    textStyle: "{typography.button-14}"
+    radius: "{rounded.sm}"
+    note: "token reference: {colors.canvas.default}"
+---
+# UI Design
+
+## Overview
+## Colors
+## Typography
+## Layout
+## Elevation & Depth
+## Motion
+## Shapes
+## Components
+## Voice & Content
+## Do's and Don'ts
+MD
+run_json "$THEME_MISMATCH_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/theme-mismatch.json" 2
+jq -e '.blockers[] | select(. == "invalid-foundation-spec-theme-parity:ui-design")' "$TMP_DIR/theme-mismatch.json" >/dev/null
+
+INVALID_TOKEN_REF_PROJECT="$TMP_DIR/invalid-token-ref-project"
+cp -R "$BLOCK_FRONTMATTER_PROJECT" "$INVALID_TOKEN_REF_PROJECT"
+perl -0pi -e 's/backgroundColor: "\{colors\.primary\}"/backgroundColor: "{colors.missing}"/' "$INVALID_TOKEN_REF_PROJECT/openspec/specs/ui-design/design.md"
+run_json "$INVALID_TOKEN_REF_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/invalid-token-ref.json" 2
+jq -e '.blockers[] | select(. == "invalid-foundation-spec-token-reference:ui-design")' "$TMP_DIR/invalid-token-ref.json" >/dev/null
+
+UNREADABLE_FOUNDATION_SPEC_PROJECT="$TMP_DIR/unreadable-foundation-spec-project"
+cp -R "$HAPPY_PROJECT" "$UNREADABLE_FOUNDATION_SPEC_PROJECT"
+rm "$UNREADABLE_FOUNDATION_SPEC_PROJECT/openspec/specs/ui-design/design.md"
+mkdir "$UNREADABLE_FOUNDATION_SPEC_PROJECT/openspec/specs/ui-design/design.md"
+run_json "$UNREADABLE_FOUNDATION_SPEC_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/unreadable-foundation-spec.json" 2
+jq -e '.blockers[] | select(. == "unreadable-foundation-spec:ui-design")' "$TMP_DIR/unreadable-foundation-spec.json" >/dev/null
+jq -e '.blockers | index("invalid-foundation-spec-frontmatter:ui-design") == null' "$TMP_DIR/unreadable-foundation-spec.json" >/dev/null
+jq -e '.blockers | index("invalid-foundation-spec-sections:ui-design") == null' "$TMP_DIR/unreadable-foundation-spec.json" >/dev/null
+
 run_json "$HAPPY_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/happy-requirements-contract.json" 0
 jq -e '.ok == true' "$TMP_DIR/happy-requirements-contract.json" >/dev/null
 
