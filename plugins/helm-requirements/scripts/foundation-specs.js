@@ -138,7 +138,7 @@ function isYamlEscapedSingleQuote(value, index, single, double) {
 }
 
 function yamlHexColorLiteralLength(line, index) {
-  const match = line.slice(index).match(/^#(?:[0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})(?=$|[\s,\]}])/);
+  const match = line.slice(index).match(/^#(?:[0-9A-Fa-f]{3}|[0-9A-Fa-f]{4}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})(?=$|[\s,\]}])/);
   if (!match) return 0;
 
   const before = line.slice(0, index).trimEnd();

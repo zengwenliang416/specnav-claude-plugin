@@ -576,6 +576,8 @@ description: Test # inline comment
 colors:
   primary: #fff
   secondary: #ffffff
+  accent: #abcd
+  alpha: #000f
   overlay: #ffffff12
 typography: {}
 spacing: {}
@@ -605,7 +607,7 @@ cat >"$INLINE_HEX_ARRAY_FRONTMATTER_PROJECT/openspec/specs/ui-design/design.md" 
 version: 1.0.0
 name: UI Design
 description: Test # inline comment
-colors: [#fff, #000, #ffffffff] # palette comment
+colors: [#fff, #abcd, #000f, #ffffffff] # palette comment
 typography: {}
 spacing: {}
 rounded: {}
@@ -634,7 +636,7 @@ cat >"$INLINE_HEX_OBJECT_FRONTMATTER_PROJECT/openspec/specs/ui-design/design.md"
 version: 1.0.0
 name: UI Design
 description: Test # inline comment
-colors: {primary: #fff, secondary: #000, overlay: #ffffffff} # palette comment
+colors: {primary: #fff, accent: #abcd, alpha: #000f, overlay: #ffffffff} # palette comment
 typography: {}
 spacing: {}
 rounded: {}
