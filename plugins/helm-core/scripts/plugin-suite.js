@@ -10,7 +10,7 @@ function readJson(file) {
   } catch (error) {
     if (error && error.code === 'ENOENT') return { ok: false, status: 'missing' };
     if (error instanceof SyntaxError) return { ok: false, status: 'malformed' };
-    return { ok: false, status: 'missing' };
+    return { ok: false, status: 'unreadable' };
   }
 }
 
@@ -25,6 +25,12 @@ function unique(values) {
 
 function isNonEmpty(value) {
   return typeof value === 'string' && value.trim() !== '';
+}
+
+function valueBlocker(status, kind, name) {
+  if (status === 'malformed') return `malformed-${kind}:${name}`;
+  if (status === 'unreadable') return `unreadable-${kind}:${name}`;
+  return `missing-${kind}:${name}`;
 }
 
 function resolveMarketplaceRoot(root) {
@@ -57,14 +63,49 @@ function sourceOutsideMarketplace(marketplaceRoot, pluginRoot) {
 function argValues(args, name) {
   const values = [];
   for (let i = 0; i < args.length; i += 1) {
-    if (args[i] === name && args[i + 1]) values.push(args[i + 1]);
+    if (args[i] === name && isNonEmpty(args[i + 1]) && !args[i + 1].startsWith('--')) values.push(args[i + 1]);
   }
   return values;
 }
 
 function argValue(args, name, fallback = null) {
   const index = args.indexOf(name);
-  return index >= 0 ? args[index + 1] : fallback;
+  const value = index >= 0 ? args[index + 1] : null;
+  return isNonEmpty(value) && !value.startsWith('--') ? value : fallback;
+}
+
+function parseArgs(args) {
+  const command = args[0] && !args[0].startsWith('--') ? args[0] : 'list';
+  const values = {
+    '--marketplace-root': [],
+    '--plugin': []
+  };
+  const blockers = [];
+
+  for (let i = 0; i < args.length; i += 1) {
+    const arg = args[i];
+    if (i === 0 && arg === command && !arg.startsWith('--')) continue;
+    if (arg === '--json') continue;
+    if (!Object.prototype.hasOwnProperty.call(values, arg)) continue;
+
+    const value = args[i + 1];
+    if (!isNonEmpty(value) || value.startsWith('--')) {
+      blockers.push(`missing-argument:${arg}`);
+      continue;
+    }
+    values[arg].push(value);
+    i += 1;
+  }
+
+  return {
+    command,
+    marketplaceRoot: values['--marketplace-root'].length
+      ? values['--marketplace-root'][values['--marketplace-root'].length - 1]
+      : null,
+    plugins: values['--plugin'],
+    plugin: values['--plugin'].length ? values['--plugin'][values['--plugin'].length - 1] : null,
+    blockers: unique(blockers)
+  };
 }
 
 function findMarketplaceRoot(start) {
@@ -94,12 +135,49 @@ function loadMarketplace(root) {
   return { ok: true, marketplaceRoot, marketplace: marketplace.value };
 }
 
-function pluginRecord(marketplaceRoot, entry) {
-  const source = entry.source || './';
+function pluginRecord(marketplaceRoot, entry, index) {
+  if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+    return {
+      name: null,
+      source: null,
+      root: null,
+      version: null,
+      stage: null,
+      required: false,
+      commands: [],
+      skills: [],
+      contracts: {},
+      ok: false,
+      blockers: [`invalid-plugin-entry:${index}`]
+    };
+  }
+
+  const name = isNonEmpty(entry.name) ? entry.name.trim() : null;
+  const source = isNonEmpty(entry.source) ? entry.source.trim() : null;
+  const entryBlockers = [];
+  if (!name) entryBlockers.push(`missing-plugin-name:${index}`);
+  if (name && !source) entryBlockers.push(`missing-plugin-source:${name}`);
+
+  if (entryBlockers.length) {
+    return {
+      name,
+      source,
+      root: source ? path.resolve(marketplaceRoot, source) : null,
+      version: entry.version || null,
+      stage: null,
+      required: false,
+      commands: [],
+      skills: [],
+      contracts: {},
+      ok: false,
+      blockers: unique(entryBlockers)
+    };
+  }
+
   const root = path.resolve(marketplaceRoot, source);
   if (sourceOutsideMarketplace(marketplaceRoot, root)) {
     return {
-      name: entry.name,
+      name,
       source,
       root,
       version: entry.version || null,
@@ -109,7 +187,7 @@ function pluginRecord(marketplaceRoot, entry) {
       skills: [],
       contracts: {},
       ok: false,
-      blockers: [`plugin-source-outside-marketplace:${entry.name}`]
+      blockers: [`plugin-source-outside-marketplace:${name}`]
     };
   }
 
@@ -120,14 +198,14 @@ function pluginRecord(marketplaceRoot, entry) {
   const blockers = [
     pluginJson.ok
       ? null
-      : `${pluginJson.status === 'malformed' ? 'malformed' : 'missing'}-plugin-json:${entry.name}`,
+      : valueBlocker(pluginJson.status, 'plugin-json', name),
     stage.ok
       ? null
-      : `${stage.status === 'malformed' ? 'malformed' : 'missing'}-stage-manifest:${entry.name}`
+      : valueBlocker(stage.status, 'stage-manifest', name)
   ];
 
   return {
-    name: entry.name,
+    name,
     source,
     root,
     version: entry.version || (pluginMetadata && pluginMetadata.version) || null,
@@ -151,7 +229,7 @@ function listPlugins(options = {}) {
       plugins: []
     };
   }
-  const plugins = loaded.marketplace.plugins.map((entry) => pluginRecord(loaded.marketplaceRoot, entry));
+  const plugins = loaded.marketplace.plugins.map((entry, index) => pluginRecord(loaded.marketplaceRoot, entry, index));
   const blockers = plugins.flatMap((plugin) => plugin.blockers);
   return {
     ok: blockers.length === 0,
@@ -219,15 +297,21 @@ function requirePlugins(options = {}) {
 
 function main() {
   const args = process.argv.slice(2);
-  const command = args[0] && !args[0].startsWith('--') ? args[0] : 'list';
-  const marketplaceRoot = argValue(args, '--marketplace-root');
+  const cli = parseArgs(args);
+  const { command, marketplaceRoot } = cli;
   let result;
-  if (command === 'list') {
+  if (cli.blockers.length) {
+    result = {
+      ok: false,
+      marketplace_root: resolveMarketplaceRoot(marketplaceRoot),
+      blockers: cli.blockers
+    };
+  } else if (command === 'list') {
     result = listPlugins({ marketplaceRoot });
   } else if (command === 'resolve') {
-    result = resolvePlugin({ marketplaceRoot, plugin: argValue(args, '--plugin') });
+    result = resolvePlugin({ marketplaceRoot, plugin: cli.plugin });
   } else if (command === 'require') {
-    result = requirePlugins({ marketplaceRoot, plugins: argValues(args, '--plugin') });
+    result = requirePlugins({ marketplaceRoot, plugins: cli.plugins });
   } else {
     result = {
       ok: false,
