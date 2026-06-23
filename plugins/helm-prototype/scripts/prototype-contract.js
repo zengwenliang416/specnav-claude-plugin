@@ -318,6 +318,7 @@ function validateDecisionShape(decision, prototypeType) {
   const blockers = [];
 
   if (decision.status === 'not_required') {
+    blockers.push('invalid-prototype-decision-status:not_required');
     if (!isNonEmptyString(decision.reason)) blockers.push('invalid-prototype-decision:not_required-reason');
     return blockers;
   }
@@ -410,22 +411,6 @@ function validateApprovedPrototype(prototypeDir, change) {
   };
 }
 
-function validateNotRequiredPrototype(prototypeDir, change, decisionResult) {
-  const artifacts = [decisionResult.artifact];
-  const blockers = [...decisionResult.blockers];
-  const handoff = validateTextArtifact(prototypeDir, change, 'handoff.md', { gapSensitive: true });
-  artifacts.push(handoff);
-  blockers.push(...handoff.blockers);
-
-  return {
-    artifacts,
-    blockers,
-    manifest: null,
-    verifier: null,
-    decision: decisionResult.decision
-  };
-}
-
 function validatePrototype(root = lib.projectRoot()) {
   const projectRoot = path.resolve(root);
   const requirements = validateRequirements(projectRoot);
@@ -464,20 +449,12 @@ function validatePrototype(root = lib.projectRoot()) {
     };
   }
 
-  const decisionResult = validateDecision(prototypeDir, activeChange);
-  if (decisionResult.decision && decisionResult.decision.status === 'not_required') {
-    const result = validateNotRequiredPrototype(prototypeDir, activeChange, decisionResult);
-    artifacts = result.artifacts;
-    blockers.push(...result.blockers);
-    decision = result.decision;
-  } else {
-    const result = validateApprovedPrototype(prototypeDir, activeChange);
-    artifacts = result.artifacts;
-    blockers.push(...result.blockers);
-    manifest = result.manifest;
-    verifier = result.verifier;
-    decision = result.decision;
-  }
+  const result = validateApprovedPrototype(prototypeDir, activeChange);
+  artifacts = result.artifacts;
+  blockers.push(...result.blockers);
+  manifest = result.manifest;
+  verifier = result.verifier;
+  decision = result.decision;
 
   return {
     ok: blockers.length === 0,

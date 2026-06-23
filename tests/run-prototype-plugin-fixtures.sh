@@ -316,6 +316,17 @@ JSON
 run_json "$NO_REASON_PROJECT" "$TMP_DIR/no-reason.json" 2
 assert_blocker "$TMP_DIR/no-reason.json" 'invalid-prototype-decision:not_required-reason'
 
+NOT_REQUIRED_PROJECT="$TMP_DIR/not-required-project"
+cp -R "$HAPPY_PROJECT" "$NOT_REQUIRED_PROJECT"
+cat >"$NOT_REQUIRED_PROJECT/openspec/changes/add-dashboard/prototype/decision.json" <<'JSON'
+{
+  "status": "not_required",
+  "reason": "User says this prototype is unnecessary."
+}
+JSON
+run_json "$NOT_REQUIRED_PROJECT" "$TMP_DIR/not-required.json" 2
+assert_blocker "$TMP_DIR/not-required.json" 'invalid-prototype-decision-status:not_required'
+
 MISSING_BRANCH_PROJECT="$TMP_DIR/missing-branch-project"
 cp -R "$HAPPY_PROJECT" "$MISSING_BRANCH_PROJECT"
 rm "$MISSING_BRANCH_PROJECT/openspec/changes/add-dashboard/prototype/artifact/index.html"

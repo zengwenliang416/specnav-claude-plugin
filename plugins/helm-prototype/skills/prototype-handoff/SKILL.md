@@ -1,6 +1,6 @@
 ---
 name: prototype-handoff
-description: Record Helm prototype approval or not-required decision and development handoff
+description: Record Helm prototype approval and development handoff
 allowed-tools:
   - Read
   - Write
@@ -48,16 +48,7 @@ Write `prototype/decision.json`. Only an explicit user approval may set:
 }
 ```
 
-If the user explicitly decides prototype code is not required, write:
-
-```text
-{
-  "status": "not_required",
-  "reason": "<concrete user-approved reason>"
-}
-```
-
-Do not use `approved` without user approval. Do not use `not_required` without a concrete reason.
+Do not use `approved` without user approval. Prototype handoff can only pass with explicit user approval and `status: approved`. If the user decides prototype code is not required, stop this stage and report a blocker instead of writing a successful `not_required` decision.
 
 After writing `handoff.md` and `decision.json`, run:
 
