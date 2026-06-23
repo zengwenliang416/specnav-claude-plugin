@@ -1,16 +1,16 @@
 ---
 name: doctor
-description: "Placeholder for Helm diagnostics"
+description: "Run Helm core diagnostics"
+allowed-tools:
+  - Bash
 ---
 
-# doctor
+# Helm Doctor
 
-This skill is not implemented yet.
+Run:
 
-Stop and report:
-
-```text
-not-implemented:helm-core/doctor
+```bash
+node "$CLAUDE_PLUGIN_ROOT/scripts/helm-doctor.js" --json
 ```
 
-Do not provide fallback behavior until the owning stage task implements this skill.
+If it exits non-zero or returns `not-implemented:helm-core/helm-doctor`, report the blocker and exit status explicitly. Do not provide fallback diagnostics until the owning implementation task replaces this placeholder.
