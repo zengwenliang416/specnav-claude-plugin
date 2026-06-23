@@ -13,6 +13,8 @@ grep -q '"helm-verification"' /tmp/helm-plugin-names.txt
 grep -q '"helm-operations"' /tmp/helm-plugin-names.txt
 
 for plugin in helm-core helm-requirements helm-prototype helm-development helm-verification helm-operations; do
+  test -d "$ROOT/plugins/$plugin/skills"
+  test -d "$ROOT/plugins/$plugin/scripts"
   test -f "$ROOT/plugins/$plugin/.claude-plugin/plugin.json"
   test -f "$ROOT/plugins/$plugin/helm-stage.json"
   jq -e '.name == "'"$plugin"'"' "$ROOT/plugins/$plugin/.claude-plugin/plugin.json" >/dev/null
