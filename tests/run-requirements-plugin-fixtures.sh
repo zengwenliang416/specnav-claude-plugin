@@ -16,6 +16,21 @@ grep -q 'helm-requirements' "$REQ/commands/helm-requirements.md"
 grep -Fq 'node "$CLAUDE_PLUGIN_ROOT/../helm-core/scripts/plugin-suite.js" require' "$REQ/commands/helm-requirements.md"
 grep -Fq -- '--marketplace-root "$CLAUDE_PLUGIN_ROOT/../.."' "$REQ/commands/helm-requirements.md"
 
+mkdir -p "$TMP_DIR/external-project"
+set +e
+(
+  cd "$TMP_DIR/external-project"
+  export CLAUDE_PLUGIN_ROOT="$REQ"
+  node "$CLAUDE_PLUGIN_ROOT/../helm-core/scripts/plugin-suite.js" require --marketplace-root "$CLAUDE_PLUGIN_ROOT/../.." --plugin helm-core --plugin helm-requirements --json
+) >"$TMP_DIR/external-plugin-suite-require.json"
+STATUS=$?
+set -e
+[[ "$STATUS" == "0" ]]
+jq -e '.ok == true' "$TMP_DIR/external-plugin-suite-require.json" >/dev/null
+jq -e '.plugins | length == 2' "$TMP_DIR/external-plugin-suite-require.json" >/dev/null
+jq -e '.plugins[] | select(.name == "helm-core" and .ok == true)' "$TMP_DIR/external-plugin-suite-require.json" >/dev/null
+jq -e '.plugins[] | select(.name == "helm-requirements" and .ok == true)' "$TMP_DIR/external-plugin-suite-require.json" >/dev/null
+
 set +e
 PROJECT_DIR="$PROJECT" node "$REQ/scripts/foundation-specs.js" --json >"$TMP_DIR/foundation-specs.json"
 STATUS=$?
