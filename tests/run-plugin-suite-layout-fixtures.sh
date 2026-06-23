@@ -19,16 +19,19 @@ for plugin in helm-core helm-requirements helm-prototype helm-development helm-v
   test -f "$ROOT/plugins/$plugin/helm-stage.json"
   jq -e '.name == "'"$plugin"'"' "$ROOT/plugins/$plugin/.claude-plugin/plugin.json" >/dev/null
   jq -e '.plugin == "'"$plugin"'"' "$ROOT/plugins/$plugin/helm-stage.json" >/dev/null
+
+  while IFS= read -r command; do
+    test -f "$ROOT/plugins/$plugin/commands/$command.md"
+  done < <(jq -r '.commands[]?' "$ROOT/plugins/$plugin/helm-stage.json")
+
+  while IFS= read -r skill; do
+    test -f "$ROOT/plugins/$plugin/skills/$skill/SKILL.md"
+  done < <(jq -r '.skills[]?' "$ROOT/plugins/$plugin/helm-stage.json")
 done
 
 test -f "$ROOT/plugins/helm-core/hooks/hooks.json"
 test -f "$ROOT/plugins/helm-core/scripts/helm-lib.js"
-test -f "$ROOT/plugins/helm-core/commands/helm.md"
-test -f "$ROOT/plugins/helm-requirements/commands/helm-requirements.md"
-test -f "$ROOT/plugins/helm-prototype/commands/helm-prototype.md"
-test -f "$ROOT/plugins/helm-development/commands/helm-implement.md"
-test -f "$ROOT/plugins/helm-verification/commands/helm-verify.md"
-test -f "$ROOT/plugins/helm-operations/commands/helm-release.md"
-test -f "$ROOT/plugins/helm-operations/commands/helm-archive.md"
+test ! -e "$ROOT/plugins/helm-core/commands/helm-verify.md"
+test ! -e "$ROOT/plugins/helm-core/commands/helm-archive.md"
 
 echo "helm plugin suite layout fixtures ok"
