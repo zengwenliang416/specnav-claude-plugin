@@ -27,10 +27,28 @@ function isNonEmpty(value) {
   return typeof value === 'string' && value.trim() !== '';
 }
 
+function isObject(value) {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
 function valueBlocker(status, kind, name) {
   if (status === 'malformed') return `malformed-${kind}:${name}`;
   if (status === 'unreadable') return `unreadable-${kind}:${name}`;
   return `missing-${kind}:${name}`;
+}
+
+function marketplaceBlocker(status) {
+  if (status === 'malformed') return 'malformed-marketplace-json';
+  if (status === 'unreadable') return 'unreadable-marketplace-json';
+  return 'missing-marketplace-json';
+}
+
+function isValidStageManifest(value) {
+  return isObject(value)
+    && isNonEmpty(value.stage)
+    && (!Object.prototype.hasOwnProperty.call(value, 'commands') || Array.isArray(value.commands))
+    && (!Object.prototype.hasOwnProperty.call(value, 'skills') || Array.isArray(value.skills))
+    && (!Object.prototype.hasOwnProperty.call(value, 'contracts') || isObject(value.contracts));
 }
 
 function resolveMarketplaceRoot(root) {
@@ -80,6 +98,10 @@ function parseArgs(args) {
     '--marketplace-root': [],
     '--plugin': []
   };
+  const occurrences = {
+    '--marketplace-root': 0,
+    '--plugin': 0
+  };
   const blockers = [];
 
   for (let i = 0; i < args.length; i += 1) {
@@ -87,6 +109,7 @@ function parseArgs(args) {
     if (i === 0 && arg === command && !arg.startsWith('--')) continue;
     if (arg === '--json') continue;
     if (!Object.prototype.hasOwnProperty.call(values, arg)) continue;
+    occurrences[arg] += 1;
 
     const value = args[i + 1];
     if (!isNonEmpty(value) || value.startsWith('--')) {
@@ -95,6 +118,10 @@ function parseArgs(args) {
     }
     values[arg].push(value);
     i += 1;
+  }
+
+  if (command === 'resolve' && occurrences['--plugin'] > 1) {
+    blockers.push('duplicate-argument:--plugin');
   }
 
   return {
@@ -126,11 +153,11 @@ function loadMarketplace(root) {
     return {
       ok: false,
       marketplaceRoot,
-      blockers: [marketplace.status === 'malformed' ? 'malformed-marketplace-json' : 'marketplace-json']
+      blockers: [marketplaceBlocker(marketplace.status)]
     };
   }
-  if (!marketplace.value || !Array.isArray(marketplace.value.plugins)) {
-    return { ok: false, marketplaceRoot, blockers: ['marketplace-json'] };
+  if (!isObject(marketplace.value) || !Array.isArray(marketplace.value.plugins)) {
+    return { ok: false, marketplaceRoot, blockers: ['invalid-marketplace-json'] };
   }
   return { ok: true, marketplaceRoot, marketplace: marketplace.value };
 }
@@ -193,14 +220,16 @@ function pluginRecord(marketplaceRoot, entry, index) {
 
   const pluginJson = readJson(path.join(root, '.claude-plugin', 'plugin.json'));
   const stage = readJson(path.join(root, 'helm-stage.json'));
-  const pluginMetadata = pluginJson.ok ? pluginJson.value : null;
-  const stageManifest = stage.ok ? stage.value : null;
+  const pluginMetadataValid = pluginJson.ok && isObject(pluginJson.value);
+  const stageManifestValid = stage.ok && isValidStageManifest(stage.value);
+  const pluginMetadata = pluginMetadataValid ? pluginJson.value : null;
+  const stageManifest = stageManifestValid ? stage.value : null;
   const blockers = [
     pluginJson.ok
-      ? null
+      ? (pluginMetadataValid ? null : `invalid-plugin-json:${name}`)
       : valueBlocker(pluginJson.status, 'plugin-json', name),
     stage.ok
-      ? null
+      ? (stageManifestValid ? null : `invalid-stage-manifest:${name}`)
       : valueBlocker(stage.status, 'stage-manifest', name)
   ];
 
@@ -211,10 +240,10 @@ function pluginRecord(marketplaceRoot, entry, index) {
     version: entry.version || (pluginMetadata && pluginMetadata.version) || null,
     stage: stageManifest && stageManifest.stage,
     required: !!(stageManifest && stageManifest.required),
-    commands: stageManifest && stageManifest.commands || [],
-    skills: stageManifest && stageManifest.skills || [],
-    contracts: stageManifest && stageManifest.contracts || {},
-    ok: pluginJson.ok && stage.ok,
+    commands: stageManifest ? (stageManifest.commands || []) : null,
+    skills: stageManifest ? (stageManifest.skills || []) : null,
+    contracts: stageManifest ? (stageManifest.contracts || {}) : null,
+    ok: pluginMetadataValid && stageManifestValid,
     blockers: unique(blockers)
   };
 }

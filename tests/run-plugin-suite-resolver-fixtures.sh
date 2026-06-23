@@ -11,10 +11,10 @@ run_failure() {
 
   set +e
   node "$ROOT/plugins/helm-core/scripts/plugin-suite.js" "$@" --json >"$output"
-  local status=$?
+  local exit_code=$?
   set -e
 
-  [[ "$status" == "2" ]]
+  [[ "$exit_code" == "2" ]]
   jq -e '.ok == false' "$output" >/dev/null
 }
 
@@ -55,11 +55,30 @@ jq -e '.blockers[] | select(. == "missing-argument:--marketplace-root")' "$tmp_d
 run_failure "$tmp_dir/resolve-flag-looking-plugin-value.json" resolve --plugin --marketplace-root "$ROOT"
 jq -e '.blockers[] | select(. == "missing-argument:--plugin")' "$tmp_dir/resolve-flag-looking-plugin-value.json" >/dev/null
 
+run_failure "$tmp_dir/resolve-duplicate-plugin.json" resolve --marketplace-root "$ROOT" --plugin helm-core --plugin helm-requirements
+jq -e '.blockers[] | select(. == "duplicate-argument:--plugin")' "$tmp_dir/resolve-duplicate-plugin.json" >/dev/null
+
 malformed_marketplace="$tmp_dir/malformed-marketplace"
 mkdir -p "$malformed_marketplace/.claude-plugin"
 printf '{ "plugins": [ ' >"$malformed_marketplace/.claude-plugin/marketplace.json"
 run_failure "$tmp_dir/malformed-marketplace.json" list --marketplace-root "$malformed_marketplace"
 jq -e '.blockers[] | select(. == "malformed-marketplace-json")' "$tmp_dir/malformed-marketplace.json" >/dev/null
+
+unreadable_marketplace="$tmp_dir/unreadable-marketplace"
+mkdir -p "$unreadable_marketplace/.claude-plugin/marketplace.json"
+run_failure "$tmp_dir/unreadable-marketplace.json" list --marketplace-root "$unreadable_marketplace"
+jq -e '.blockers[] | select(. == "unreadable-marketplace-json")' "$tmp_dir/unreadable-marketplace.json" >/dev/null
+
+invalid_marketplace="$tmp_dir/invalid-marketplace"
+mkdir -p "$invalid_marketplace/.claude-plugin"
+cat >"$invalid_marketplace/.claude-plugin/marketplace.json" <<'JSON'
+{
+  "name": "invalid-marketplace-fixture",
+  "plugins": {}
+}
+JSON
+run_failure "$tmp_dir/invalid-marketplace.json" list --marketplace-root "$invalid_marketplace"
+jq -e '.blockers[] | select(. == "invalid-marketplace-json")' "$tmp_dir/invalid-marketplace.json" >/dev/null
 
 invalid_plugin_entry="$tmp_dir/invalid-plugin-entry"
 mkdir -p "$invalid_plugin_entry/.claude-plugin"
@@ -176,6 +195,56 @@ printf '{ "plugin": ' >"$malformed_plugin_stage/plugins/bad-stage-manifest/helm-
 run_failure "$tmp_dir/malformed-plugin-stage.json" list --marketplace-root "$malformed_plugin_stage"
 jq -e '.blockers[] | select(. == "malformed-plugin-json:bad-plugin-json")' "$tmp_dir/malformed-plugin-stage.json" >/dev/null
 jq -e '.blockers[] | select(. == "malformed-stage-manifest:bad-stage-manifest")' "$tmp_dir/malformed-plugin-stage.json" >/dev/null
+
+invalid_plugin_stage="$tmp_dir/invalid-plugin-stage"
+mkdir -p \
+  "$invalid_plugin_stage/.claude-plugin" \
+  "$invalid_plugin_stage/plugins/bad-plugin-shape/.claude-plugin" \
+  "$invalid_plugin_stage/plugins/bad-stage-shape/.claude-plugin"
+cat >"$invalid_plugin_stage/.claude-plugin/marketplace.json" <<'JSON'
+{
+  "name": "invalid-plugin-stage-fixture",
+  "plugins": [
+    {
+      "name": "bad-plugin-shape",
+      "source": "plugins/bad-plugin-shape",
+      "version": "0.0.0"
+    },
+    {
+      "name": "bad-stage-shape",
+      "source": "plugins/bad-stage-shape",
+      "version": "0.0.0"
+    }
+  ]
+}
+JSON
+cat >"$invalid_plugin_stage/plugins/bad-plugin-shape/.claude-plugin/plugin.json" <<'JSON'
+[
+  "bad-plugin-shape"
+]
+JSON
+cat >"$invalid_plugin_stage/plugins/bad-plugin-shape/helm-stage.json" <<'JSON'
+{
+  "plugin": "bad-plugin-shape",
+  "stage": "broken"
+}
+JSON
+cat >"$invalid_plugin_stage/plugins/bad-stage-shape/.claude-plugin/plugin.json" <<'JSON'
+{
+  "name": "bad-stage-shape",
+  "version": "0.0.0"
+}
+JSON
+cat >"$invalid_plugin_stage/plugins/bad-stage-shape/helm-stage.json" <<'JSON'
+{
+  "plugin": "bad-stage-shape",
+  "stage": "broken",
+  "commands": "not-an-array"
+}
+JSON
+run_failure "$tmp_dir/invalid-plugin-stage.json" list --marketplace-root "$invalid_plugin_stage"
+jq -e '.blockers[] | select(. == "invalid-plugin-json:bad-plugin-shape")' "$tmp_dir/invalid-plugin-stage.json" >/dev/null
+jq -e '.blockers[] | select(. == "invalid-stage-manifest:bad-stage-shape")' "$tmp_dir/invalid-plugin-stage.json" >/dev/null
 
 unreadable_plugin_stage="$tmp_dir/unreadable-plugin-stage"
 mkdir -p \
