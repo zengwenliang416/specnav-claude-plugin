@@ -265,6 +265,112 @@ run_json "$HAPPY_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/happy-fou
 jq -e '.ok == true' "$TMP_DIR/happy-foundation-specs.json" >/dev/null
 jq -e '.blockers | index("invalid-foundation-spec-theme-parity:ui-design") == null' "$TMP_DIR/happy-foundation-specs.json" >/dev/null
 
+MULTI_COMPANION_PROJECT="$TMP_DIR/multi-companion-project"
+cp -R "$HAPPY_PROJECT" "$MULTI_COMPANION_PROJECT"
+cat >"$MULTI_COMPANION_PROJECT/openspec/specs/ui-design/marketing.light.md" <<'MD'
+---
+version: 1.0.0
+name: Marketing Light Design
+description: Marketing light theme
+colors: {}
+typography: {}
+spacing: {}
+rounded: {}
+components: []
+---
+# UI Design
+
+## Overview
+## Colors
+## Typography
+## Layout
+## Elevation & Depth
+## Motion
+## Shapes
+## Components
+## Voice & Content
+## Do's and Don'ts
+MD
+cat >"$MULTI_COMPANION_PROJECT/openspec/specs/ui-design/marketing.dark.md" <<'MD'
+---
+version: 1.0.0
+name: Marketing Dark Design
+description: Marketing dark theme
+colors: {}
+typography: {}
+spacing: {}
+rounded: {}
+components: []
+---
+# UI Design
+
+## Overview
+## Colors
+## Typography
+## Layout
+## Elevation & Depth
+## Motion
+## Shapes
+## Components
+## Voice & Content
+## Do's and Don'ts
+MD
+cat >"$MULTI_COMPANION_PROJECT/openspec/specs/ui-design/light.marketing.md" <<'MD'
+---
+version: 1.0.0
+name: Light Marketing Design
+description: Light marketing theme
+colors:
+  primary: "#ffffff"
+typography: {}
+spacing: {}
+rounded: {}
+components:
+  - name: MarketingCard
+---
+# UI Design
+
+## Overview
+## Colors
+## Typography
+## Layout
+## Elevation & Depth
+## Motion
+## Shapes
+## Components
+## Voice & Content
+## Do's and Don'ts
+MD
+cat >"$MULTI_COMPANION_PROJECT/openspec/specs/ui-design/dark.marketing.md" <<'MD'
+---
+version: 1.0.0
+name: Dark Marketing Design
+description: Dark marketing theme
+colors:
+  primary: "#000000"
+typography: {}
+spacing: {}
+rounded: {}
+components:
+  - name: MarketingCard
+---
+# UI Design
+
+## Overview
+## Colors
+## Typography
+## Layout
+## Elevation & Depth
+## Motion
+## Shapes
+## Components
+## Voice & Content
+## Do's and Don'ts
+MD
+run_json "$MULTI_COMPANION_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/multi-companion.json" 0
+jq -e '.ok == true' "$TMP_DIR/multi-companion.json" >/dev/null
+jq -e '.blockers | index("invalid-foundation-spec-theme-parity:ui-design") == null' "$TMP_DIR/multi-companion.json" >/dev/null
+
 BLOCK_FRONTMATTER_PROJECT="$TMP_DIR/block-frontmatter-project"
 cp -R "$HAPPY_PROJECT" "$BLOCK_FRONTMATTER_PROJECT"
 cat >"$BLOCK_FRONTMATTER_PROJECT/openspec/specs/ui-design/design.md" <<'MD'
@@ -520,6 +626,12 @@ cp -R "$HAPPY_PROJECT" "$EMPTY_ACTIVE_CHANGE_PROJECT"
 : >"$EMPTY_ACTIVE_CHANGE_PROJECT/openspec/.helm/active-change"
 run_json "$EMPTY_ACTIVE_CHANGE_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/empty-active-change.json" 2
 assert_active_change_only_blocker "$TMP_DIR/empty-active-change.json"
+
+PADDED_ACTIVE_CHANGE_PROJECT="$TMP_DIR/padded-active-change-project"
+cp -R "$HAPPY_PROJECT" "$PADDED_ACTIVE_CHANGE_PROJECT"
+printf '%s' ' add-dashboard ' >"$PADDED_ACTIVE_CHANGE_PROJECT/openspec/.helm/active-change"
+run_json "$PADDED_ACTIVE_CHANGE_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/padded-active-change.json" 2
+assert_active_change_only_blocker "$TMP_DIR/padded-active-change.json"
 
 DOT_ACTIVE_CHANGE_PROJECT="$TMP_DIR/dot-active-change-project"
 cp -R "$HAPPY_PROJECT" "$DOT_ACTIVE_CHANGE_PROJECT"

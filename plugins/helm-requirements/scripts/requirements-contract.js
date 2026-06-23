@@ -87,13 +87,15 @@ function strictActiveChange(projectRoot) {
     return null;
   }
 
-  let change;
+  let content;
   try {
-    change = fs.readFileSync(activeFile, 'utf8').trim();
+    content = fs.readFileSync(activeFile, 'utf8');
   } catch (_error) {
     return null;
   }
 
+  const change = content.replace(/\r?\n$/, '');
+  if (change !== content.trim()) return null;
   if (!change || invalidChangeId(change)) return null;
   return change;
 }
