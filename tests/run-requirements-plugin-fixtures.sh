@@ -343,6 +343,64 @@ MD
 run_json "$HEX_LITERAL_FRONTMATTER_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/hex-literal-frontmatter.json" 0
 jq -e '.ok == true' "$TMP_DIR/hex-literal-frontmatter.json" >/dev/null
 
+INLINE_HEX_ARRAY_FRONTMATTER_PROJECT="$TMP_DIR/inline-hex-array-frontmatter-project"
+cp -R "$HAPPY_PROJECT" "$INLINE_HEX_ARRAY_FRONTMATTER_PROJECT"
+cat >"$INLINE_HEX_ARRAY_FRONTMATTER_PROJECT/openspec/specs/ui-design/design.md" <<'MD'
+---
+version: 1.0.0
+name: UI Design
+description: Test # inline comment
+colors: [#fff, #000, #ffffffff] # palette comment
+typography: {}
+spacing: {}
+rounded: {}
+components: []
+---
+# UI Design
+
+## Overview
+## Colors
+## Typography
+## Layout
+## Elevation & Depth
+## Motion
+## Shapes
+## Components
+## Voice & Content
+## Do's and Don'ts
+MD
+run_json "$INLINE_HEX_ARRAY_FRONTMATTER_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/inline-hex-array-frontmatter.json" 0
+jq -e '.ok == true' "$TMP_DIR/inline-hex-array-frontmatter.json" >/dev/null
+
+INLINE_HEX_OBJECT_FRONTMATTER_PROJECT="$TMP_DIR/inline-hex-object-frontmatter-project"
+cp -R "$HAPPY_PROJECT" "$INLINE_HEX_OBJECT_FRONTMATTER_PROJECT"
+cat >"$INLINE_HEX_OBJECT_FRONTMATTER_PROJECT/openspec/specs/ui-design/design.md" <<'MD'
+---
+version: 1.0.0
+name: UI Design
+description: Test # inline comment
+colors: {primary: #fff, secondary: #000, overlay: #ffffffff} # palette comment
+typography: {}
+spacing: {}
+rounded: {}
+components: []
+---
+# UI Design
+
+## Overview
+## Colors
+## Typography
+## Layout
+## Elevation & Depth
+## Motion
+## Shapes
+## Components
+## Voice & Content
+## Do's and Don'ts
+MD
+run_json "$INLINE_HEX_OBJECT_FRONTMATTER_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/inline-hex-object-frontmatter.json" 0
+jq -e '.ok == true' "$TMP_DIR/inline-hex-object-frontmatter.json" >/dev/null
+
 THEME_MISMATCH_PROJECT="$TMP_DIR/theme-mismatch-project"
 cp -R "$BLOCK_FRONTMATTER_PROJECT" "$THEME_MISMATCH_PROJECT"
 cat >"$THEME_MISMATCH_PROJECT/openspec/specs/ui-design/design.dark.md" <<'MD'

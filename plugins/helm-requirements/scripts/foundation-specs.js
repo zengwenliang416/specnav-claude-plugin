@@ -134,10 +134,14 @@ function isYamlQuoteStart(value, index) {
 }
 
 function yamlHexColorLiteralLength(line, index) {
-  const before = line.slice(0, index);
-  if (!/^\s*(?:-\s*)?[A-Za-z0-9_-]+\s*:\s*$/.test(before)) return 0;
-  const match = line.slice(index).match(/^#(?:[0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})(?=\s|$)/);
-  return match ? match[0].length : 0;
+  const match = line.slice(index).match(/^#(?:[0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})(?=$|[\s,\]}])/);
+  if (!match) return 0;
+
+  const before = line.slice(0, index).trimEnd();
+  const previousValueToken = before.slice(-1);
+  if (before.trim() === '-' || [':', '[', ',', '{'].includes(previousValueToken)) return match[0].length;
+
+  return 0;
 }
 
 function stripYamlComment(line) {
