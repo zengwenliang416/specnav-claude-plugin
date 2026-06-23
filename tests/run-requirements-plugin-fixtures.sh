@@ -449,6 +449,64 @@ jq -e '.ok == true' "$TMP_DIR/single-quote-escape-frontmatter.json" >/dev/null
 jq -e '.blockers | index("invalid-foundation-spec-frontmatter:ui-design") == null' "$TMP_DIR/single-quote-escape-frontmatter.json" >/dev/null
 jq -e '.blockers | index("invalid-foundation-spec-theme-parity:ui-design") == null' "$TMP_DIR/single-quote-escape-frontmatter.json" >/dev/null
 
+UNESCAPED_SINGLE_QUOTE_FRONTMATTER_PROJECT="$TMP_DIR/unescaped-single-quote-frontmatter-project"
+cp -R "$HAPPY_PROJECT" "$UNESCAPED_SINGLE_QUOTE_FRONTMATTER_PROJECT"
+cat >"$UNESCAPED_SINGLE_QUOTE_FRONTMATTER_PROJECT/openspec/specs/ui-design/design.md" <<'MD'
+---
+version: 1.0.0
+name: 'Bob's UI Design'
+description: Product interface standards
+colors: {}
+typography: {}
+spacing: {}
+rounded: {}
+components: []
+---
+# UI Design
+
+## Overview
+## Colors
+## Typography
+## Layout
+## Elevation & Depth
+## Motion
+## Shapes
+## Components
+## Voice & Content
+## Do's and Don'ts
+MD
+run_json "$UNESCAPED_SINGLE_QUOTE_FRONTMATTER_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/unescaped-single-quote-frontmatter.json" 2
+jq -e '.blockers[] | select(. == "invalid-foundation-spec-frontmatter:ui-design")' "$TMP_DIR/unescaped-single-quote-frontmatter.json" >/dev/null
+
+INLINE_UNESCAPED_SINGLE_QUOTE_FRONTMATTER_PROJECT="$TMP_DIR/inline-unescaped-single-quote-frontmatter-project"
+cp -R "$HAPPY_PROJECT" "$INLINE_UNESCAPED_SINGLE_QUOTE_FRONTMATTER_PROJECT"
+cat >"$INLINE_UNESCAPED_SINGLE_QUOTE_FRONTMATTER_PROJECT/openspec/specs/ui-design/design.md" <<'MD'
+---
+version: 1.0.0
+name: UI Design
+description: Product interface standards
+colors: {}
+typography: {}
+spacing: {}
+rounded: {}
+components: [{name: Button, note: 'Bob's inline component'}]
+---
+# UI Design
+
+## Overview
+## Colors
+## Typography
+## Layout
+## Elevation & Depth
+## Motion
+## Shapes
+## Components
+## Voice & Content
+## Do's and Don'ts
+MD
+run_json "$INLINE_UNESCAPED_SINGLE_QUOTE_FRONTMATTER_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/inline-unescaped-single-quote-frontmatter.json" 2
+jq -e '.blockers[] | select(. == "invalid-foundation-spec-frontmatter:ui-design")' "$TMP_DIR/inline-unescaped-single-quote-frontmatter.json" >/dev/null
+
 HEX_LITERAL_FRONTMATTER_PROJECT="$TMP_DIR/hex-literal-frontmatter-project"
 cp -R "$HAPPY_PROJECT" "$HEX_LITERAL_FRONTMATTER_PROJECT"
 cat >"$HEX_LITERAL_FRONTMATTER_PROJECT/openspec/specs/ui-design/design.md" <<'MD'

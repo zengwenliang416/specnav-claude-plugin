@@ -246,7 +246,19 @@ function unquoteYamlString(value) {
   const quote = value[0];
   if (value[value.length - 1] !== quote) return { ok: false, value: null };
   const inner = value.slice(1, -1);
-  if (quote === "'") return { ok: true, value: inner.replace(/''/g, "'") };
+  if (quote === "'") {
+    let unquoted = '';
+    for (let index = 0; index < inner.length; index += 1) {
+      if (inner[index] !== "'") {
+        unquoted += inner[index];
+        continue;
+      }
+      if (inner[index + 1] !== "'") return { ok: false, value: null };
+      unquoted += "'";
+      index += 1;
+    }
+    return { ok: true, value: unquoted };
+  }
   return {
     ok: true,
     value: inner.replace(/\\(["\\/bfnrt])/g, (_match, escaped) => {
