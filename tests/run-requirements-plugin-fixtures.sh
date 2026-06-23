@@ -21,6 +21,14 @@ run_json() {
   [[ "$status" == "$expected_status" ]]
 }
 
+assert_active_change_only_blocker() {
+  local output="$1"
+
+  jq -e '.active_change == null' "$output" >/dev/null
+  jq -e '.blockers | sort == ["active-change"]' "$output" >/dev/null
+  jq -e '.blockers | map(select(startswith("missing-requirements-artifact:"))) | length == 0' "$output" >/dev/null
+}
+
 write_happy_project() {
   local project="$1"
   local change="add-dashboard"
@@ -325,22 +333,25 @@ MISSING_ACTIVE_CHANGE_PROJECT="$TMP_DIR/missing-active-change-project"
 cp -R "$HAPPY_PROJECT" "$MISSING_ACTIVE_CHANGE_PROJECT"
 rm "$MISSING_ACTIVE_CHANGE_PROJECT/openspec/.helm/active-change"
 run_json "$MISSING_ACTIVE_CHANGE_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/missing-active-change.json" 2
-jq -e '.active_change == null' "$TMP_DIR/missing-active-change.json" >/dev/null
-jq -e '.blockers[] | select(. == "active-change")' "$TMP_DIR/missing-active-change.json" >/dev/null
+assert_active_change_only_blocker "$TMP_DIR/missing-active-change.json"
 
 EMPTY_ACTIVE_CHANGE_PROJECT="$TMP_DIR/empty-active-change-project"
 cp -R "$HAPPY_PROJECT" "$EMPTY_ACTIVE_CHANGE_PROJECT"
 : >"$EMPTY_ACTIVE_CHANGE_PROJECT/openspec/.helm/active-change"
 run_json "$EMPTY_ACTIVE_CHANGE_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/empty-active-change.json" 2
-jq -e '.active_change == null' "$TMP_DIR/empty-active-change.json" >/dev/null
-jq -e '.blockers[] | select(. == "active-change")' "$TMP_DIR/empty-active-change.json" >/dev/null
+assert_active_change_only_blocker "$TMP_DIR/empty-active-change.json"
 
 INVALID_ACTIVE_CHANGE_PROJECT="$TMP_DIR/invalid-active-change-project"
 cp -R "$HAPPY_PROJECT" "$INVALID_ACTIVE_CHANGE_PROJECT"
 printf '%s\n' '../add-dashboard' >"$INVALID_ACTIVE_CHANGE_PROJECT/openspec/.helm/active-change"
 run_json "$INVALID_ACTIVE_CHANGE_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/invalid-active-change.json" 2
-jq -e '.active_change == null' "$TMP_DIR/invalid-active-change.json" >/dev/null
-jq -e '.blockers[] | select(. == "active-change")' "$TMP_DIR/invalid-active-change.json" >/dev/null
+assert_active_change_only_blocker "$TMP_DIR/invalid-active-change.json"
+
+MISSING_CHANGE_DIR_PROJECT="$TMP_DIR/missing-change-dir-project"
+cp -R "$HAPPY_PROJECT" "$MISSING_CHANGE_DIR_PROJECT"
+rm -rf "$MISSING_CHANGE_DIR_PROJECT/openspec/changes/add-dashboard"
+run_json "$MISSING_CHANGE_DIR_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/missing-change-dir.json" 2
+assert_active_change_only_blocker "$TMP_DIR/missing-change-dir.json"
 
 EMPTY_ARTIFACT_PROJECT="$TMP_DIR/empty-artifact-project"
 cp -R "$HAPPY_PROJECT" "$EMPTY_ARTIFACT_PROJECT"

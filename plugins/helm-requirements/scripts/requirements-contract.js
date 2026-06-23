@@ -63,6 +63,15 @@ function strictActiveChange(projectRoot) {
   return change;
 }
 
+function changeDirExists(dir) {
+  if (!dir) return false;
+  try {
+    return fs.statSync(dir).isDirectory();
+  } catch (_error) {
+    return false;
+  }
+}
+
 function isPlainObject(value) {
   return !!value && typeof value === 'object' && !Array.isArray(value);
 }
@@ -123,18 +132,19 @@ function validateRequirements(root = lib.projectRoot()) {
   const foundation = foundationSpecs.validateFoundationSpecs(projectRoot);
   const change = strictActiveChange(projectRoot);
   const dir = change ? lib.changeDir(projectRoot, change) : null;
+  const activeChangeOk = changeDirExists(dir);
   const blockers = [];
 
   if (!foundation.ok) blockers.push(...foundation.blockers);
-  if (!change || !dir || !fs.existsSync(dir)) blockers.push('active-change');
+  if (!activeChangeOk) blockers.push('active-change');
 
-  const artifacts = REQUIRED_ARTIFACTS.map((name) => validateArtifact(dir, change, name));
+  const artifacts = activeChangeOk ? REQUIRED_ARTIFACTS.map((name) => validateArtifact(dir, change, name)) : [];
   blockers.push(...artifacts.flatMap((artifact) => artifact.blockers));
 
   return {
     ok: blockers.length === 0,
     project_root: projectRoot,
-    active_change: change,
+    active_change: activeChangeOk ? change : null,
     blockers: unique(blockers),
     foundation,
     artifacts
