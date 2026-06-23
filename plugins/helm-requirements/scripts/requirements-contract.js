@@ -31,6 +31,14 @@ function readJsonFile(file) {
   }
 }
 
+function readTextFile(file) {
+  try {
+    return { ok: true, value: fs.readFileSync(file, 'utf8') };
+  } catch (_error) {
+    return { ok: false, status: 'unreadable', value: null };
+  }
+}
+
 function isPlainObject(value) {
   return !!value && typeof value === 'object' && !Array.isArray(value);
 }
@@ -51,7 +59,10 @@ function validateArtifact(dir, change, name) {
   }
 
   if (!name.endsWith('.json')) {
-    if (fs.readFileSync(file, 'utf8').trim().length === 0) {
+    const text = readTextFile(file);
+    if (!text.ok) {
+      blockers.push(`unreadable-requirements-artifact:${name}`);
+    } else if (text.value.trim().length === 0) {
       blockers.push(`empty-requirements-artifact:${name}`);
     }
     return {

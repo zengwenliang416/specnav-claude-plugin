@@ -151,6 +151,10 @@ function isSupportedFrontmatterValue(value) {
   const trimmed = value.trim();
   if (!trimmed) return false;
   if (!hasBalancedQuotes(trimmed)) return false;
+  if (/^(?:null|~)$/i.test(trimmed)) return false;
+  if ((trimmed.startsWith('"') && trimmed.endsWith('"')) || (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
+    if (trimmed.slice(1, -1).trim().length === 0) return false;
+  }
   if (trimmed === '{}' || trimmed === '[]') return true;
   if (trimmed.startsWith('[') || trimmed.endsWith(']')) return /^\[[^\[\]{}]*\]$/.test(trimmed);
   if (trimmed.startsWith('{') || trimmed.endsWith('}')) return /^\{[^\[\]{}]*\}$/.test(trimmed);

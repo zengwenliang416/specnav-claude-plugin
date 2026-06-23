@@ -210,6 +210,36 @@ JSON
 run_json "$UNRESOLVED_GAPS_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/invalid-unresolved-gaps.json" 2
 jq -e '.blockers[] | select(. == "invalid-unresolved-gaps:component-impact-map.json")' "$TMP_DIR/invalid-unresolved-gaps.json" >/dev/null
 
+NONEMPTY_UNRESOLVED_GAPS_PROJECT="$TMP_DIR/nonempty-unresolved-gaps-project"
+cp -R "$HAPPY_PROJECT" "$NONEMPTY_UNRESOLVED_GAPS_PROJECT"
+cat >"$NONEMPTY_UNRESOLVED_GAPS_PROJECT/openspec/changes/add-dashboard/spec-map.json" <<'JSON'
+{
+  "unresolved_gaps": ["needs decision"]
+}
+JSON
+run_json "$NONEMPTY_UNRESOLVED_GAPS_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/nonempty-unresolved-gaps.json" 2
+jq -e '.blockers[] | select(. == "unresolved-gaps:spec-map.json")' "$TMP_DIR/nonempty-unresolved-gaps.json" >/dev/null
+
+MALFORMED_JSON_PROJECT="$TMP_DIR/malformed-json-project"
+cp -R "$HAPPY_PROJECT" "$MALFORMED_JSON_PROJECT"
+printf '{\n' >"$MALFORMED_JSON_PROJECT/openspec/changes/add-dashboard/spec-map.json"
+run_json "$MALFORMED_JSON_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/malformed-json.json" 2
+jq -e '.blockers[] | select(. == "invalid-json:spec-map.json")' "$TMP_DIR/malformed-json.json" >/dev/null
+
+UNREADABLE_JSON_PROJECT="$TMP_DIR/unreadable-json-project"
+cp -R "$HAPPY_PROJECT" "$UNREADABLE_JSON_PROJECT"
+rm "$UNREADABLE_JSON_PROJECT/openspec/changes/add-dashboard/component-impact-map.json"
+mkdir "$UNREADABLE_JSON_PROJECT/openspec/changes/add-dashboard/component-impact-map.json"
+run_json "$UNREADABLE_JSON_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/unreadable-json.json" 2
+jq -e '.blockers[] | select(. == "unreadable-requirements-artifact:component-impact-map.json")' "$TMP_DIR/unreadable-json.json" >/dev/null
+
+UNREADABLE_MARKDOWN_PROJECT="$TMP_DIR/unreadable-markdown-project"
+cp -R "$HAPPY_PROJECT" "$UNREADABLE_MARKDOWN_PROJECT"
+rm "$UNREADABLE_MARKDOWN_PROJECT/openspec/changes/add-dashboard/requirements.md"
+mkdir "$UNREADABLE_MARKDOWN_PROJECT/openspec/changes/add-dashboard/requirements.md"
+run_json "$UNREADABLE_MARKDOWN_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/unreadable-markdown.json" 2
+jq -e '.blockers[] | select(. == "unreadable-requirements-artifact:requirements.md")' "$TMP_DIR/unreadable-markdown.json" >/dev/null
+
 BAD_FRONTMATTER_PROJECT="$TMP_DIR/bad-frontmatter-project"
 cp -R "$HAPPY_PROJECT" "$BAD_FRONTMATTER_PROJECT"
 cat >"$BAD_FRONTMATTER_PROJECT/openspec/specs/ui-design/design.md" <<'MD'
@@ -238,6 +268,35 @@ components: [
 MD
 run_json "$BAD_FRONTMATTER_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/bad-frontmatter.json" 2
 jq -e '.blockers[] | select(. == "invalid-foundation-spec-frontmatter:ui-design")' "$TMP_DIR/bad-frontmatter.json" >/dev/null
+
+NULLISH_FRONTMATTER_PROJECT="$TMP_DIR/nullish-frontmatter-project"
+cp -R "$HAPPY_PROJECT" "$NULLISH_FRONTMATTER_PROJECT"
+cat >"$NULLISH_FRONTMATTER_PROJECT/openspec/specs/ui-design/design.md" <<'MD'
+---
+version: ""
+name: ''
+description: Product interface standards
+colors: null
+typography: ~
+spacing: {}
+rounded: {}
+components: []
+---
+# UI Design
+
+## Overview
+## Colors
+## Typography
+## Layout
+## Elevation & Depth
+## Motion
+## Shapes
+## Components
+## Voice & Content
+## Do's and Don'ts
+MD
+run_json "$NULLISH_FRONTMATTER_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/nullish-frontmatter.json" 2
+jq -e '.blockers[] | select(. == "invalid-foundation-spec-frontmatter:ui-design")' "$TMP_DIR/nullish-frontmatter.json" >/dev/null
 
 FENCED_HEADING_PROJECT="$TMP_DIR/fenced-heading-project"
 cp -R "$HAPPY_PROJECT" "$FENCED_HEADING_PROJECT"
