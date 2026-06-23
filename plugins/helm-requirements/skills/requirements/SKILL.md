@@ -26,7 +26,9 @@ When foundation validation passes, read all four specs before asking the user an
 - `openspec/specs/frontend-backend-data-flow/design.md`
 - `openspec/specs/component-architecture/design.md`
 
-Ask one focused question at a time. Do not ask for information already present in foundation specs, current code, OpenSpec artifacts, or previous answers.
+Ask one focused question at a time. Every user question must include a recommended answer and the tradeoff of choosing it. Do not ask for information already present in foundation specs, current code, OpenSpec artifacts, or previous answers.
+
+Close each decision branch before starting the next question: record the answer in the relevant requirements artifact, update any affected map entry, rerun the contract check when the branch touches a contract artifact, and resolve or report any blocker created by that branch before moving on.
 
 For the active change, write or repair these artifacts in `openspec/changes/<change>/`:
 
@@ -45,4 +47,4 @@ Then run:
 node "$CLAUDE_PLUGIN_ROOT/scripts/requirements-contract.js" --json
 ```
 
-If the contract is blocked, report the exact blockers and stop. Do not proceed to prototype, development, or verification until it returns `"ok": true`.
+If either map has non-empty `unresolved_gaps` or the contract is blocked, report the exact blockers. Guide the user to update the related foundation spec when the blocker comes from foundation coverage, or the missing requirement artifact when the blocker comes from `requirements.md`, `acceptance.md`, `spec-map.json`, or `component-impact-map.json`. Do not proceed to prototype, development, or verification until the contract returns `"ok": true`.
