@@ -480,6 +480,124 @@ jq -e '.ok == true' "$TMP_DIR/single-quote-escape-frontmatter.json" >/dev/null
 jq -e '.blockers | index("invalid-foundation-spec-frontmatter:ui-design") == null' "$TMP_DIR/single-quote-escape-frontmatter.json" >/dev/null
 jq -e '.blockers | index("invalid-foundation-spec-theme-parity:ui-design") == null' "$TMP_DIR/single-quote-escape-frontmatter.json" >/dev/null
 
+DOUBLE_QUOTE_ESCAPE_FRONTMATTER_PROJECT="$TMP_DIR/double-quote-escape-frontmatter-project"
+cp -R "$HAPPY_PROJECT" "$DOUBLE_QUOTE_ESCAPE_FRONTMATTER_PROJECT"
+cat >"$DOUBLE_QUOTE_ESCAPE_FRONTMATTER_PROJECT/openspec/specs/ui-design/design.md" <<'MD'
+---
+version: 1.0.0
+name: "UI \"Design\""
+description: "Product interface \/ standards"
+colors: {}
+typography: {}
+spacing: {}
+rounded: {}
+components: [{name: Button, note: "Escaped quote: \"primary\""}]
+---
+# UI Design
+
+## Overview
+## Colors
+## Typography
+## Layout
+## Elevation & Depth
+## Motion
+## Shapes
+## Components
+## Voice & Content
+## Do's and Don'ts
+MD
+run_json "$DOUBLE_QUOTE_ESCAPE_FRONTMATTER_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/double-quote-escape-frontmatter.json" 0
+jq -e '.ok == true' "$TMP_DIR/double-quote-escape-frontmatter.json" >/dev/null
+jq -e '.blockers | index("invalid-foundation-spec-frontmatter:ui-design") == null' "$TMP_DIR/double-quote-escape-frontmatter.json" >/dev/null
+
+SINGLE_QUOTE_BACKSLASH_COMMENT_FRONTMATTER_PROJECT="$TMP_DIR/single-quote-backslash-comment-frontmatter-project"
+cp -R "$HAPPY_PROJECT" "$SINGLE_QUOTE_BACKSLASH_COMMENT_FRONTMATTER_PROJECT"
+cat >"$SINGLE_QUOTE_BACKSLASH_COMMENT_FRONTMATTER_PROJECT/openspec/specs/ui-design/design.md" <<'MD'
+---
+version: 1.0.0
+name: 'abc\' # real comment
+description: Product interface standards
+colors: {}
+typography: {}
+spacing: {}
+rounded: {}
+components: []
+---
+# UI Design
+
+## Overview
+## Colors
+## Typography
+## Layout
+## Elevation & Depth
+## Motion
+## Shapes
+## Components
+## Voice & Content
+## Do's and Don'ts
+MD
+run_json "$SINGLE_QUOTE_BACKSLASH_COMMENT_FRONTMATTER_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/single-quote-backslash-comment-frontmatter.json" 0
+jq -e '.ok == true' "$TMP_DIR/single-quote-backslash-comment-frontmatter.json" >/dev/null
+jq -e '.blockers | index("invalid-foundation-spec-frontmatter:ui-design") == null' "$TMP_DIR/single-quote-backslash-comment-frontmatter.json" >/dev/null
+
+INVALID_DOUBLE_ESCAPE_FRONTMATTER_PROJECT="$TMP_DIR/invalid-double-escape-frontmatter-project"
+cp -R "$HAPPY_PROJECT" "$INVALID_DOUBLE_ESCAPE_FRONTMATTER_PROJECT"
+cat >"$INVALID_DOUBLE_ESCAPE_FRONTMATTER_PROJECT/openspec/specs/ui-design/design.md" <<'MD'
+---
+version: 1.0.0
+name: "bad\q"
+description: Product interface standards
+colors: {}
+typography: {}
+spacing: {}
+rounded: {}
+components: []
+---
+# UI Design
+
+## Overview
+## Colors
+## Typography
+## Layout
+## Elevation & Depth
+## Motion
+## Shapes
+## Components
+## Voice & Content
+## Do's and Don'ts
+MD
+run_json "$INVALID_DOUBLE_ESCAPE_FRONTMATTER_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/invalid-double-escape-frontmatter.json" 2
+jq -e '.blockers[] | select(. == "invalid-foundation-spec-frontmatter:ui-design")' "$TMP_DIR/invalid-double-escape-frontmatter.json" >/dev/null
+
+UNESCAPED_DOUBLE_QUOTE_FRONTMATTER_PROJECT="$TMP_DIR/unescaped-double-quote-frontmatter-project"
+cp -R "$HAPPY_PROJECT" "$UNESCAPED_DOUBLE_QUOTE_FRONTMATTER_PROJECT"
+cat >"$UNESCAPED_DOUBLE_QUOTE_FRONTMATTER_PROJECT/openspec/specs/ui-design/design.md" <<'MD'
+---
+version: 1.0.0
+name: "UI "Design""
+description: Product interface standards
+colors: {}
+typography: {}
+spacing: {}
+rounded: {}
+components: []
+---
+# UI Design
+
+## Overview
+## Colors
+## Typography
+## Layout
+## Elevation & Depth
+## Motion
+## Shapes
+## Components
+## Voice & Content
+## Do's and Don'ts
+MD
+run_json "$UNESCAPED_DOUBLE_QUOTE_FRONTMATTER_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/unescaped-double-quote-frontmatter.json" 2
+jq -e '.blockers[] | select(. == "invalid-foundation-spec-frontmatter:ui-design")' "$TMP_DIR/unescaped-double-quote-frontmatter.json" >/dev/null
+
 UNESCAPED_SINGLE_QUOTE_FRONTMATTER_PROJECT="$TMP_DIR/unescaped-single-quote-frontmatter-project"
 cp -R "$HAPPY_PROJECT" "$UNESCAPED_SINGLE_QUOTE_FRONTMATTER_PROJECT"
 cat >"$UNESCAPED_SINGLE_QUOTE_FRONTMATTER_PROJECT/openspec/specs/ui-design/design.md" <<'MD'

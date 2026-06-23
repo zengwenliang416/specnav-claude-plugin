@@ -159,7 +159,7 @@ function stripYamlComment(line) {
       escaped = false;
       continue;
     }
-    if (character === '\\') {
+    if (double && character === '\\') {
       escaped = true;
       continue;
     }
@@ -209,7 +209,7 @@ function splitTopLevel(value, delimiter) {
       escaped = false;
       continue;
     }
-    if (character === '\\') {
+    if (double && character === '\\') {
       escaped = true;
       continue;
     }
@@ -259,17 +259,56 @@ function unquoteYamlString(value) {
     }
     return { ok: true, value: unquoted };
   }
-  return {
-    ok: true,
-    value: inner.replace(/\\(["\\/bfnrt])/g, (_match, escaped) => {
-      if (escaped === 'n') return '\n';
-      if (escaped === 'r') return '\r';
-      if (escaped === 't') return '\t';
-      if (escaped === 'b') return '\b';
-      if (escaped === 'f') return '\f';
-      return escaped;
-    })
+
+  const simpleEscapes = {
+    '0': '\0',
+    a: '\x07',
+    b: '\b',
+    t: '\t',
+    n: '\n',
+    v: '\v',
+    f: '\f',
+    r: '\r',
+    e: '\x1b',
+    '"': '"',
+    '/': '/',
+    '\\': '\\',
+    '_': '\u00a0',
+    N: '\u0085',
+    L: '\u2028',
+    P: '\u2029'
   };
+  const hexLengths = { x: 2, u: 4, U: 8 };
+  let unquoted = '';
+
+  for (let index = 0; index < inner.length; index += 1) {
+    const character = inner[index];
+    if (character === '"') return { ok: false, value: null };
+    if (character !== '\\') {
+      unquoted += character;
+      continue;
+    }
+
+    const escaped = inner[index + 1];
+    if (Object.prototype.hasOwnProperty.call(simpleEscapes, escaped)) {
+      unquoted += simpleEscapes[escaped];
+      index += 1;
+      continue;
+    }
+
+    if (!Object.prototype.hasOwnProperty.call(hexLengths, escaped)) return { ok: false, value: null };
+    const hexLength = hexLengths[escaped];
+    const hex = inner.slice(index + 2, index + 2 + hexLength);
+    if (hex.length !== hexLength || !/^[0-9A-Fa-f]+$/.test(hex)) return { ok: false, value: null };
+    try {
+      unquoted += String.fromCodePoint(Number.parseInt(hex, 16));
+    } catch (_error) {
+      return { ok: false, value: null };
+    }
+    index += 1 + hexLength;
+  }
+
+  return { ok: true, value: unquoted };
 }
 
 function parseInlineArray(value) {
