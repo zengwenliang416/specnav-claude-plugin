@@ -31,7 +31,7 @@ If a spec is invalid, repair only the reported category:
 
 - Missing sections: add only headings listed in `missing_sections`.
 - Frontmatter keys: add only keys listed in `missing_frontmatter_keys`.
-- Frontmatter values / YAML parseability: make the frontmatter parseable YAML and repair only paths listed in `invalid_frontmatter_values` or the reported `frontmatter_error`.
+- Frontmatter values / YAML parseability: make the frontmatter parseable YAML and repair only paths listed in `invalid_frontmatter_values`, the primary spec `frontmatter_error`, or companion spec entries listed in `frontmatter_errors`.
 - Token references: repair only references listed in `invalid_token_references`.
 - Theme parity / component contract shape: align the reported light/dark companion specs so their token and component contract shape match without changing unrelated design decisions.
 
