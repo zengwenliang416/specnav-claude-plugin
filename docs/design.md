@@ -4,33 +4,35 @@ This document describes the current Claude Code implementation of Helm. The long
 
 ## 1. Current Shape
 
-Helm is currently a single Claude Code plugin. Current implementation version: `0.2.1`.
+Helm is currently a Claude Code marketplace repository containing six installable plugins. Current implementation version: `0.3.1`.
 
-This single-plugin shape is now implementation debt. The accepted target is a Claude Code marketplace repository containing several Helm plugins, one for the core runtime and one for each major lifecycle stage.
+The accepted target is now the current implementation shape: one marketplace root, one core runtime plugin, and one plugin for each major lifecycle stage.
 
 ```text
 helm-claude-plugin/
-├── .claude-plugin/
-├── commands/
-├── skills/
-├── agents/
-├── hooks/
-├── scripts/
+├── .claude-plugin/marketplace.json
+├── plugins/
+│   ├── helm-core/
+│   ├── helm-requirements/
+│   ├── helm-prototype/
+│   ├── helm-development/
+│   ├── helm-verification/
+│   └── helm-operations/
 └── tests/
 ```
 
-The current tree keeps the final suite boundaries inside one installable unit:
+The current tree implements the suite boundaries as separate plugins:
 
-| Concern | Current location | Target plugin |
-| --- | --- | --- |
-| core runtime, routing, hooks, state | `commands/`, `skills/`, `hooks/`, `scripts/` | `helm-core` |
-| requirements and foundation specs | `skills/propose`, `skills/design`, OpenSpec artifacts | `helm-requirements` |
-| prototype artifacts and handoff | to be created under `plugins/helm-prototype/` | `helm-prototype` |
-| production implementation gates | `skills/implement`, `skills/tasks`, `scripts/helm-guard.js` | `helm-development` |
-| six-domain verification | `agents/verifier.md`, `scripts/verify.js` | `helm-verification` |
-| release, deploy, archive | `scripts/archive-gate.js`, future operations artifacts | `helm-operations` |
+| Concern | Plugin |
+| --- | --- |
+| core runtime, routing, hooks, state | `plugins/helm-core/` |
+| requirements and foundation specs | `plugins/helm-requirements/` |
+| prototype artifacts and handoff | `plugins/helm-prototype/` |
+| production implementation gates | `plugins/helm-development/` |
+| six-domain verification | `plugins/helm-verification/` |
+| release, deploy, archive | `plugins/helm-operations/` |
 
-The implementation plan should split the repository before building the remaining lifecycle contracts, otherwise later code will hard-code the wrong plugin root and command surface.
+The remaining implementation work is tightening runtime enforcement, doctor evidence, clean-session behavior evals, and release validation against this multi-plugin shape.
 
 ## 2. Target Direction
 
@@ -2004,6 +2006,12 @@ claude plugin install helm-prototype@helm-marketplace --scope user
 claude plugin install helm-development@helm-marketplace --scope user
 claude plugin install helm-verification@helm-marketplace --scope user
 claude plugin install helm-operations@helm-marketplace --scope user
+claude plugin enable helm-core@helm-marketplace --scope user
+claude plugin enable helm-requirements@helm-marketplace --scope user
+claude plugin enable helm-prototype@helm-marketplace --scope user
+claude plugin enable helm-development@helm-marketplace --scope user
+claude plugin enable helm-verification@helm-marketplace --scope user
+claude plugin enable helm-operations@helm-marketplace --scope user
 ```
 
 Validate:
@@ -2015,7 +2023,12 @@ claude plugin validate /Volumes/zwl/AI/ai-coding/helm-claude-plugin
 Update:
 
 ```bash
-claude plugin update helm@helm-marketplace
+claude plugin update helm-core@helm-marketplace --scope user
+claude plugin update helm-requirements@helm-marketplace --scope user
+claude plugin update helm-prototype@helm-marketplace --scope user
+claude plugin update helm-development@helm-marketplace --scope user
+claude plugin update helm-verification@helm-marketplace --scope user
+claude plugin update helm-operations@helm-marketplace --scope user
 ```
 
 Start a new Claude Code session after changing commands, skills, hooks, or agents.
@@ -2053,7 +2066,7 @@ It checks:
 - archive gate;
 - scope allow;
 - scope deny;
-- `scope.json` include/exclude behavior;
+- `scope.json` `allowed_roots` / `denied_roots` behavior;
 - hook payload normalization for write tools and Bash;
 - explicit override records for blocking gates.
 - OpenSpec CLI state parsing and explicit blocked states when required OpenSpec status is unavailable.
@@ -2090,6 +2103,13 @@ Completed in `0.3.0`:
 11. Split verification into the six dedicated skills and aggregate report.
 12. Add debug/break-loop workflows.
 13. Add bilingual README files, release checklist, compatibility matrix, and behavior eval transcript resources.
+
+Completed in `0.3.1`:
+
+1. Require explicit Claude plugin enablement after install and verify enabled state in `/helm-doctor`.
+2. Enforce `scope.json` `allowed_roots` / `denied_roots` in `PreToolUse` and block production writes when `scope.json` is missing or invalid.
+3. Remove the old `design.md` file-scope fallback from guard enforcement.
+4. Refresh install/update docs for the six-plugin marketplace.
 
 Next:
 

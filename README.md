@@ -25,10 +25,17 @@ claude plugin install helm-prototype@helm-marketplace
 claude plugin install helm-development@helm-marketplace
 claude plugin install helm-verification@helm-marketplace
 claude plugin install helm-operations@helm-marketplace
+claude plugin enable helm-core@helm-marketplace
+claude plugin enable helm-requirements@helm-marketplace
+claude plugin enable helm-prototype@helm-marketplace
+claude plugin enable helm-development@helm-marketplace
+claude plugin enable helm-verification@helm-marketplace
+claude plugin enable helm-operations@helm-marketplace
 ```
 
 If your Claude Code build uses different plugin command names, install the local
-marketplace root that contains `.claude-plugin/marketplace.json`.
+marketplace root that contains `.claude-plugin/marketplace.json`, then verify
+with `claude plugin list --json`.
 
 ## Plugin Layout
 

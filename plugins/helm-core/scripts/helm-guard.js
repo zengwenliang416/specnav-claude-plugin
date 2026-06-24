@@ -104,7 +104,7 @@ function pathOverrideAllows(root, gate, rel, activeChange) {
 function pathAllowedByScope(scope, rel) {
   const excluded = scope.exclude.some((pattern) => lib.globLikeMatch(pattern, rel));
   if (excluded) return { ok: false, reason: 'excluded' };
-  if (!scope.include.length) return { ok: true, reason: 'no-include-scope' };
+  if (!scope.include.length) return { ok: false, reason: 'missing-allowed-roots' };
   const included = scope.include.some((pattern) => lib.globLikeMatch(pattern, rel));
   return { ok: included, reason: included ? 'included' : 'not-included' };
 }
@@ -164,6 +164,16 @@ function main() {
   }
 
   const scope = lib.readFileScope(dir);
+  if (!scope.ok) {
+    lib.event(root, 'hook.deny', {
+      reason: 'invalid-scope',
+      blockers: scope.blockers || [],
+      paths: productionPaths,
+      scope_source: scope.source
+    });
+    deny(`production edits require a valid scope.json: ${(scope.blockers || []).join(', ') || 'invalid-scope'}.`);
+  }
+
   for (const rel of productionPaths) {
     if (/^tests\/acceptance\//.test(rel)) {
       if (pathOverrideAllows(root, 'frozen-acceptance', rel, change)) continue;

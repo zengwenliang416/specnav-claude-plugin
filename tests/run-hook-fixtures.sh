@@ -6,6 +6,8 @@ CORE="$ROOT/plugins/helm-core"
 PROJECT="$ROOT/tests/fixtures/simple-project"
 NO_STATE="$ROOT/tests/fixtures/no-state"
 PAYLOADS="$ROOT/tests/fixtures/hook-payloads"
+TMP_DIR="$(mktemp -d)"
+trap 'rm -rf "$TMP_DIR"' EXIT
 
 run_case() {
   local name="$1"
@@ -42,5 +44,10 @@ run_case bash-safe "$PROJECT" 0
 run_case bash-danger "$PROJECT" 2
 run_case write-missing-path "$PROJECT" 1
 run_case write-allowed "$NO_STATE" 2
+
+MISSING_SCOPE_PROJECT="$TMP_DIR/missing-scope-project"
+cp -R "$PROJECT" "$MISSING_SCOPE_PROJECT"
+rm "$MISSING_SCOPE_PROJECT/openspec/changes/add-dark-mode/scope.json"
+run_case write-allowed "$MISSING_SCOPE_PROJECT" 2
 
 echo "helm hook fixtures ok"

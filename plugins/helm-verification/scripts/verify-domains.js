@@ -379,11 +379,23 @@ function writeAggregate(root = lib.projectRoot()) {
   const validation = validateVerify(projectRoot);
   const verifyDir = validation.verify_dir;
   const verdict = validation.ok ? 'green' : 'red';
+  const domains = {};
+  for (const domain of DOMAINS) {
+    const artifact = validation.artifacts.find((item) => item.name === `${domain}/report.json`);
+    domains[domain] = artifact && VERDICTS.has(artifact.verdict) ? artifact.verdict : 'blocked';
+  }
   const report = {
     schema_version: 1,
     generated_at: new Date().toISOString(),
+    change_id: validation.active_change,
     active_change: validation.active_change,
     verdict,
+    domains,
+    blocking_findings: validation.blockers,
+    residual_risk: [],
+    evidence_receipt: 'verify/receipt.json',
+    behavior_eval_report: 'verify/behavior-evals/report.json',
+    stale: false,
     blockers: validation.blockers,
     required_domains: DOMAINS,
     artifacts: validation.artifacts.map((artifact) => ({

@@ -7,6 +7,15 @@ const lib = require('./helm-lib');
 const suite = require('./plugin-suite');
 const workflow = require('./workflow-state');
 
+const REQUIRED_PLUGINS = [
+  'helm-core',
+  'helm-requirements',
+  'helm-prototype',
+  'helm-development',
+  'helm-verification',
+  'helm-operations'
+];
+
 function argValue(args, name, fallback = null) {
   const index = args.indexOf(name);
   const value = index >= 0 ? args[index + 1] : null;
@@ -25,11 +34,45 @@ function check(name, ok, detail = '') {
   return { name, status: ok ? 'pass' : 'fail', ok, detail };
 }
 
+function readJsonFile(file, fallback = null) {
+  try {
+    return JSON.parse(fs.readFileSync(file, 'utf8'));
+  } catch {
+    return fallback;
+  }
+}
+
+function claudePluginInventory(marketplaceRoot) {
+  const result = lib.runCommand('claude plugin list --json', {
+    cwd: marketplaceRoot,
+    timeoutMs: 30000
+  });
+  if (!result.ok) {
+    return {
+      ok: false,
+      plugins: [],
+      error: result.stderr || result.stdout || `claude plugin list exited ${result.status}`
+    };
+  }
+  try {
+    const plugins = JSON.parse(result.stdout);
+    if (!Array.isArray(plugins)) {
+      return { ok: false, plugins: [], error: 'claude plugin list returned non-array JSON' };
+    }
+    return { ok: true, plugins, error: null };
+  } catch (_error) {
+    return { ok: false, plugins: [], error: 'claude plugin list returned invalid JSON' };
+  }
+}
+
 function doctor(options = {}) {
   const pluginRoot = path.resolve(options.pluginRoot || defaultPluginRoot());
   const marketplaceRoot = path.resolve(options.marketplaceRoot || defaultMarketplaceRoot(pluginRoot));
   const targetRoot = process.env.PROJECT_DIR ? path.resolve(process.env.PROJECT_DIR) : null;
   const suiteStatus = suite.listPlugins({ marketplaceRoot });
+  const marketplace = readJsonFile(path.join(marketplaceRoot, '.claude-plugin', 'marketplace.json'), {});
+  const marketplaceName = marketplace && marketplace.name ? marketplace.name : 'helm-marketplace';
+  const claudeInventory = claudePluginInventory(marketplaceRoot);
   const checks = [];
 
   checks.push(check('plugin-root', fs.existsSync(path.join(pluginRoot, '.claude-plugin', 'plugin.json')), pluginRoot));
@@ -38,6 +81,23 @@ function doctor(options = {}) {
   checks.push(check('hooks', fs.existsSync(path.join(pluginRoot, 'hooks', 'hooks.json')), 'plugins/helm-core/hooks/hooks.json'));
   checks.push(check('core-runtime', fs.existsSync(path.join(pluginRoot, 'scripts', 'plugin-suite.js')) && fs.existsSync(path.join(pluginRoot, 'scripts', 'workflow-state.js')), 'core scripts'));
   checks.push(check('commands', fs.existsSync(path.join(pluginRoot, 'commands', 'helm.md')), 'helm command'));
+  checks.push(check('claude-plugin-list', claudeInventory.ok, claudeInventory.ok ? 'ok' : claudeInventory.error));
+  if (claudeInventory.ok) {
+    for (const pluginName of REQUIRED_PLUGINS) {
+      const pluginId = `${pluginName}@${marketplaceName}`;
+      const plugin = claudeInventory.plugins.find((item) => item && item.id === pluginId);
+      checks.push(check(
+        `installed:${pluginName}`,
+        !!plugin,
+        plugin ? plugin.installPath || plugin.version || 'installed' : pluginId
+      ));
+      checks.push(check(
+        `enabled:${pluginName}`,
+        !!plugin && plugin.enabled === true,
+        plugin ? `enabled=${plugin.enabled}` : pluginId
+      ));
+    }
+  }
   const openspecCli = lib.runCommand('command -v openspec', { cwd: marketplaceRoot, timeoutMs: 10000 });
   checks.push(check('openspec-cli', openspecCli.ok, openspecCli.ok ? openspecCli.stdout.trim() : (openspecCli.stderr || 'openspec not found')));
   if (targetRoot) {
@@ -66,7 +126,12 @@ function doctor(options = {}) {
     target_root: targetRoot,
     blockers,
     checks,
-    suite: suiteStatus
+    suite: suiteStatus,
+    claude_plugins: {
+      ok: claudeInventory.ok,
+      marketplace: marketplaceName,
+      required: REQUIRED_PLUGINS.map((name) => `${name}@${marketplaceName}`)
+    }
   };
 }
 

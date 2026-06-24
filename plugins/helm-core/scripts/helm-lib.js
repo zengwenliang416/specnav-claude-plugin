@@ -95,19 +95,55 @@ function parseScope(designText) {
 }
 
 function readFileScope(changeDir) {
-  const jsonScope = readJson(path.join(changeDir, 'scope.json'), null);
-  if (jsonScope && typeof jsonScope === 'object') {
+  const scopeFile = path.join(changeDir, 'scope.json');
+  let jsonScope = null;
+  try {
+    jsonScope = JSON.parse(fs.readFileSync(scopeFile, 'utf8'));
+  } catch (error) {
     return {
+      ok: false,
       source: 'scope.json',
-      include: Array.isArray(jsonScope.include) ? jsonScope.include.filter(Boolean) : [],
-      exclude: Array.isArray(jsonScope.exclude) ? jsonScope.exclude.filter(Boolean) : []
+      include: [],
+      exclude: [],
+      blockers: [error && error instanceof SyntaxError ? 'invalid-scope-json' : 'missing-scope-json']
     };
   }
-  const include = parseScope(readText(path.join(changeDir, 'design.md')));
+
+  if (!jsonScope || typeof jsonScope !== 'object' || Array.isArray(jsonScope)) {
+    return {
+      ok: false,
+      source: 'scope.json',
+      include: [],
+      exclude: [],
+      blockers: ['invalid-scope-shape']
+    };
+  }
+
+  const include = Array.isArray(jsonScope.allowed_roots)
+    ? jsonScope.allowed_roots.filter(Boolean)
+    : Array.isArray(jsonScope.include)
+      ? jsonScope.include.filter(Boolean)
+      : [];
+  const exclude = Array.isArray(jsonScope.denied_roots)
+    ? jsonScope.denied_roots.filter(Boolean)
+    : Array.isArray(jsonScope.exclude)
+      ? jsonScope.exclude.filter(Boolean)
+      : [];
+  const blockers = [];
+  if (!include.length) blockers.push('missing-scope-allowed-roots');
+  if (Object.prototype.hasOwnProperty.call(jsonScope, 'allowed_roots') && !Array.isArray(jsonScope.allowed_roots)) {
+    blockers.push('invalid-scope-allowed-roots');
+  }
+  if (Object.prototype.hasOwnProperty.call(jsonScope, 'denied_roots') && !Array.isArray(jsonScope.denied_roots)) {
+    blockers.push('invalid-scope-denied-roots');
+  }
+
   return {
-    source: 'design.md',
+    ok: blockers.length === 0,
+    source: 'scope.json',
     include,
-    exclude: []
+    exclude,
+    blockers
   };
 }
 

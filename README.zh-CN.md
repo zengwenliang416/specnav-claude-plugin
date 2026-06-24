@@ -22,9 +22,15 @@ claude plugin install helm-prototype@helm-marketplace
 claude plugin install helm-development@helm-marketplace
 claude plugin install helm-verification@helm-marketplace
 claude plugin install helm-operations@helm-marketplace
+claude plugin enable helm-core@helm-marketplace
+claude plugin enable helm-requirements@helm-marketplace
+claude plugin enable helm-prototype@helm-marketplace
+claude plugin enable helm-development@helm-marketplace
+claude plugin enable helm-verification@helm-marketplace
+claude plugin enable helm-operations@helm-marketplace
 ```
 
-如果当前 Claude Code 版本的插件命令名称不同，只安装包含 `.claude-plugin/marketplace.json` 的本地 marketplace 根目录，并以 `claude plugin validate "$PWD"` 验证。
+如果当前 Claude Code 版本的插件命令名称不同，只安装包含 `.claude-plugin/marketplace.json` 的本地 marketplace 根目录，并以 `claude plugin validate "$PWD"` 和 `claude plugin list --json` 验证。
 
 ## 插件职责
 

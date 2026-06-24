@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.1
+
+- Enable verification guidance for explicit Claude plugin enablement after install.
+- Enforce `scope.json` `allowed_roots` / `denied_roots` in the PreToolUse guard and block production writes when `scope.json` is missing or invalid.
+- Extend `/helm-doctor` to verify installed Claude plugins are present and enabled through `claude plugin list --json`.
+- Refresh design and README install/update instructions for the six-plugin marketplace shape.
+
 ## 0.3.0
 
 - Convert Helm into a six-plugin Claude Code marketplace suite with `helm-*` scoped public skills.
