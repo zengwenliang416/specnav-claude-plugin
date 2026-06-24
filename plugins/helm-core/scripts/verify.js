@@ -63,6 +63,17 @@ function verify(root = lib.projectRoot()) {
   };
 
   if (dir) {
+    if (fs.existsSync(path.join(dir, 'verify'))) {
+      const domains = require('../../helm-verification/scripts/verify-domains');
+      const aggregate = domains.writeAggregate(root);
+      report.status = failed.length === 0 && aggregate.verdict === 'green' ? 'green' : 'red';
+      report.aggregate = aggregate;
+      report.rework.push(...aggregate.blockers.map((blocker) => ({
+        check: 'six-domain-verification',
+        class: 'verification',
+        recommendation: `Resolve ${blocker} and rerun verify.`
+      })));
+    }
     lib.writeJson(path.join(dir, 'verify-report.json'), report);
     try {
       fs.unlinkSync(path.join(dir, 'verify-report.stale'));

@@ -1,16 +1,28 @@
 ---
 name: verify-unit
-description: "Placeholder for Helm unit verification"
+description: Validate focused unit and regression coverage for a Helm change
+allowed-tools:
+  - Read
+  - Bash
+  - Write
 ---
 
-# verify-unit
+# Verify Unit
 
-This skill is not implemented yet.
+Read `verify/plan.json`, development task reports, and changed-file traceability. Confirm the changed logic has behavior-facing unit or regression coverage for critical paths, edge cases, empty states, error paths, and boundary inputs.
 
-Stop and report:
+Tests must verify stable public behavior, not private methods, internal collaborator call counts, or implementation-only mocks.
 
-```text
-not-implemented:helm-verification/verify-unit
+Write:
+
+- `verify/unit/test-map.json`
+- `verify/unit/test-quality-rubric.json`
+- `verify/unit/coverage-notes.md`
+- `verify/unit/report.md`
+- `verify/unit/report.json`
+
+Run:
+
+```bash
+node "$CLAUDE_PLUGIN_ROOT/scripts/verify-domains.js" validate --json
 ```
-
-Do not provide fallback behavior until the owning stage task implements this skill.

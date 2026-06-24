@@ -1,16 +1,26 @@
 ---
 name: verify-static
-description: "Placeholder for Helm static verification"
+description: Run static verification for a Helm change
+allowed-tools:
+  - Read
+  - Bash
+  - Write
 ---
 
-# verify-static
+# Verify Static
 
-This skill is not implemented yet.
+Read `verify/plan.json` and run the static commands declared there. Include OpenSpec validation, lint, type checks, dependency checks, schema validation, banned-pattern scans, and structural checks when applicable.
 
-Stop and report:
+If a required tool is unavailable, write a blocked report with blocker class `tool-unavailable`. Do not downgrade a required missing check to a warning.
 
-```text
-not-implemented:helm-verification/verify-static
+Write:
+
+- `verify/static/commands.jsonl`
+- `verify/static/report.md`
+- `verify/static/report.json`
+
+Run:
+
+```bash
+node "$CLAUDE_PLUGIN_ROOT/scripts/verify-domains.js" validate --json
 ```
-
-Do not provide fallback behavior until the owning stage task implements this skill.

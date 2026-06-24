@@ -1,16 +1,40 @@
 ---
 name: verify-plan
-description: "Placeholder for Helm verification planning"
+description: Create the Helm six-domain verification plan
+allowed-tools:
+  - Read
+  - Write
+  - Bash
 ---
 
-# verify-plan
+# Verify Plan
 
-This skill is not implemented yet.
+Run the development handoff gate first:
 
-Stop and report:
-
-```text
-not-implemented:helm-verification/verify-plan
+```bash
+node "$CLAUDE_PLUGIN_ROOT/../helm-development/scripts/development-contract.js" --mode handoff --json
 ```
 
-Do not provide fallback behavior until the owning stage task implements this skill.
+If development is blocked, stop and route to the exact owning development artifact. Do not create placeholder verification evidence.
+
+Write the verification plan and shared evidence contracts under `openspec/changes/<active-change>/verify/`:
+
+- `plan.md`
+- `plan.json`
+- `evidence-index.jsonl`
+- `traceability-matrix.json`
+- `blocker-classification.jsonl`
+- `receipt.md`
+- `receipt.json`
+- `root-cause-checks.jsonl`
+- `behavior-evals/scenarios.json`
+- `behavior-evals/report.md`
+- `behavior-evals/report.json`
+
+`plan.json` must require all six domains: `facticity`, `static`, `unit`, `redteam`, `e2e`, and `sensory`. Risk tier changes depth and commands, not domain coverage.
+
+Run:
+
+```bash
+node "$CLAUDE_PLUGIN_ROOT/scripts/verify-domains.js" validate --json
+```

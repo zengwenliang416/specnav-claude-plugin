@@ -14,7 +14,7 @@
     "verify-e2e",
     "verify-sensory"
   ],
-  "planned_contracts": {
+  "contracts": {
     "verification": "scripts/verify-domains.js"
   },
   "state_outputs": ["openspec/changes/<change>/verify/"]

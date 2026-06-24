@@ -1,16 +1,27 @@
 ---
 name: verify-e2e
-description: "Placeholder for Helm end-to-end verification"
+description: Validate complete user and business flows for a Helm change
+allowed-tools:
+  - Read
+  - Bash
+  - Write
 ---
 
-# verify-e2e
+# Verify E2E
 
-This skill is not implemented yet.
+Read `verify/plan.json`, frontend-backend data-flow specs, requirements, prototype handoff, and development handoff. Validate complete user or business flows across frontend, backend, API, state, database, and integration boundaries.
 
-Stop and report:
+Use realistic data and record screenshots, traces, run logs, or explicit blocked evidence when the environment prevents execution.
 
-```text
-not-implemented:helm-verification/verify-e2e
+Write:
+
+- `verify/e2e/flows.json`
+- `verify/e2e/run-log.jsonl`
+- `verify/e2e/report.md`
+- `verify/e2e/report.json`
+
+Run:
+
+```bash
+node "$CLAUDE_PLUGIN_ROOT/scripts/verify-domains.js" validate --json
 ```
-
-Do not provide fallback behavior until the owning stage task implements this skill.
