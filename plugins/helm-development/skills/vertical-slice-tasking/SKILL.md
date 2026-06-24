@@ -29,7 +29,7 @@ During planning and dispatch, each task directory must include the entry packet:
 
 After implementation and review, each task directory must include the handoff packet:
 
-- `report.md` with required `## Status`, `## Files Changed`, `## What Changed`, `## TDD Evidence`, `## Verification Commands`, `## Concerns`, `## Scope Deviations`, and `## Follow-up Needed` sections. Handoff requires final status `DONE`.
+- `report.md` with required `## Status`, `## Files Changed`, `## What Changed`, `## TDD Evidence`, `## Verification Commands`, `## Concerns`, `## Scope Deviations`, and `## Follow-up Needed` sections. Handoff requires final status `DONE` or adjudicated `DONE_WITH_CONCERNS`.
 - `spec-review.md` with required `## Verdict`, `## Missing Requirements`, `## Extra Behavior`, `## Misunderstood Requirements`, `## Cannot Verify From Diff`, and `## Required Fixes` sections. Handoff requires verdict `approved`.
 - `quality-review.md` with required `## Verdict`, `## Separation Of Concerns`, `## Component Cohesion / Coupling`, `## Test Quality`, `## Error Handling`, `## Reuse / Duplication`, `## Complexity Delta`, and `## Required Fixes` sections. Handoff requires verdict `approved`.
 
@@ -50,7 +50,7 @@ Use `prototype-promotion-map.json` to reimplement approved prototype decisions u
 
 The ledger must show each task reaching `spec_review_passed`, `quality_review_passed`, and `complete`. Blocking drift stops development and routes to the owning stage. `validation-log.jsonl` must include a passing local validation entry before verification handoff.
 
-Before verification handoff, every task report must be final with status `DONE`, every spec and quality review verdict must be `approved`, task ledger statuses must include `spec_review_passed`, `quality_review_passed`, and `complete`, drift must have no blocking entries, validation must include a pass, and `handoff-to-verify.md` must be complete.
+Before verification handoff, every task report must be final with status `DONE` or adjudicated `DONE_WITH_CONCERNS`, every spec and quality review verdict must be `approved`, task ledger statuses must include `spec_review_passed`, `quality_review_passed`, and `complete`, drift must have no blocking entries, validation must include a pass, and `handoff-to-verify.md` must be complete.
 
 Before handing off to verification, rerun:
 

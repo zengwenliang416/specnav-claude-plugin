@@ -538,7 +538,7 @@ JSON
 
 ## Status
 
-DONE
+DONE_WITH_CONCERNS
 
 ## Files Changed
 
@@ -570,6 +570,10 @@ No behavior-changing refactor was needed.
 ## Concerns
 
 Backend naming remains a review watch item.
+
+## Adjudication
+
+Controller reviewed the backend naming concern and accepted it for verification handoff because it is tracked as a non-blocking follow-up with no behavior impact on the dashboard summary slice.
 
 ## Scope Deviations
 

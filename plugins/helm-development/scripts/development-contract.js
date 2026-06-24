@@ -51,7 +51,7 @@ const PROTOTYPE_DECISION_ARTIFACTS = [
   'prototype/decision.json'
 ];
 
-const HANDOFF_REPORT_STATUSES = new Set(['DONE']);
+const HANDOFF_REPORT_STATUSES = new Set(['DONE', 'DONE_WITH_CONCERNS']);
 const HANDOFF_REVIEW_VERDICTS = new Set(['approved']);
 
 const BRIEF_HEADINGS = [
