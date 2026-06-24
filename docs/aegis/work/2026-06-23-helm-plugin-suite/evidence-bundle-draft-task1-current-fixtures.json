@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "task1-current-fixtures",
+  "type": "test-output",
+  "source": "bash tests/run-plugin-suite-layout-fixtures.sh && bash tests/run-smoke.sh && bash tests/run-hook-fixtures.sh && bash tests/run-archive-policy-fixtures.sh && bash tests/run-openspec-fixtures.sh && bash tests/run-override-fixtures.sh",
+  "summary": "All current Task 1 and migrated legacy fixtures pass at HEAD 3cb9e7d.",
+  "verifier": "Codex main controller"
+}

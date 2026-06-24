@@ -6,6 +6,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 node - "$ROOT" <<'NODE'
 const fs = require('fs');
 const path = require('path');
+const childProcess = require('child_process');
 
 const root = process.argv[2];
 const pluginsDir = path.join(root, 'plugins');
@@ -104,6 +105,34 @@ function parseFrontmatter(content, file) {
   return { data, body };
 }
 
+const checkedScripts = new Set();
+
+function validateNodeScript(file, target, { requireHelp = false } = {}) {
+  const real = path.resolve(target);
+  if (checkedScripts.has(`${real}:${requireHelp}`)) return;
+  checkedScripts.add(`${real}:${requireHelp}`);
+
+  if (path.extname(real) !== '.js') return;
+
+  const check = childProcess.spawnSync(process.execPath, ['--check', real], {
+    cwd: root,
+    encoding: 'utf8'
+  });
+  if (check.status !== 0) {
+    fail(`${file}: referenced script fails node --check: ${path.relative(root, real)} ${check.stderr || check.stdout}`);
+  }
+
+  if (requireHelp) {
+    const help = childProcess.spawnSync(process.execPath, [real, '--help'], {
+      cwd: root,
+      encoding: 'utf8'
+    });
+    if (help.status !== 0 || !/Usage:/i.test(`${help.stdout}\n${help.stderr}`)) {
+      fail(`${file}: skill-local script must support --help: ${path.relative(root, real)}`);
+    }
+  }
+}
+
 function validateScriptReference(pluginName, file, scriptRef) {
   const pluginDir = path.join(pluginsDir, pluginName);
   let target;
@@ -114,7 +143,39 @@ function validateScriptReference(pluginName, file, scriptRef) {
   }
   if (!target.startsWith(pluginsDir) || !fs.existsSync(target)) {
     fail(`${file}: referenced script does not exist: ${scriptRef}`);
+    return;
   }
+  validateNodeScript(file, target, { requireHelp: scriptRef.includes('/skills/') });
+}
+
+function extractClaudePluginRootScriptRefs(body) {
+  const refs = [];
+  const pattern = /\$CLAUDE_PLUGIN_ROOT\/[^"'\s`)]+\.js/g;
+  for (const match of body.matchAll(pattern)) {
+    refs.push(match[0].replace('$CLAUDE_PLUGIN_ROOT/', ''));
+  }
+  return refs;
+}
+
+function listResourceFiles(skillDir) {
+  const files = [];
+  for (const kind of ['references', 'assets', 'scripts']) {
+    const base = path.join(skillDir, kind);
+    if (!fs.existsSync(base)) continue;
+    const walk = (dir) => {
+      for (const name of fs.readdirSync(dir)) {
+        const file = path.join(dir, name);
+        const stat = fs.statSync(file);
+        if (stat.isDirectory()) {
+          walk(file);
+        } else if (stat.isFile()) {
+          files.push(path.relative(skillDir, file).split(path.sep).join('/'));
+        }
+      }
+    };
+    walk(base);
+  }
+  return files.sort();
 }
 
 function checkSkill(pluginName, file, declaredSkillNames) {
@@ -193,7 +254,13 @@ function checkSkill(pluginName, file, declaredSkillNames) {
     }
   }
 
-  const scriptRefs = body.match(/(?:\.\.\/helm-[a-z-]+\/scripts|scripts)\/[A-Za-z0-9._/-]+/g) || [];
+  for (const resourceFile of listResourceFiles(path.dirname(file))) {
+    if (!body.includes(resourceFile)) {
+      fail(`${rel}: skill resource is not explicitly referenced from SKILL.md: ${resourceFile}`);
+    }
+  }
+
+  const scriptRefs = extractClaudePluginRootScriptRefs(body);
   for (const scriptRef of scriptRefs) {
     validateScriptReference(pluginName, rel, scriptRef);
   }

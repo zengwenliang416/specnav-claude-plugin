@@ -12,12 +12,15 @@ Prepare rollback mechanics for deploy-risk targets.
 ## Workflow
 
 1. Use for any release target with deploy risk.
-2. If rollback is impossible, require explicit risk acceptance in `operations/signoff.yaml`.
-3. Run `node "$CLAUDE_PLUGIN_ROOT/scripts/operations-gate.js" --json` after writing.
+2. Read `references/rollback-plan.md` before writing rollback mechanics.
+3. If rollback is impossible, require explicit risk acceptance in `operations/signoff.yaml`.
+4. Use `assets/rollback-plan.md` as the shell when the artifact is missing.
+5. Run `node "$CLAUDE_PLUGIN_ROOT/scripts/operations-gate.js" --json` after writing.
 
 ## Required Outputs
 
 - `operations/rollback-plan.md`.
+- Rollback shell: `assets/rollback-plan.md`.
 
 ## Stop Conditions
 

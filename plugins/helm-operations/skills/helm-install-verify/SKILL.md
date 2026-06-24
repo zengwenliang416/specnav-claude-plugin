@@ -12,13 +12,16 @@ Verify installed plugin surfaces from current host evidence.
 ## Workflow
 
 1. Resolve marketplace root and plugin root from metadata.
-2. Run doctor or structural install checks from the plugin root.
-3. Do not run install checks from the target project directory.
-4. Run `node "$CLAUDE_PLUGIN_ROOT/scripts/operations-gate.js" --json` after writing.
+2. Read `references/install-verification.md` before writing install evidence.
+3. Run doctor or structural install checks from the plugin root.
+4. Do not run install checks from the target project directory.
+5. Use `assets/install-verification.json` as the shell when the artifact is missing.
+6. Run `node "$CLAUDE_PLUGIN_ROOT/scripts/operations-gate.js" --json` after writing.
 
 ## Required Outputs
 
 - `operations/install-verification.json`.
+- Install shell: `assets/install-verification.json`.
 
 ## Stop Conditions
 

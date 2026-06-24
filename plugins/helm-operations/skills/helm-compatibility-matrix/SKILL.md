@@ -12,12 +12,15 @@ Record support evidence for host and plugin surfaces.
 ## Workflow
 
 1. Review install verification, doctor output, host limitations, and reload behavior.
-2. Do not claim support without fresh smoke evidence.
-3. Run `node "$CLAUDE_PLUGIN_ROOT/scripts/operations-gate.js" --json` after writing.
+2. Read `references/compatibility-matrix.md` before writing support claims.
+3. Do not claim support without fresh smoke evidence.
+4. Use `assets/compatibility-matrix.md` as the shell when the artifact is missing.
+5. Run `node "$CLAUDE_PLUGIN_ROOT/scripts/operations-gate.js" --json` after writing.
 
 ## Required Outputs
 
 - `operations/compatibility-matrix.md`.
+- Compatibility shell: `assets/compatibility-matrix.md`.
 
 ## Stop Conditions
 

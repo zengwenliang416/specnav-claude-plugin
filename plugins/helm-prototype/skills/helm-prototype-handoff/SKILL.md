@@ -13,14 +13,17 @@ Record explicit prototype approval and produce the development handoff.
 
 1. Run `node "$CLAUDE_PLUGIN_ROOT/scripts/prototype-contract.js" --json` before handoff.
 2. Stop on requirements, manifest, branch code, entry path, or verifier blockers.
-3. Ask for explicit user approval before setting `status: approved`.
-4. Write `prototype/handoff.md` with branch, variant, screens, flows, components, API contracts, data flows, states, out-of-scope items, required tests, and risks.
-5. Write `prototype/decision.json` with `prototype_code: required_present` and `promotion: requires_development_gate`.
+3. Read `references/prototype-approval.md` before asking for approval or writing handoff artifacts.
+4. Ask for explicit user approval before setting `status: approved`.
+5. Use `assets/handoff.md` and `assets/decision.json` as shells when files are missing.
+6. Write `prototype/handoff.md` with branch, variant, screens, flows, components, API contracts, data flows, states, out-of-scope items, required tests, and risks.
+7. Write `prototype/decision.json` with `prototype_code: required_present` and `promotion: requires_development_gate`.
 
 ## Required Outputs
 
 - `prototype/handoff.md`.
 - `prototype/decision.json`.
+- Handoff shells: `assets/handoff.md` and `assets/decision.json`.
 
 ## Stop Conditions
 

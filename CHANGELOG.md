@@ -5,8 +5,12 @@
 - Convert Helm into a six-plugin Claude Code marketplace suite with `helm-*` scoped public skills.
 - Rewrite all skill frontmatter to the strict Agent Skills subset: `name` and `description` only.
 - Add `tests/run-skill-contract-fixtures.sh` to enforce skill names, descriptions, stage manifests, and unfinished text checks.
+- Add skill-local `references/`, `assets/`, and scaffold scripts across requirements, prototype, development, verification, and operations, plus `tests/run-skill-resource-fixtures.sh`.
 - Replace core workflow-state and doctor placeholders with real cross-plugin state and diagnostic output.
-- Add cross-plugin state fixtures and update README with Chinese and English usage notes.
+- Add cross-plugin state fixtures, real `claude plugin validate` fixtures, and separate English/Chinese README files.
+- Require `./plugins/...` marketplace sources so the multi-plugin marketplace validates under Claude Code.
+- Replace OpenSpec filesystem fallback with explicit blocked states when required OpenSpec status is unavailable.
+- Require clean-session behavior eval transcripts before aggregate verification can pass.
 
 ## 0.2.1
 

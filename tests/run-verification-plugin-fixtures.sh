@@ -436,7 +436,7 @@ MD
 write_verify_artifacts() {
   local project="$1"
   local verify="$project/openspec/changes/add-dashboard/verify"
-  mkdir -p "$verify"/{behavior-evals,facticity,static,unit,redteam,e2e,sensory}
+  mkdir -p "$verify"/{behavior-evals/transcripts,facticity,static,unit,redteam,e2e,sensory}
 
   cat >"$verify/plan.md" <<'MD'
 # Verification Plan
@@ -511,6 +511,17 @@ MD
   cat >"$verify/behavior-evals/report.json" <<'JSON'
 {"schema_version":1,"status":"green","scenarios":["verify-runs-six-domains"]}
 JSON
+  cat >"$verify/behavior-evals/transcripts/verify-runs-six-domains.md" <<'MD'
+# Clean Session Transcript
+
+Prompt: /helm-verify
+
+Observed:
+- Loaded active change.
+- Generated plan.
+- Ran or blocked all six domains.
+- Wrote aggregate report.
+MD
 
   for domain in facticity static unit redteam e2e sensory; do
     cat >"$verify/$domain/report.md" <<MD
@@ -620,6 +631,12 @@ jq '.verdict = "red"' \
 mv "$TMP_DIR/domain-fail.json.tmp" "$DOMAIN_FAIL_PROJECT/openspec/changes/add-dashboard/verify/static/report.json"
 run_json "$DOMAIN_FAIL_PROJECT" validate "$TMP_DIR/domain-fail.json" 2
 assert_blocker "$TMP_DIR/domain-fail.json" 'static-not-green'
+
+BEHAVIOR_FAIL_PROJECT="$TMP_DIR/behavior-fail-project"
+cp -R "$PROJECT" "$BEHAVIOR_FAIL_PROJECT"
+rm "$BEHAVIOR_FAIL_PROJECT/openspec/changes/add-dashboard/verify/behavior-evals/transcripts/verify-runs-six-domains.md"
+run_json "$BEHAVIOR_FAIL_PROJECT" validate "$TMP_DIR/behavior-fail.json" 2
+assert_blocker "$TMP_DIR/behavior-fail.json" 'missing-behavior-eval-transcript:verify-runs-six-domains'
 
 SENSORY_FAIL_PROJECT="$TMP_DIR/sensory-fail-project"
 cp -R "$PROJECT" "$SENSORY_FAIL_PROJECT"

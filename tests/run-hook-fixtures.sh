@@ -41,6 +41,6 @@ run_case openspec-allowed "$PROJECT" 0
 run_case bash-safe "$PROJECT" 0
 run_case bash-danger "$PROJECT" 2
 run_case write-missing-path "$PROJECT" 1
-run_case write-allowed "$NO_STATE" 1
+run_case write-allowed "$NO_STATE" 2
 
 echo "helm hook fixtures ok"

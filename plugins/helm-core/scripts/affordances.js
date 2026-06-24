@@ -42,17 +42,20 @@ function buildAffordances(root, options = {}) {
   const okPlugins = new Set((suiteStatus.plugins || []).filter((plugin) => plugin.ok).map((plugin) => plugin.name));
   const hasOpenSpec = fs.existsSync(open);
   const openspecStatus = hasOpenSpec && change ? lib.openspecStatus(root, change) : { ok: false, error: 'openspec-missing-or-no-change' };
+  const openspecStateBlocker = hasOpenSpec && change && !openspecStatus.ok
+    ? `openspec-status:${openspecStatus.error || 'unavailable'}`
+    : null;
   const openspecArtifacts = new Map(
     openspecStatus.ok
       ? (openspecStatus.status.artifacts || []).map((artifact) => [artifact.id, artifact.status])
       : []
   );
   const artifactDone = (id) => openspecArtifacts.get(id) === 'done';
-  const useOpenSpec = openspecStatus.ok;
-  const proposal = useOpenSpec ? artifactDone('proposal') : (dir && lib.fileExists(path.join(dir, 'proposal.md')));
-  const design = useOpenSpec ? artifactDone('design') : (dir && lib.fileExists(path.join(dir, 'design.md')));
-  const tasks = useOpenSpec ? artifactDone('tasks') : (dir && lib.fileExists(path.join(dir, 'tasks.md')));
-  const specs = useOpenSpec ? artifactDone('specs') : (dir && fs.existsSync(path.join(dir, 'specs')));
+  const useOpenSpec = hasOpenSpec && change && openspecStatus.ok;
+  const proposal = useOpenSpec ? artifactDone('proposal') : false;
+  const design = useOpenSpec ? artifactDone('design') : false;
+  const tasks = useOpenSpec ? artifactDone('tasks') : false;
+  const specs = useOpenSpec ? artifactDone('specs') : false;
   const scope = dir && lib.fileExists(path.join(dir, 'scope.json'));
   const risk = lib.readJson(dir && path.join(dir, 'risk-tier.json'), { tier: 'standard', source: 'default' });
   const verify = lib.readJson(dir && path.join(dir, 'verify-report.json'), null);
@@ -62,6 +65,11 @@ function buildAffordances(root, options = {}) {
   const signoff = dir && lib.fileExists(path.join(dir, 'signoff.yaml'));
   const operations = lib.readJson(dir && path.join(dir, 'operations', 'readiness.json'), null);
   const operationsReady = !!(operations && operations.ready === true);
+  const globalBlockers = [
+    ...((suiteStatus && suiteStatus.blockers) || []),
+    !hasOpenSpec ? 'missing-openspec' : null,
+    openspecStateBlocker
+  ].filter(Boolean);
 
   const actions = [];
   const add = (id, ready, blockers = [], reversible = true) => {
@@ -80,13 +88,14 @@ function buildAffordances(root, options = {}) {
   };
 
   add('bootstrap', !hasOpenSpec, hasOpenSpec ? ['openspec-exists'] : []);
-  add('propose', hasOpenSpec, hasOpenSpec ? [] : ['bootstrap']);
-  add('design', !!(proposal && !design), proposal ? [] : ['proposal']);
-  add('tasks', !!(design && !tasks), design ? [] : ['design']);
-  add('implement', !!(tasks && (verifyStatus !== 'green' || verifyReportStale)), tasks ? [] : ['tasks']);
-  add('fix', !!(tasks && verify && (verifyStatus !== 'green' || verifyReportStale)), verify ? [] : ['verify']);
-  add('verify', !!tasks, tasks ? [] : ['tasks']);
+  add('propose', hasOpenSpec && !openspecStateBlocker, hasOpenSpec ? (openspecStateBlocker ? [openspecStateBlocker] : []) : ['bootstrap']);
+  add('design', !!(proposal && !design), openspecStateBlocker ? [openspecStateBlocker] : (proposal ? [] : ['proposal']));
+  add('tasks', !!(design && !tasks), openspecStateBlocker ? [openspecStateBlocker] : (design ? [] : ['design']));
+  add('implement', !!(tasks && (verifyStatus !== 'green' || verifyReportStale)), openspecStateBlocker ? [openspecStateBlocker] : (tasks ? [] : ['tasks']));
+  add('fix', !!(tasks && verify && (verifyStatus !== 'green' || verifyReportStale)), openspecStateBlocker ? [openspecStateBlocker] : (verify ? [] : ['verify']));
+  add('verify', !!tasks, openspecStateBlocker ? [openspecStateBlocker] : (tasks ? [] : ['tasks']));
   const releaseBlockers = [];
+  if (openspecStateBlocker) releaseBlockers.push(openspecStateBlocker);
   if (!verify || verify.status !== 'green') releaseBlockers.push('verify');
   if (verifyReportStale) releaseBlockers.push('fresh-verify');
   if (risk.tier === 'high-risk' && !signoff) releaseBlockers.push('human-signoff');
@@ -106,7 +115,8 @@ function buildAffordances(root, options = {}) {
       marketplace_root: suiteStatus.marketplace_root,
       blockers: suiteStatus.blockers || []
     },
-    state_source: useOpenSpec ? 'openspec-cli' : 'filesystem',
+    state_source: useOpenSpec ? 'openspec-cli' : (openspecStateBlocker ? 'blocked' : (hasOpenSpec ? 'no-active-change' : 'missing-openspec')),
+    blockers: globalBlockers,
     openspec_status: openspecStatus.ok
       ? {
           schema_name: openspecStatus.status.schemaName,

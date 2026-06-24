@@ -12,13 +12,16 @@ Validate complete user and business flows across boundaries.
 ## Workflow
 
 1. Read plan, data-flow specs, requirements, prototype handoff, and development handoff.
-2. Use realistic data and execute representative flows.
-3. Record screenshots, traces, logs, or explicit blocked evidence when execution is impossible.
-4. Check frontend, backend, API, state, database, and integration effects together.
+2. Read `references/e2e-rubric.md` before selecting flows.
+3. Use realistic data and execute representative flows.
+4. Record screenshots, traces, logs, or explicit blocked evidence when execution is impossible.
+5. Use `assets/report.md` and `assets/report.json` as shells when the domain report is missing.
+6. Check frontend, backend, API, state, database, and integration effects together.
 
 ## Required Outputs
 
 - `verify/e2e/flows.json`, `run-log.jsonl`, `report.md`, and `report.json`.
+- Report shells: `assets/report.md` and `assets/report.json`.
 
 ## Stop Conditions
 

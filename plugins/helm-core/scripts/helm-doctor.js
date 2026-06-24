@@ -3,7 +3,9 @@
 
 const fs = require('fs');
 const path = require('path');
+const lib = require('./helm-lib');
 const suite = require('./plugin-suite');
+const workflow = require('./workflow-state');
 
 function argValue(args, name, fallback = null) {
   const index = args.indexOf(name);
@@ -26,6 +28,7 @@ function check(name, ok, detail = '') {
 function doctor(options = {}) {
   const pluginRoot = path.resolve(options.pluginRoot || defaultPluginRoot());
   const marketplaceRoot = path.resolve(options.marketplaceRoot || defaultMarketplaceRoot(pluginRoot));
+  const targetRoot = process.env.PROJECT_DIR ? path.resolve(process.env.PROJECT_DIR) : null;
   const suiteStatus = suite.listPlugins({ marketplaceRoot });
   const checks = [];
 
@@ -35,6 +38,22 @@ function doctor(options = {}) {
   checks.push(check('hooks', fs.existsSync(path.join(pluginRoot, 'hooks', 'hooks.json')), 'plugins/helm-core/hooks/hooks.json'));
   checks.push(check('core-runtime', fs.existsSync(path.join(pluginRoot, 'scripts', 'plugin-suite.js')) && fs.existsSync(path.join(pluginRoot, 'scripts', 'workflow-state.js')), 'core scripts'));
   checks.push(check('commands', fs.existsSync(path.join(pluginRoot, 'commands', 'helm.md')), 'helm command'));
+  const openspecCli = lib.runCommand('command -v openspec', { cwd: marketplaceRoot, timeoutMs: 10000 });
+  checks.push(check('openspec-cli', openspecCli.ok, openspecCli.ok ? openspecCli.stdout.trim() : (openspecCli.stderr || 'openspec not found')));
+  if (targetRoot) {
+    const helmDir = lib.helmDir(targetRoot);
+    const hasOpenSpec = fs.existsSync(lib.openspecDir(targetRoot));
+    checks.push(check('target-openspec', hasOpenSpec, targetRoot));
+    if (hasOpenSpec) {
+      checks.push(check('workflow-state-file', fs.existsSync(path.join(helmDir, 'workflow-state.json')), 'openspec/.helm/workflow-state.json'));
+      const contextOk = workflow.CONTEXT_MANIFESTS.every(([, fileName]) => {
+        const file = path.join(helmDir, 'context', fileName);
+        return fs.existsSync(file) && fs.readFileSync(file, 'utf8').trim() !== '';
+      });
+      checks.push(check('context-manifests', contextOk, 'openspec/.helm/context/*.jsonl'));
+      checks.push(check('journal', fs.existsSync(path.join(helmDir, 'journal', 'index.md')), 'openspec/.helm/journal/index.md'));
+    }
+  }
 
   const blockers = checks.filter((item) => !item.ok).map((item) => item.name);
   return {
@@ -44,6 +63,7 @@ function doctor(options = {}) {
     status: blockers.length === 0 ? 'ready' : 'blocked',
     plugin_root: pluginRoot,
     marketplace_root: marketplaceRoot,
+    target_root: targetRoot,
     blockers,
     checks,
     suite: suiteStatus

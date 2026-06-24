@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "affectedLayers": [
+    "Claude Code plugin marketplace layout and Helm runtime scripts"
+  ],
+  "owners": [
+    "Codex main controller with fresh subagents per task"
+  ],
+  "invariants": [
+    "No fallback behavior; missing prerequisites must fail explicitly with blockers.",
+    "helm-core owns shared runtime and hooks; stage plugins own their own stage contracts."
+  ],
+  "compatBoundary": "Existing Helm fixtures and command semantics must be either migrated or explicitly updated.",
+  "nonGoals": [
+    "Do not implement unrelated product features outside the approved Helm plugin suite design."
+  ]
+}

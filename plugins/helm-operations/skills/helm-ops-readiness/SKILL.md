@@ -13,11 +13,14 @@ Build the final operations readiness decision.
 
 1. Read verification aggregate report, receipt, blocker classification, development handoff, release plan, git state, and operations artifacts.
 2. Write readiness from direct evidence only.
-3. Run `node "$CLAUDE_PLUGIN_ROOT/scripts/operations-gate.js" --json` before and after edits.
+3. Read `references/operations-readiness.md` before writing readiness.
+4. If readiness artifacts are missing, run `node "$CLAUDE_PLUGIN_ROOT/skills/helm-ops-readiness/scripts/create-readiness.js" --release-target=<target> --json`.
+5. Run `node "$CLAUDE_PLUGIN_ROOT/scripts/operations-gate.js" --json` before and after edits.
 
 ## Required Outputs
 
 - `operations/readiness.md` and `operations/readiness.json`.
+- Readiness shells: `assets/readiness.md` and `assets/readiness.json`.
 
 ## Stop Conditions
 

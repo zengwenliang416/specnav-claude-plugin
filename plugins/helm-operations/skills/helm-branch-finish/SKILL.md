@@ -12,12 +12,15 @@ Record branch and worktree facts before finish or cleanup.
 ## Workflow
 
 1. Collect git dir, common dir, current branch, base branch, worktree path, finish action, cleanup decision, and provenance.
-2. Preserve unknown or externally managed worktrees.
-3. Run `node "$CLAUDE_PLUGIN_ROOT/scripts/operations-gate.js" --json` after writing.
+2. Read `references/branch-finish.md` before writing cleanup decisions.
+3. Preserve unknown or externally managed worktrees.
+4. Use `assets/branch-finish.md` as the shell when the artifact is missing.
+5. Run `node "$CLAUDE_PLUGIN_ROOT/scripts/operations-gate.js" --json` after writing.
 
 ## Required Outputs
 
 - `operations/branch-finish.md`.
+- Branch finish shell: `assets/branch-finish.md`.
 
 ## Stop Conditions
 

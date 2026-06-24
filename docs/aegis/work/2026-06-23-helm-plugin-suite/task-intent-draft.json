@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "requestedOutcome": "Implement the approved Helm Claude Code multi-plugin suite plan with subagent-driven task execution.",
+  "goal": "Implement the approved Helm Claude Code multi-plugin suite plan with subagent-driven task execution.",
+  "successEvidence": [
+    "Task commits, fixture outputs, review reports, and final smoke checks demonstrate the plugin suite matches the approved plan."
+  ],
+  "stopCondition": "Stop only for explicit blockers such as missing design authority, failing required checks that cannot be fixed locally, or user direction change.",
+  "nonGoals": [
+    "Do not implement unrelated product features outside the approved Helm plugin suite design."
+  ],
+  "scope": "Helm Claude Code plugin marketplace repository: multi-plugin layout, suite resolver, runtime path updates, stage plugins, tests, docs, and release gates.",
+  "changeKinds": [
+    "feature"
+  ],
+  "riskHints": [
+    "Repository structure move can break command, hook, test, and docs paths; stage plugin tasks must fail explicitly without fallback."
+  ]
+}

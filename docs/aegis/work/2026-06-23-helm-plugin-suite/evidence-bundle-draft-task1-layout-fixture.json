@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "task1-layout-fixture",
+  "type": "test-output",
+  "source": "bash tests/run-plugin-suite-layout-fixtures.sh",
+  "summary": "Task 1 plugin suite layout fixture passes at HEAD 90aa07b.",
+  "verifier": "Codex main controller"
+}

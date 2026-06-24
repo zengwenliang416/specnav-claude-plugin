@@ -1,0 +1,15 @@
+{
+  "schema": "helm.ops.releaseChecklist.v1",
+  "change": "{{HELM_CHANGE}}",
+  "release_target": "{{HELM_RELEASE_TARGET}}",
+  "checks": [
+    {
+      "name": "verification green",
+      "status": "blocked"
+    },
+    {
+      "name": "release docs prepared",
+      "status": "blocked"
+    }
+  ]
+}

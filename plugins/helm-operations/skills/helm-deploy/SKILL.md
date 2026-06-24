@@ -12,12 +12,15 @@ Prepare deployment mechanics for project-deploy targets.
 ## Workflow
 
 1. Use only when release target is `project-deploy`.
-2. Document exact deployment mechanics before deployment.
-3. Run `node "$CLAUDE_PLUGIN_ROOT/scripts/operations-gate.js" --json` after writing.
+2. Read `references/deploy-plan.md` before writing deployment mechanics.
+3. Document exact deployment mechanics before deployment.
+4. Use `assets/deploy-plan.md` as the shell when the artifact is missing.
+5. Run `node "$CLAUDE_PLUGIN_ROOT/scripts/operations-gate.js" --json` after writing.
 
 ## Required Outputs
 
 - `operations/deploy-plan.md`.
+- Deploy shell: `assets/deploy-plan.md`.
 
 ## Stop Conditions
 

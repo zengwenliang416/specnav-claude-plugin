@@ -673,6 +673,12 @@ function validateSpecText(text, contract, label = null) {
 
   if (missingSections.length) blockers.push(`invalid-foundation-spec-sections:${contract.id}`);
 
+  const unresolvedMarkers = [];
+  if (/<decision-required>/i.test(text)) unresolvedMarkers.push(labelValue(label, '<decision-required>'));
+  if (/\bdecision-required\b/i.test(text)) unresolvedMarkers.push(labelValue(label, 'decision-required'));
+  if (/\b(?:TODO|TBD)\b/i.test(text)) unresolvedMarkers.push(labelValue(label, 'TODO/TBD'));
+  if (unresolvedMarkers.length) blockers.push(`unresolved-foundation-spec-decisions:${contract.id}`);
+
   return {
     ok: blockers.length === 0,
     blockers: unique(blockers),
@@ -680,7 +686,8 @@ function validateSpecText(text, contract, label = null) {
     missingKeys,
     frontmatter,
     invalidReferences: unique(invalidReferences),
-    invalidFrontmatterValues: unique(invalidFrontmatterValues)
+    invalidFrontmatterValues: unique(invalidFrontmatterValues),
+    unresolvedMarkers: unique(unresolvedMarkers)
   };
 }
 

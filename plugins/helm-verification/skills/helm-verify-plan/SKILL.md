@@ -13,12 +13,16 @@ Create shared verification plan and evidence contracts.
 
 1. Run `node "$CLAUDE_PLUGIN_ROOT/../helm-development/scripts/development-contract.js" --mode handoff --json` first.
 2. If blocked, route to development.
-3. Write verification plan, evidence index, traceability matrix, blocker classification, root-cause checks, behavior evals, and receipt shell.
-4. Require all six domains: facticity, static, unit, redteam, e2e, and sensory.
+3. Read `references/verification-model.md` before planning domains.
+4. Read `references/domain-report-schema.md` before creating report shells.
+5. If shared verification artifacts are missing, run `node "$CLAUDE_PLUGIN_ROOT/skills/helm-verify-plan/scripts/create-verify-plan.js" --json`.
+6. Write verification plan, evidence index, traceability matrix, blocker classification, root-cause checks, behavior evals, and receipt shell.
+7. Require all six domains: facticity, static, unit, redteam, e2e, and sensory.
 
 ## Required Outputs
 
 - `verify/plan.md`, `plan.json`, `evidence-index.jsonl`, `traceability-matrix.json`, `blocker-classification.jsonl`, `root-cause-checks.jsonl`, behavior eval files, and receipt shell.
+- Shared shells: `assets/plan.md`, `assets/plan.json`, `assets/evidence-index.jsonl`, `assets/traceability-matrix.json`, `assets/blocker-classification.jsonl`, `assets/root-cause-checks.jsonl`, `assets/receipt.md`, `assets/receipt.json`, `assets/behavior-evals/scenarios.json`, `assets/behavior-evals/report.md`, `assets/behavior-evals/report.json`, and `assets/behavior-evals/transcripts/verify-runs-six-domains.md`.
 
 ## Stop Conditions
 

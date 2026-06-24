@@ -274,9 +274,24 @@ function validateBehaviorEvals(verifyDir, change) {
   const artifacts = [];
   const scenarios = readJsonFile(path.join(verifyDir, 'behavior-evals/scenarios.json'));
   const scenarioBlockers = [];
+  const scenarioIds = [];
   if (!scenarios.ok) scenarioBlockers.push(scenarios.status === 'invalid-json' ? 'invalid-json:behavior-evals/scenarios.json' : 'missing-verify-artifact:behavior-evals/scenarios.json');
   else if (!isPlainObject(scenarios.value) || scenarios.value.schema_version !== 1 || !Array.isArray(scenarios.value.scenarios)) {
     scenarioBlockers.push('invalid-behavior-evals:scenarios');
+  } else {
+    scenarios.value.scenarios.forEach((scenario, index) => {
+      if (!isPlainObject(scenario)) {
+        scenarioBlockers.push(`invalid-behavior-evals:scenario:${index + 1}`);
+        return;
+      }
+      if (!isCleanString(scenario.id)) scenarioBlockers.push(`invalid-behavior-evals:scenario-id:${index + 1}`);
+      else scenarioIds.push(scenario.id);
+      if (!isCleanString(scenario.prompt)) scenarioBlockers.push(`invalid-behavior-evals:scenario-prompt:${scenario.id || index + 1}`);
+      if (!Array.isArray(scenario.expected) || scenario.expected.length === 0 || scenario.expected.some((item) => !isCleanString(item))) {
+        scenarioBlockers.push(`invalid-behavior-evals:scenario-expected:${scenario.id || index + 1}`);
+      }
+    });
+    if (scenarioIds.length === 0) scenarioBlockers.push('invalid-behavior-evals:no-scenarios');
   }
   artifacts.push(artifactResult(change, 'behavior-evals/scenarios.json', scenarioBlockers));
 
@@ -285,8 +300,32 @@ function validateBehaviorEvals(verifyDir, change) {
   if (!report.ok) reportBlockers.push(report.status === 'invalid-json' ? 'invalid-json:behavior-evals/report.json' : 'missing-verify-artifact:behavior-evals/report.json');
   else if (!isPlainObject(report.value) || report.value.schema_version !== 1 || report.value.status !== 'green') {
     reportBlockers.push('invalid-behavior-evals:report');
+  } else {
+    const covered = Array.isArray(report.value.scenarios) ? report.value.scenarios : [];
+    if (covered.some((item) => !isCleanString(item))) reportBlockers.push('invalid-behavior-evals:report-scenarios');
+    for (const id of scenarioIds) {
+      if (!covered.includes(id)) reportBlockers.push(`behavior-eval-scenario-not-reported:${id}`);
+    }
+    if (Array.isArray(report.value.unresolved_blockers) && report.value.unresolved_blockers.length > 0) {
+      reportBlockers.push('behavior-eval-unresolved-blockers');
+    }
   }
   artifacts.push(artifactResult(change, 'behavior-evals/report.json', reportBlockers));
+  const transcriptBlockers = [];
+  const transcriptsDir = path.join(verifyDir, 'behavior-evals/transcripts');
+  for (const id of scenarioIds) {
+    const markdown = path.join(transcriptsDir, `${id}.md`);
+    const json = path.join(transcriptsDir, `${id}.json`);
+    const markdownText = readTextFile(markdown);
+    const jsonText = readTextFile(json);
+    const transcriptText = markdownText.ok ? markdownText.value : (jsonText.ok ? jsonText.value : '');
+    if (transcriptText.trim() === '') {
+      transcriptBlockers.push(`missing-behavior-eval-transcript:${id}`);
+    } else if (/<decision-required>|\b(?:TODO|TBD)\b/i.test(transcriptText)) {
+      transcriptBlockers.push(`placeholder-behavior-eval-transcript:${id}`);
+    }
+  }
+  artifacts.push(artifactResult(change, 'behavior-evals/transcripts', transcriptBlockers));
   artifacts.push(validateTextHeadings(verifyDir, change, 'behavior-evals/report.md', ['Scenarios', 'Transcripts', 'Result'], 'invalid-behavior-evals-report'));
   return artifacts;
 }

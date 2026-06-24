@@ -12,13 +12,16 @@ Run static and structural verification declared by the plan.
 ## Workflow
 
 1. Read `verify/plan.json`.
-2. Run every required static command.
-3. Include OpenSpec validation, lint, type checks, dependency checks, schema checks, and banned-pattern scans when applicable.
-4. If a required tool is unavailable, record blocker class `tool-unavailable`.
+2. Read `references/static-rubric.md` before choosing static commands.
+3. Run every required static command.
+4. Include OpenSpec validation, lint, type checks, dependency checks, schema checks, and banned-pattern scans when applicable.
+5. Use `assets/report.md` and `assets/report.json` as shells when the domain report is missing.
+6. If a required tool is unavailable, record blocker class `tool-unavailable`.
 
 ## Required Outputs
 
 - `verify/static/commands.jsonl`, `report.md`, and `report.json`.
+- Report shells: `assets/report.md` and `assets/report.json`.
 
 ## Stop Conditions
 

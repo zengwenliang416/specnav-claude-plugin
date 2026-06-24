@@ -2,9 +2,18 @@
 'use strict';
 
 const path = require('path');
+const fs = require('fs');
 const lib = require('./helm-lib');
 const affordances = require('./affordances');
 const suite = require('./plugin-suite');
+
+const CONTEXT_MANIFESTS = [
+  ['requirements', 'requirements-context.jsonl'],
+  ['prototype', 'prototype-context.jsonl'],
+  ['implement', 'implement-context.jsonl'],
+  ['verify', 'verify-context.jsonl'],
+  ['ops', 'ops-context.jsonl']
+];
 
 function argValue(args, name, fallback = null) {
   const index = args.indexOf(name);
@@ -22,6 +31,8 @@ function workflowState(root = lib.projectRoot(), options = {}) {
   const table = affordances.buildAffordances(root, { suiteStatus: pluginSuite });
   const blockers = [];
   if (!pluginSuite.ok) blockers.push(...pluginSuite.blockers);
+  if (!fs.existsSync(lib.openspecDir(root))) blockers.push('missing-openspec');
+  if (Array.isArray(table.blockers)) blockers.push(...table.blockers);
 
   return {
     schema_version: 1,
@@ -31,12 +42,73 @@ function workflowState(root = lib.projectRoot(), options = {}) {
     project_root: root,
     active_change: table.active_change,
     marketplace_root: pluginSuite.marketplace_root || marketplaceRoot,
-    blockers,
+    blockers: Array.from(new Set(blockers)),
     plugin_suite: pluginSuite,
     required_plugins: table.required_plugins,
     actions: table.actions,
     affordances: table
   };
+}
+
+function appendJsonl(file, entry) {
+  lib.ensureDir(path.dirname(file));
+  fs.appendFileSync(file, `${JSON.stringify(entry)}\n`);
+}
+
+function journalSessionName(date = new Date()) {
+  return `session-${date.toISOString().replace(/[:.]/g, '-')}.md`;
+}
+
+function writeRuntimeArtifacts(root, result = workflowState(root)) {
+  const helmDir = lib.helmDir(root);
+  lib.writeJson(path.join(helmDir, 'workflow-state.json'), result);
+
+  for (const [stage, fileName] of CONTEXT_MANIFESTS) {
+    appendJsonl(path.join(helmDir, 'context', fileName), {
+      schema: 'helm.contextManifest.v1',
+      generated_at: result.generated_at,
+      stage,
+      project_root: result.project_root,
+      active_change: result.active_change,
+      status: result.status,
+      blockers: result.blockers,
+      ready_actions: result.actions
+        .filter((action) => action.state === 'ready')
+        .map((action) => action.id)
+    });
+  }
+
+  const journalDir = path.join(helmDir, 'journal');
+  lib.ensureDir(journalDir);
+  const sessionName = journalSessionName();
+  const sessionPath = path.join(journalDir, sessionName);
+  fs.writeFileSync(sessionPath, [
+    '# Helm Session Journal',
+    '',
+    `- generated_at: ${result.generated_at}`,
+    `- active_change: ${result.active_change || 'none'}`,
+    `- status: ${result.status}`,
+    `- blockers: ${result.blockers.join(', ') || '-'}`,
+    `- ready_actions: ${result.actions.filter((action) => action.state === 'ready').map((action) => action.id).join(', ') || '-'}`,
+    ''
+  ].join('\n'));
+  fs.writeFileSync(path.join(journalDir, 'index.md'), [
+    '# Helm Journal',
+    '',
+    `- latest: ${sessionName}`,
+    `- active_change: ${result.active_change || 'none'}`,
+    `- status: ${result.status}`,
+    ''
+  ].join('\n'));
+
+  lib.event(root, 'workflow-state.write', {
+    active_change: result.active_change,
+    status: result.status,
+    context_manifests: CONTEXT_MANIFESTS.map(([, fileName]) => `openspec/.helm/context/${fileName}`),
+    journal: `openspec/.helm/journal/${sessionName}`
+  });
+
+  return result;
 }
 
 function toText(result) {
@@ -64,8 +136,7 @@ function main() {
     marketplaceRoot: argValue(args, '--marketplace-root', null)
   });
   if (args.includes('--write')) {
-    lib.writeJson(path.join(lib.helmDir(root), 'workflow-state.json'), result);
-    lib.event(root, 'workflow-state.write', { active_change: result.active_change, status: result.status });
+    writeRuntimeArtifacts(root, result);
   }
   if (args.includes('--json')) process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
   else process.stdout.write(toText(result));
@@ -74,4 +145,4 @@ function main() {
 
 if (require.main === module) main();
 
-module.exports = { workflowState, toText };
+module.exports = { CONTEXT_MANIFESTS, workflowState, writeRuntimeArtifacts, toText };

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-06-23-helm-plugin-suite",
+  "lastCheckpointRef": "docs/aegis/work/2026-06-23-helm-plugin-suite/todo-checkpoint-draft.json",
+  "resumeInstruction": "Resume in /Users/wenliang_zeng/.config/aegis/worktrees/helm-claude-plugin/helm-plugin-suite. Continue Task 2 final resolver input validation patch.",
+  "knownPartialWork": [
+    "Task 2 spec review functionally passed but flagged helm-stage.json plan scope; quality review found flag-value, invalid entry, unreadable file issues."
+  ],
+  "mustReadBeforeContinuing": [
+    "docs/aegis/work/2026-06-23-helm-plugin-suite/10-intent.md",
+    "docs/aegis/work/2026-06-23-helm-plugin-suite/20-checkpoint.md",
+    "docs/aegis/work/2026-06-23-helm-plugin-suite/todo-checkpoint-draft.json"
+  ],
+  "unsafeToAssume": [
+    "Do not let CLI flags consume another flag as a value; all bad input paths must return JSON blockers."
+  ]
+}

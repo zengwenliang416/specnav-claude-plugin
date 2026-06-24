@@ -12,13 +12,16 @@ Record whether operations learning changes specs, runbooks, known limitations, r
 ## Workflow
 
 1. Review operations, verification, release, deploy, rollback, monitor, and postmortem outputs.
-2. Use status `no_writeback_needed`, `written_back`, or `deferred`.
-3. Any unresolved learning item blocks archive.
-4. Run `node "$CLAUDE_PLUGIN_ROOT/scripts/operations-gate.js" --json` after writing.
+2. Read `references/update-spec.md` before classifying learning.
+3. Use status `no_writeback_needed`, `written_back`, or `deferred`.
+4. Use `assets/update-spec.json` as the shell when the artifact is missing.
+5. Any unresolved learning item blocks archive.
+6. Run `node "$CLAUDE_PLUGIN_ROOT/scripts/operations-gate.js" --json` after writing.
 
 ## Required Outputs
 
 - `operations/update-spec.json`.
+- Update-spec shell: `assets/update-spec.json`.
 
 ## Stop Conditions
 

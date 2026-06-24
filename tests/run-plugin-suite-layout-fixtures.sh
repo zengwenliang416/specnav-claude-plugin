@@ -21,6 +21,7 @@ assert_first_before() {
 
 jq -e '.plugins | length == 6' "$ROOT/.claude-plugin/marketplace.json" >/dev/null
 jq -e '.plugins[].name' "$ROOT/.claude-plugin/marketplace.json" >/tmp/helm-plugin-names.txt
+jq -e 'all(.plugins[].source; startswith("./plugins/"))' "$ROOT/.claude-plugin/marketplace.json" >/dev/null
 grep -q '"helm-core"' /tmp/helm-plugin-names.txt
 grep -q '"helm-requirements"' /tmp/helm-plugin-names.txt
 grep -q '"helm-prototype"' /tmp/helm-plugin-names.txt

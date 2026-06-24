@@ -13,14 +13,17 @@ Verify that the selected prototype branch exists, runs, and exposes reviewable s
 
 1. Run `node "$CLAUDE_PLUGIN_ROOT/scripts/prototype-contract.js" --json` first.
 2. Read `prototype/prototype-manifest.json` and verify only the declared branch and entry.
-3. For `ui-html`, inspect desktop, mobile, variants, tweaks, and loading, empty, error, disabled, and permission states.
-4. For other branches, run the declared harness or inspect concrete schemas, transitions, and public APIs.
-5. Write `prototype/verifier-report.json` with green, red, or blocked status and evidence.
+3. Read `references/prototype-verification.md` before writing verifier evidence.
+4. For `ui-html`, inspect desktop, mobile, variants, tweaks, and loading, empty, error, disabled, and permission states.
+5. For other branches, run the declared harness or inspect concrete schemas, transitions, and public APIs.
+6. Use `assets/verifier-report.json` as the report shell when the file is missing.
+7. Write `prototype/verifier-report.json` with green, red, or blocked status and evidence.
 
 ## Required Outputs
 
 - `openspec/changes/<active-change>/prototype/verifier-report.json`.
 - Supporting logs or screenshots named by the report.
+- Report shell: `assets/verifier-report.json`.
 
 ## Stop Conditions
 

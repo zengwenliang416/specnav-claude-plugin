@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Helm UI Prototype</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <main class="shell" data-state="default">
+      <header class="toolbar">
+        <div>
+          <p class="eyebrow">Helm Prototype</p>
+          <h1>Review Screen</h1>
+        </div>
+        <div class="segmented" aria-label="Prototype state">
+          <button data-set-state="default" aria-pressed="true">Default</button>
+          <button data-set-state="loading">Loading</button>
+          <button data-set-state="empty">Empty</button>
+          <button data-set-state="error">Error</button>
+          <button data-set-state="permission">Permission</button>
+        </div>
+      </header>
+
+      <section class="workspace" aria-live="polite">
+        <aside class="panel">
+          <h2>Context</h2>
+          <dl>
+            <div><dt>Change</dt><dd>{{HELM_CHANGE}}</dd></div>
+            <div><dt>Branch</dt><dd>{{HELM_PROTOTYPE_BRANCH}}</dd></div>
+            <div><dt>Entry</dt><dd>{{HELM_PROTOTYPE_ENTRY}}</dd></div>
+          </dl>
+        </aside>
+
+        <section class="canvas">
+          <div class="state state-default">
+            <h2>Primary User Path</h2>
+            <p>Replace this with the approved screen, interaction, and data state being reviewed.</p>
+            <button class="primary">Primary Action</button>
+          </div>
+          <div class="state state-loading"><span class="spinner"></span> Loading review data</div>
+          <div class="state state-empty">No review items yet. Define the first requirement to continue.</div>
+          <div class="state state-error">Action failed. Check the API contract and retry path.</div>
+          <div class="state state-permission">You do not have access to this action.</div>
+        </section>
+      </section>
+    </main>
+    <script src="./app.js"></script>
+  </body>
+</html>

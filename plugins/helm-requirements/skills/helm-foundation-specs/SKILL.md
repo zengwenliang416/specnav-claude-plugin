@@ -14,8 +14,10 @@ Create or repair the four project-level foundation specs required before require
 1. Run `node "$CLAUDE_PLUGIN_ROOT/scripts/foundation-specs.js" --json` first.
 2. Repair only reported blockers for missing sections, frontmatter values, token references, theme parity, component contract shape, YAML parse errors, or `frontmatter_errors`.
 3. Required specs are ui-design, system-architecture, frontend-backend-data-flow, and component-architecture.
-4. If UI design is missing, guide the user to create the supplied Geist-style YAML token contract and Markdown guide.
-5. Preserve existing decisions outside reported blockers.
+4. Read `references/foundation-spec-contract.md` before creating or repairing foundation specs.
+5. If required specs are missing, run `node "$CLAUDE_PLUGIN_ROOT/skills/helm-foundation-specs/scripts/create-foundation-specs.js" --json` to create skeletons from `assets/`.
+6. If UI design is missing, guide the user to create the supplied Geist-style YAML token contract and Markdown guide.
+7. Preserve existing decisions outside reported blockers.
 
 ## Required Outputs
 
@@ -23,6 +25,7 @@ Create or repair the four project-level foundation specs required before require
 - `openspec/specs/system-architecture/design.md`.
 - `openspec/specs/frontend-backend-data-flow/design.md`.
 - `openspec/specs/component-architecture/design.md`.
+- Templates are supplied in `assets/ui-design/design.md`, `assets/system-architecture/design.md`, `assets/frontend-backend-data-flow/design.md`, and `assets/component-architecture/design.md`.
 
 ## Stop Conditions
 

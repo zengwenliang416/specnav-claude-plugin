@@ -12,12 +12,15 @@ Record operational learning after failures or risk events.
 ## Workflow
 
 1. Write a postmortem when evidence requires one.
-2. Include trigger, root cause, impact, mitigation, follow-up, and whether learning must be written back to OpenSpec.
-3. Run `node "$CLAUDE_PLUGIN_ROOT/scripts/operations-gate.js" --json` after writing.
+2. Read `references/postmortem.md` before writing learning.
+3. Include trigger, root cause, impact, mitigation, follow-up, and whether learning must be written back to OpenSpec.
+4. Use `assets/postmortem.md` as the shell when the artifact is missing.
+5. Run `node "$CLAUDE_PLUGIN_ROOT/scripts/operations-gate.js" --json` after writing.
 
 ## Required Outputs
 
 - `operations/postmortem.md`.
+- Postmortem shell: `assets/postmortem.md`.
 
 ## Stop Conditions
 

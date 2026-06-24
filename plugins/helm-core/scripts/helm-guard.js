@@ -55,6 +55,10 @@ function isWriteTool(tool) {
   return /^(Write|Edit|MultiEdit|NotebookEdit)$/i.test(tool || '');
 }
 
+function isBashTool(tool) {
+  return /^Bash$/i.test(tool || '');
+}
+
 function toRelativeProjectPath(root, target) {
   return path.relative(root, path.resolve(root, target)).split(path.sep).join('/');
 }
@@ -105,6 +109,13 @@ function pathAllowedByScope(scope, rel) {
   return { ok: included, reason: included ? 'included' : 'not-included' };
 }
 
+function isOpenSpecRepairCommand(command) {
+  if (!command) return false;
+  return /\bopenspec\b.*\b(init|validate|status)\b/.test(command)
+    || /\bhelm-(status|doctor)\b/.test(command)
+    || /\bnode\b.*\b(helm-doctor|workflow-state|affordances)\.js\b/.test(command);
+}
+
 function main() {
   const root = lib.projectRoot();
   const payload = readStdinJson();
@@ -117,6 +128,20 @@ function main() {
     deny('dangerous shell command requires explicit manual review.');
   }
 
+  const relPaths = normalized.paths.map((target) => toRelativeProjectPath(root, target));
+  const productionPaths = relPaths.filter((rel) => !rel.startsWith('openspec/'));
+  const hasOpenSpec = fs.existsSync(lib.openspecDir(root));
+
+  if (!hasOpenSpec) {
+    const openspecRepairPaths = relPaths.length > 0 && productionPaths.length === 0;
+    if (openspecRepairPaths) allow(root, 'openspec-repair-without-openspec');
+    if (isBashTool(normalized.tool) && isOpenSpecRepairCommand(normalized.command)) {
+      allow(root, 'openspec-command-without-openspec');
+    }
+    lib.event(root, 'hook.deny', { reason: 'missing-openspec', paths: productionPaths, command: normalized.command });
+    deny('missing openspec/ blocks production work; initialize or repair OpenSpec first.');
+  }
+
   if (!normalized.paths.length) {
     if (isWriteTool(normalized.tool)) {
       warn(root, `No target path found in ${normalized.tool || 'write'} hook payload.`);
@@ -127,9 +152,6 @@ function main() {
   const change = lib.activeChange(root);
   const dir = lib.changeDir(root, change);
   if (!change || !dir) warn(root, 'No active Helm change; run /helm-status or /helm propose.');
-
-  const relPaths = normalized.paths.map((target) => toRelativeProjectPath(root, target));
-  const productionPaths = relPaths.filter((rel) => !rel.startsWith('openspec/'));
   if (!productionPaths.length) allow(root, 'openspec-edit');
 
   if (!lib.fileExists(path.join(dir, 'tasks.md'))) {

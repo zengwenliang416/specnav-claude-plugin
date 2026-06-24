@@ -393,6 +393,9 @@ Skills should do context-sensitive work:
 Use `references/` when a skill needs detailed material that should not always be
 loaded.
 
+The per-skill resource decisions for `references/`, `assets`, and skill-local
+`scripts/` are tracked in `docs/skill-resource-matrix.md`.
+
 Recommended references:
 
 ```text
