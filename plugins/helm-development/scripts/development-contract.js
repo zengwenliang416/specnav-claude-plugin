@@ -51,9 +51,7 @@ const PROTOTYPE_DECISION_ARTIFACTS = [
   'prototype/decision.json'
 ];
 
-const ENTRY_REPORT_STATUSES = new Set(['DONE', 'DONE_WITH_CONCERNS', 'NEEDS_CONTEXT', 'BLOCKED']);
-const HANDOFF_REPORT_STATUSES = new Set(['DONE', 'DONE_WITH_CONCERNS']);
-const ENTRY_REVIEW_VERDICTS = new Set(['approved', 'needs-fix', 'blocked']);
+const HANDOFF_REPORT_STATUSES = new Set(['DONE']);
 const HANDOFF_REVIEW_VERDICTS = new Set(['approved']);
 
 const BRIEF_HEADINGS = [
@@ -119,7 +117,8 @@ const QUALITY_REVIEW_REQUIRED_HEADINGS = [
   'Required Fixes'
 ];
 
-const TASK_FILES = ['brief.md', 'context.json', 'report.md', 'spec-review.md', 'quality-review.md'];
+const TASK_ENTRY_FILES = ['brief.md', 'context.json'];
+const TASK_HANDOFF_FILES = [...TASK_ENTRY_FILES, 'report.md', 'spec-review.md', 'quality-review.md'];
 const TASK_CONTEXT_ARRAYS = ['must_read', 'allowed_files', 'non_goals', 'expected_evidence', 'unsafe_assumptions'];
 const NON_EMPTY_TASK_CONTEXT_ARRAYS = new Set(['must_read', 'allowed_files', 'non_goals', 'expected_evidence']);
 const PATH_TASK_CONTEXT_ARRAYS = new Set(['must_read', 'allowed_files']);
@@ -903,7 +902,7 @@ function validateTaskContext(taskDir, relativeTaskPath, taskId, requiredMustRead
   return { name, path: path.join(relativeTaskPath, name), ok: blockers.length === 0, blockers: unique(blockers) };
 }
 
-function validateReport(taskDir, relativeTaskPath, mode) {
+function validateReport(taskDir, relativeTaskPath) {
   const name = 'report.md';
   const text = readTextFile(path.join(taskDir, name));
   const blockers = [];
@@ -922,8 +921,7 @@ function validateReport(taskDir, relativeTaskPath, mode) {
     blockers.push('invalid-task-report:missing-status');
   } else {
     const status = firstSubstantiveValue(parsed, statusHeading);
-    const allowedStatuses = mode === 'entry' ? ENTRY_REPORT_STATUSES : HANDOFF_REPORT_STATUSES;
-    if (!allowedStatuses.has(status)) {
+    if (!HANDOFF_REPORT_STATUSES.has(status)) {
       blockers.push('invalid-task-report:status');
     }
     if (status === 'DONE_WITH_CONCERNS') {
@@ -937,7 +935,7 @@ function validateReport(taskDir, relativeTaskPath, mode) {
   return { name, path: path.join(relativeTaskPath, name), ok: blockers.length === 0, blockers: unique(blockers) };
 }
 
-function validateVerdictFile(taskDir, relativeTaskPath, name, mode) {
+function validateVerdictFile(taskDir, relativeTaskPath, name) {
   const text = readTextFile(path.join(taskDir, name));
   const blockers = [];
   const type = name === 'spec-review.md' ? 'spec-review' : 'quality-review';
@@ -959,8 +957,7 @@ function validateVerdictFile(taskDir, relativeTaskPath, name, mode) {
     blockers.push(`invalid-${type}:missing-verdict`);
   } else {
     const verdict = firstSubstantiveValue(parsed, verdictHeading);
-    const allowedVerdicts = mode === 'entry' ? ENTRY_REVIEW_VERDICTS : HANDOFF_REVIEW_VERDICTS;
-    if (!allowedVerdicts.has(verdict)) blockers.push(`invalid-${type}:verdict`);
+    if (!HANDOFF_REVIEW_VERDICTS.has(verdict)) blockers.push(`invalid-${type}:verdict`);
   }
 
   return { name, path: path.join(relativeTaskPath, name), ok: blockers.length === 0, blockers: unique(blockers) };
@@ -969,6 +966,8 @@ function validateVerdictFile(taskDir, relativeTaskPath, name, mode) {
 function validateTaskDir(developmentDir, activeChange, dirName, mode, requiredMustRead) {
   const taskDir = path.join(developmentDir, 'tasks', dirName);
   const relativeTaskPath = artifactPath(activeChange, path.join('tasks', dirName), true);
+  const requiredBriefPath = artifactPath(activeChange, path.join('tasks', dirName, 'brief.md'), true);
+  const taskRequiredMustRead = unique([requiredBriefPath, ...requiredMustRead]);
   const blockers = [];
   const artifacts = [];
 
@@ -978,11 +977,16 @@ function validateTaskDir(developmentDir, activeChange, dirName, mode, requiredMu
 
   const validators = [
     () => validateTaskBrief(taskDir, relativeTaskPath),
-    () => validateTaskContext(taskDir, relativeTaskPath, dirName, requiredMustRead),
-    () => validateReport(taskDir, relativeTaskPath, mode),
-    () => validateVerdictFile(taskDir, relativeTaskPath, 'spec-review.md', mode),
-    () => validateVerdictFile(taskDir, relativeTaskPath, 'quality-review.md', mode)
+    () => validateTaskContext(taskDir, relativeTaskPath, dirName, taskRequiredMustRead)
   ];
+
+  if (mode === 'handoff') {
+    validators.push(
+      () => validateReport(taskDir, relativeTaskPath),
+      () => validateVerdictFile(taskDir, relativeTaskPath, 'spec-review.md'),
+      () => validateVerdictFile(taskDir, relativeTaskPath, 'quality-review.md')
+    );
+  }
 
   for (const validate of validators) {
     const result = validate();
@@ -990,7 +994,8 @@ function validateTaskDir(developmentDir, activeChange, dirName, mode, requiredMu
     blockers.push(...result.blockers);
   }
 
-  for (const file of TASK_FILES) {
+  const requiredTaskFiles = mode === 'entry' ? TASK_ENTRY_FILES : TASK_HANDOFF_FILES;
+  for (const file of requiredTaskFiles) {
     if (!artifacts.some((artifact) => artifact.name === file)) {
       blockers.push(`missing-task-artifact:${file}`);
     }

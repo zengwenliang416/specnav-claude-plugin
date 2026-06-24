@@ -731,6 +731,26 @@ jq -e '.tasks[] | select(.task_id == "001-dashboard-summary" and .ok == true)' "
 run_json "$HAPPY_PROJECT" "$TMP_DIR/happy-entry.json" 0 entry
 jq -e '.ok == true and .mode == "entry"' "$TMP_DIR/happy-entry.json" >/dev/null
 
+ENTRY_ONLY_PROJECT="$TMP_DIR/entry-only-project"
+cp -R "$HAPPY_PROJECT" "$ENTRY_ONLY_PROJECT"
+rm \
+  "$ENTRY_ONLY_PROJECT/openspec/changes/add-dashboard/development/tasks/001-dashboard-summary/report.md" \
+  "$ENTRY_ONLY_PROJECT/openspec/changes/add-dashboard/development/tasks/001-dashboard-summary/spec-review.md" \
+  "$ENTRY_ONLY_PROJECT/openspec/changes/add-dashboard/development/tasks/001-dashboard-summary/quality-review.md" \
+  "$ENTRY_ONLY_PROJECT/openspec/changes/add-dashboard/development/task-ledger.jsonl" \
+  "$ENTRY_ONLY_PROJECT/openspec/changes/add-dashboard/development/drift-check.jsonl" \
+  "$ENTRY_ONLY_PROJECT/openspec/changes/add-dashboard/development/validation-log.jsonl" \
+  "$ENTRY_ONLY_PROJECT/openspec/changes/add-dashboard/development/handoff-to-verify.md"
+run_json "$ENTRY_ONLY_PROJECT" "$TMP_DIR/entry-only-entry.json" 0 entry
+jq -e '.ok == true and .mode == "entry"' "$TMP_DIR/entry-only-entry.json" >/dev/null
+run_json "$ENTRY_ONLY_PROJECT" "$TMP_DIR/entry-only-default.json" 2
+jq -e '.ok == false and .mode == "handoff"' "$TMP_DIR/entry-only-default.json" >/dev/null
+assert_blocker "$TMP_DIR/entry-only-default.json" 'missing-task-artifact:report.md'
+assert_blocker "$TMP_DIR/entry-only-default.json" 'missing-development-artifact:validation-log.jsonl'
+run_json "$ENTRY_ONLY_PROJECT" "$TMP_DIR/entry-only-handoff.json" 2 handoff
+assert_blocker "$TMP_DIR/entry-only-handoff.json" 'missing-task-artifact:spec-review.md'
+assert_blocker "$TMP_DIR/entry-only-handoff.json" 'missing-development-artifact:handoff-to-verify.md'
+
 ENTRY_REVIEW_FIX_PROJECT="$TMP_DIR/entry-review-fix-project"
 cp -R "$HAPPY_PROJECT" "$ENTRY_REVIEW_FIX_PROJECT"
 cat >"$ENTRY_REVIEW_FIX_PROJECT/openspec/changes/add-dashboard/development/tasks/001-dashboard-summary/spec-review.md" <<'MD'
@@ -814,6 +834,15 @@ run_json "$TASK_CONTEXT_SOURCE_PROJECT" "$TMP_DIR/task-context-source.json" 2 en
 assert_blocker "$TMP_DIR/task-context-source.json" 'invalid-task-context:must_read-missing:openspec/specs/ui-design/design.md'
 assert_blocker "$TMP_DIR/task-context-source.json" 'invalid-task-context:must_read-missing:openspec/changes/add-dashboard/prototype/decision.json'
 assert_blocker "$TMP_DIR/task-context-source.json" 'invalid-task-context:must_read-missing:openspec/changes/add-dashboard/prototype/artifact/index.html'
+
+TASK_CONTEXT_BRIEF_PROJECT="$TMP_DIR/task-context-brief-project"
+cp -R "$HAPPY_PROJECT" "$TASK_CONTEXT_BRIEF_PROJECT"
+jq 'del(.must_read[] | select(. == "openspec/changes/add-dashboard/development/tasks/001-dashboard-summary/brief.md"))' \
+  "$TASK_CONTEXT_BRIEF_PROJECT/openspec/changes/add-dashboard/development/tasks/001-dashboard-summary/context.json" \
+  >"$TMP_DIR/task-context-brief.json.tmp"
+mv "$TMP_DIR/task-context-brief.json.tmp" "$TASK_CONTEXT_BRIEF_PROJECT/openspec/changes/add-dashboard/development/tasks/001-dashboard-summary/context.json"
+run_json "$TASK_CONTEXT_BRIEF_PROJECT" "$TMP_DIR/task-context-brief.json" 2 entry
+assert_blocker "$TMP_DIR/task-context-brief.json" 'invalid-task-context:must_read-missing:openspec/changes/add-dashboard/development/tasks/001-dashboard-summary/brief.md'
 
 SCOPE_UNAPPROVED_SOURCE_PROJECT="$TMP_DIR/scope-unapproved-source-project"
 cp -R "$HAPPY_PROJECT" "$SCOPE_UNAPPROVED_SOURCE_PROJECT"

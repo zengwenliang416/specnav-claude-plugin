@@ -47,4 +47,4 @@ After writing artifacts, rerun:
 node "$CLAUDE_PLUGIN_ROOT/scripts/development-contract.js" --mode entry --json
 ```
 
-Continue only when the remaining blockers belong to later development artifacts that have not been produced yet.
+Continue only when the entry gate returns `"ok": true`.
