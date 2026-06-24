@@ -1,0 +1,12 @@
+{
+  "name": "helm-core",
+  "version": "0.3.0",
+  "description": "Core runtime for the Helm OpenSpec lifecycle plugin suite.",
+  "author": {
+    "name": "Wenliang Zeng"
+  },
+  "homepage": "https://github.com/zengwenliang416/helm",
+  "license": "MIT",
+  "keywords": ["claude-code", "openspec", "workflow", "guardrails", "verification"],
+  "skills": "./skills/"
+}

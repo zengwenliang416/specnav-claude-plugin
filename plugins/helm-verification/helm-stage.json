@@ -1,0 +1,21 @@
+{
+  "schema": "helm.stagePlugin.v1",
+  "plugin": "helm-verification",
+  "stage": "verification",
+  "required": true,
+  "depends_on": ["helm-core", "helm-development"],
+  "commands": ["helm-verify"],
+  "skills": [
+    "verify-plan",
+    "verify-facticity",
+    "verify-static",
+    "verify-unit",
+    "verify-redteam",
+    "verify-e2e",
+    "verify-sensory"
+  ],
+  "contracts": {
+    "verification": "scripts/verify-domains.js"
+  },
+  "state_outputs": ["openspec/changes/<change>/verify/"]
+}

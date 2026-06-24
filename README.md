@@ -4,19 +4,24 @@ Helm is a spec-driven workflow plugin for Claude Code. It sits on top of OpenSpe
 
 `explore -> propose -> design -> tasks -> implement -> verify -> fix -> archive`
 
-This repository is a single-plugin MVP. It keeps the future boundaries from the implementation plan:
+This repository is a local marketplace containing six plugins. Task 1 split the suite boundaries from the implementation plan:
 
 - workflow: commands and skills
-- guardrails: hook scripts
-- quality: verifier agent and verification scripts
+- core guardrails: hook scripts and shared runtime helpers
+- stage plugins: requirements, prototype, development, verification, and operations
 
 ## Install Locally
 
 From a Claude Code environment, add this plugin marketplace root:
 
 ```bash
-claude plugin marketplace add /Volumes/zwl/AI/ai-coding/helm-claude-plugin
-claude plugin install helm@helm-marketplace
+claude plugin marketplace add "$PWD"
+claude plugin install helm-core@helm-marketplace
+claude plugin install helm-requirements@helm-marketplace
+claude plugin install helm-prototype@helm-marketplace
+claude plugin install helm-development@helm-marketplace
+claude plugin install helm-verification@helm-marketplace
+claude plugin install helm-operations@helm-marketplace
 ```
 
 If your Claude Code build uses a different plugin command spelling, install the local marketplace root that contains `.claude-plugin/marketplace.json`.
@@ -24,14 +29,15 @@ If your Claude Code build uses a different plugin command spelling, install the 
 ## Project Layout
 
 ```text
-.claude-plugin/       Claude plugin manifest and local marketplace
-commands/             Slash command entrypoints, including /helm
-skills/               Claude Code skills for each Helm action and helm-router
-agents/               Explorer and verifier subagents
-hooks/                Claude Code hook configuration
-scripts/              Local implementation scripts
-tests/                Smoke fixtures
-docs/                 Engineering design notes
+.claude-plugin/marketplace.json       Local plugin marketplace manifest
+plugins/helm-core/                    Router, core commands, hooks, and shared scripts
+plugins/helm-requirements/            Requirements stage commands and skills
+plugins/helm-prototype/               Prototype stage commands and skills
+plugins/helm-development/             Development stage commands and skills
+plugins/helm-verification/            Verification stage commands and skills
+plugins/helm-operations/              Release and archive stage commands and skills
+tests/                                Smoke and fixture checks
+docs/                                 Engineering design notes
 ```
 
 Design details: [docs/design.md](docs/design.md).
@@ -61,15 +67,16 @@ openspec/
 ## Useful Commands
 
 ```bash
-node scripts/affordances.js --markdown
-node scripts/verify.js
-node scripts/archive-gate.js
-node scripts/risk-tier.js --paths src/auth/login.ts db/migrations/001.sql
+node plugins/helm-core/scripts/affordances.js --markdown
+node plugins/helm-core/scripts/verify.js
+node plugins/helm-core/scripts/archive-gate.js
+node plugins/helm-core/scripts/risk-tier.js --paths src/auth/login.ts db/migrations/001.sql
 ```
 
 Run the smoke test:
 
 ```bash
+bash tests/run-plugin-suite-layout-fixtures.sh
 bash tests/run-smoke.sh
 bash tests/run-hook-fixtures.sh
 bash tests/run-override-fixtures.sh
@@ -77,9 +84,9 @@ bash tests/run-openspec-fixtures.sh
 bash tests/run-archive-policy-fixtures.sh
 ```
 
-## MVP Limits
+## Current Limits
 
-- This MVP is one plugin, not the final three-plugin extracted suite.
-- The verifier is deterministic and script-driven; it produces a report that Claude can expand on.
+- Task 1 establishes the split marketplace layout; it does not implement every stage contract script.
+- Stage commands that need missing suite or stage contracts block explicitly with `not-implemented:*`, including `not-implemented:helm-core/plugin-suite` and `not-implemented:helm-operations/archive-gate`.
+- Core scripts under `plugins/helm-core/scripts/` remain deterministic and script-driven.
 - Hooks are conservative but degrade gracefully when project state is missing or stale.
-- External MCP integrations, visual regression, and SAST are extension points, not required for the first loop.

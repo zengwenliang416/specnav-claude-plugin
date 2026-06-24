@@ -1,0 +1,26 @@
+{
+  "schema": "helm.stagePlugin.v1",
+  "plugin": "helm-operations",
+  "stage": "operations",
+  "required": true,
+  "depends_on": ["helm-core", "helm-verification"],
+  "commands": ["helm-release", "helm-archive"],
+  "skills": [
+    "ops-readiness",
+    "release-plan",
+    "install-verify",
+    "update-policy",
+    "compatibility-matrix",
+    "branch-finish",
+    "deploy",
+    "rollback",
+    "monitor",
+    "postmortem",
+    "update-spec"
+  ],
+  "planned_contracts": {
+    "operations": "scripts/operations-gate.js",
+    "archive": "scripts/archive-gate.js"
+  },
+  "state_outputs": ["openspec/changes/<change>/operations/"]
+}
