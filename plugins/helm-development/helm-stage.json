@@ -6,7 +6,7 @@
   "depends_on": ["helm-core", "helm-requirements", "helm-prototype"],
   "commands": ["helm-implement"],
   "skills": ["before-dev", "scope-lock", "vertical-slice-tasking"],
-  "planned_contracts": {
+  "contracts": {
     "development": "scripts/development-contract.js"
   },
   "state_outputs": ["openspec/changes/<change>/development/"]

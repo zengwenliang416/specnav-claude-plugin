@@ -1,0 +1,815 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+DEV="$ROOT/plugins/helm-development"
+PROJECT="$ROOT/tests/fixtures/simple-project"
+TMP_DIR="$(mktemp -d)"
+trap 'rm -rf "$TMP_DIR"' EXIT
+
+run_json() {
+  local project="$1"
+  local output="$2"
+  local expected_status="$3"
+  local status
+
+  set +e
+  PROJECT_DIR="$project" node "$DEV/scripts/development-contract.js" --json >"$output"
+  status=$?
+  set -e
+  if [[ "$status" != "$expected_status" ]]; then
+    echo "expected status $expected_status, got $status for $project" >&2
+    cat "$output" >&2
+    exit 1
+  fi
+}
+
+assert_blocker() {
+  local output="$1"
+  local blocker="$2"
+
+  jq -e --arg blocker "$blocker" '.blockers[] | select(. == $blocker)' "$output" >/dev/null
+}
+
+write_requirements_project() {
+  local project="$1"
+  local change="add-dashboard"
+
+  mkdir -p \
+    "$project/openspec/.helm" \
+    "$project/openspec/specs/ui-design" \
+    "$project/openspec/specs/system-architecture" \
+    "$project/openspec/specs/frontend-backend-data-flow" \
+    "$project/openspec/specs/component-architecture" \
+    "$project/openspec/changes/$change"
+
+  printf '%s\n' "$change" >"$project/openspec/.helm/active-change"
+
+  cat >"$project/openspec/specs/ui-design/design.md" <<'MD'
+---
+version: 1.0.0
+name: UI Design
+description: Product interface standards
+colors: {}
+typography: {}
+spacing: {}
+rounded: {}
+components: []
+---
+# UI Design
+
+## Overview
+## Colors
+## Typography
+## Layout
+## Elevation & Depth
+## Motion
+## Shapes
+## Components
+## Voice & Content
+## Do's and Don'ts
+MD
+
+  cat >"$project/openspec/specs/system-architecture/design.md" <<'MD'
+# System Architecture & Database Spec
+
+## Overview
+## Application Topology
+## Module Boundaries
+## Frontend Architecture
+## Backend Architecture
+## API Surface
+## Database Model
+## Permissions & Security
+## Integration Boundaries
+## Operational Constraints
+## Architecture Do's and Don'ts
+MD
+
+  cat >"$project/openspec/specs/frontend-backend-data-flow/design.md" <<'MD'
+# Frontend-Backend Data Flow Spec
+
+## Overview
+## Flow Index
+## Boundary Contracts
+## State Ownership
+## Validation Ownership
+## Error & Empty States
+## Loading / Optimistic / Retry Behavior
+## End-to-End Flow Details
+## Async / Realtime Flows
+## Flow Do's and Don'ts
+MD
+
+  cat >"$project/openspec/specs/component-architecture/design.md" <<'MD'
+# Component Architecture & Reuse Spec
+
+## Overview
+## Component Taxonomy
+## Cohesion Rules
+## Coupling Rules
+## Shared Component Extraction Rules
+## Component Public API Rules
+## State Ownership Rules
+## Composition Patterns
+## File & Naming Conventions
+## Testing Expectations
+## Refactor Triggers
+## Component Do's and Don'ts
+MD
+
+  cat >"$project/openspec/changes/$change/requirements.md" <<'MD'
+# Requirements
+
+- Add a dashboard view backed by the existing application shell.
+MD
+
+  cat >"$project/openspec/changes/$change/acceptance.md" <<'MD'
+# Acceptance
+
+- Dashboard renders with loading, empty, and error states covered.
+MD
+
+  cat >"$project/openspec/changes/$change/spec-map.json" <<'JSON'
+{
+  "touched_specs": ["ui-design", "system-architecture"],
+  "ui_rules": ["dashboard-layout"],
+  "architecture_modules": ["dashboard-shell"],
+  "api_contracts": [],
+  "database_entities": [],
+  "permissions": [],
+  "operational_constraints": [],
+  "data_flows": [],
+  "unresolved_gaps": []
+}
+JSON
+
+  cat >"$project/openspec/changes/$change/component-impact-map.json" <<'JSON'
+{
+  "new_components": ["DashboardView"],
+  "reused_components": [],
+  "extraction_triggers": [],
+  "forbidden_dependencies": [],
+  "hooks": [],
+  "utilities": [],
+  "services": [],
+  "required_component_tests": ["DashboardView renders loading empty error states"],
+  "unresolved_gaps": []
+}
+JSON
+}
+
+write_ui_prototype() {
+  local project="$1"
+  local prototype="$project/openspec/changes/add-dashboard/prototype"
+
+  mkdir -p "$prototype/artifact"
+
+  cat >"$prototype/question.md" <<'MD'
+# Prototype Question
+
+Branch: ui-html
+
+Question: Which dashboard layout should be approved before implementation?
+MD
+
+  cat >"$prototype/artifact/index.html" <<'HTML'
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Dashboard Prototype</title>
+  </head>
+  <body>
+    <main data-helm-screen="dashboard" data-helm-variant="balanced">
+      <section data-helm-component="dashboard-summary">Dashboard summary</section>
+    </main>
+  </body>
+</html>
+HTML
+
+  cat >"$prototype/screen-map.json" <<'JSON'
+{
+  "screens": [
+    {
+      "id": "dashboard",
+      "requirements": ["requirements.md#dashboard-view"],
+      "acceptance": ["Dashboard renders with loading, empty, and error states covered."],
+      "components": ["DashboardView", "DashboardSummary"],
+      "data_flows": ["Dashboard summary API response populates dashboard view state"],
+      "implementation_files": ["src/dashboard/DashboardView.tsx", "src/dashboard/useDashboardState.ts"]
+    }
+  ]
+}
+JSON
+
+  cat >"$prototype/prototype-manifest.json" <<'JSON'
+{
+  "schema": "helm.prototype.manifest.v1",
+  "version": "1.0.0",
+  "type": "ui-html",
+  "entry": "artifact/index.html",
+  "dependencies": [],
+  "mock_strategy": "Static HTML uses mock dashboard counts only.",
+  "touches_real_data": false,
+  "referenced_foundation_specs": ["ui-design", "system-architecture"],
+  "referenced_requirements": ["requirements.md", "acceptance.md"],
+  "may_promote": false,
+  "promotion_requirement": "Prototype decisions must enter development through scope.json and tasks.md."
+}
+JSON
+
+  cat >"$prototype/verifier-report.json" <<'JSON'
+{
+  "schema": "helm.prototype.verifier.v1",
+  "status": "green",
+  "checked_entry": "artifact/index.html",
+  "checks": ["entry exists", "desktop viewport reviewed", "mobile viewport reviewed"]
+}
+JSON
+
+  cat >"$prototype/handoff.md" <<'MD'
+# Prototype Handoff
+
+## Approved branch and variant
+
+- Branch: ui-html
+- Variant: balanced
+
+## Screens or flows to implement
+
+- Dashboard screen with summary metrics and reviewable states.
+
+## Components to create
+
+- DashboardView.
+
+## Components to reuse
+
+- Existing application shell and summary card primitives.
+
+## Components, hooks, utilities, and services to extract
+
+- Components: DashboardSummary.
+- Hooks: useDashboardState.
+- Utilities: formatDashboardMetric.
+- Services: dashboardSummaryService.
+
+## API contracts
+
+- GET /api/dashboard/summary returns metric counts and permission flags for the dashboard.
+
+## Data flows
+
+- DashboardView loads the summary API response into local view state before rendering metrics.
+
+## State, loading, empty, error, disabled, and permission behavior
+
+- Required states cover loading, empty, error, disabled refresh, and permission denied views.
+
+## Out-of-scope items
+
+- Live analytics filtering and export workflows stay outside this prototype handoff.
+
+## Required tests
+
+- DashboardView covers loading, empty, error, disabled, and permission behavior.
+
+## Open risks
+
+- Backend summary fields may need final naming during development.
+MD
+
+  cat >"$prototype/decision.json" <<'JSON'
+{
+  "status": "approved",
+  "prototype_code": "required_present",
+  "prototype_type": "ui-html",
+  "approved_variant": "balanced",
+  "promotion": "requires_development_gate",
+  "blocked_reasons": []
+}
+JSON
+}
+
+write_development_artifacts() {
+  local project="$1"
+  local change="add-dashboard"
+  local change_dir="$project/openspec/changes/$change"
+  local development="$change_dir/development"
+  local task="$development/tasks/001-dashboard-summary"
+
+  mkdir -p "$task"
+
+  cat >"$change_dir/scope.json" <<'JSON'
+{
+  "schema_version": 1,
+  "change_id": "add-dashboard",
+  "stage": "development",
+  "allowed_roots": ["src/dashboard/**", "tests/dashboard/**"],
+  "denied_roots": [".env*", "scripts/deploy/**"],
+  "allowed_operations": {
+    "create": true,
+    "modify": true,
+    "delete": false,
+    "rename": true
+  },
+  "requires_review_on": ["src/shared/**", "package.json"],
+  "prototype_sources": ["openspec/changes/add-dashboard/prototype/artifact/index.html"],
+  "expires_when": "verification_started"
+}
+JSON
+
+  cat >"$change_dir/tasks.md" <<'MD'
+# Development Tasks
+
+- user can view dashboard summary with loading empty and error states
+MD
+
+  cat >"$development/before-dev-check.json" <<'JSON'
+{
+  "schema_version": 1,
+  "active_change": "add-dashboard",
+  "status": "passed",
+  "ok": true
+}
+JSON
+
+  cat >"$development/basis.md" <<'MD'
+# Development Basis
+
+Development is based on the approved requirements, acceptance criteria, prototype decision, and prototype handoff for add-dashboard.
+MD
+
+  cat >"$development/prototype-promotion-map.json" <<'JSON'
+{
+  "schema_version": 1,
+  "promotion_policy": "reimplement_under_development_gate",
+  "allowed_to_copy": ["approved copy text", "token names", "state names"],
+  "must_reimplement": ["component structure", "state management", "API calls"],
+  "blocked_direct_copies": ["inline prototype JS", "mock data", "prototype CSS reset"]
+}
+JSON
+
+  cat >"$development/complexity-budget.json" <<'JSON'
+{
+  "schema_version": 1,
+  "budgets": [
+    {
+      "task": "001-dashboard-summary",
+      "max_files": 4,
+      "max_components": 2
+    }
+  ]
+}
+JSON
+
+  cat >"$development/task-graph.json" <<'JSON'
+{
+  "schema_version": 1,
+  "nodes": ["001-dashboard-summary"],
+  "edges": []
+}
+JSON
+
+  cat >"$development/code-owner-map.json" <<'JSON'
+{
+  "schema_version": 1,
+  "owners": [
+    {
+      "path": "src/dashboard/**",
+      "owner": "dashboard-team"
+    }
+  ]
+}
+JSON
+
+  cat >"$development/extraction-map.json" <<'JSON'
+{
+  "schema_version": 1,
+  "components": ["DashboardSummary"],
+  "hooks": ["useDashboardState"]
+}
+JSON
+
+  cat >"$development/task-context.jsonl" <<'JSONL'
+{"task":"001-dashboard-summary","source":"context.json","status":"ready"}
+JSONL
+
+  cat >"$development/task-ledger.jsonl" <<'JSONL'
+{"task":"001-dashboard-summary","status":"started","base":"abc1234","time":"2026-06-23T10:00:00Z"}
+{"task":"001-dashboard-summary","status":"spec_review_passed","head":"def5678"}
+{"task":"001-dashboard-summary","status":"quality_review_passed","head":"def5678"}
+{"task":"001-dashboard-summary","status":"complete","tests":"npm test dashboard-summary.test.tsx"}
+JSONL
+
+  cat >"$development/drift-check.jsonl" <<'JSONL'
+{"task":"001-dashboard-summary","against":["requirements.md","prototype/handoff.md","spec-map.json","component-impact-map.json"],"drift":"none","blocking":false,"notes":["matches approved dashboard summary behavior"]}
+JSONL
+
+  cat >"$development/validation-log.jsonl" <<'JSONL'
+{"task":"001-dashboard-summary","command":"npm test dashboard-summary.test.tsx","status":"passed","ok":true}
+JSONL
+
+  cat >"$task/brief.md" <<'MD'
+# Task 001: Dashboard Summary Slice
+
+## Goal
+
+Implement the dashboard summary slice for the approved dashboard view.
+
+## Parent Artifacts
+
+Read requirements.md, acceptance.md, spec-map.json, component-impact-map.json, and prototype/handoff.md.
+
+## Vertical Slice
+
+User can view dashboard summary metrics with loading, empty, and error states.
+
+## In Scope
+
+Dashboard summary UI, state hook, service adapter, and focused tests are in scope.
+
+## Out Of Scope
+
+Live analytics filtering and export workflows stay outside this slice.
+
+## Files Allowed
+
+src/dashboard/DashboardView.tsx and tests/dashboard/dashboard-summary.test.tsx are allowed.
+
+## Interfaces / Seams
+
+The slice uses dashboardSummaryService and keeps data loading behind useDashboardState.
+
+## Components To Create
+
+Create DashboardView.
+
+## Components To Reuse
+
+Reuse the existing application shell and summary card primitive.
+
+## Components To Extract
+
+Extract DashboardSummary only if duplication appears during implementation.
+
+## API / Data Flow Contracts
+
+GET /api/dashboard/summary returns metric counts and permission flags.
+
+## State / Error / Empty / Loading Behavior
+
+Render loading, empty, error, disabled refresh, and permission denied states.
+
+## TDD Requirement
+
+Write a failing dashboard summary test before production implementation.
+
+## Verification Commands
+
+Run npm test dashboard-summary.test.tsx after implementation.
+
+## Stop Conditions
+
+Stop if scope changes, API fields conflict with requirements, or prototype decisions are insufficient.
+
+## Unsafe Assumptions
+
+No unsafe assumptions are accepted without controller review.
+MD
+
+  cat >"$task/context.json" <<'JSON'
+{
+  "task_id": "001-dashboard-summary",
+  "goal": "Implement dashboard summary slice",
+  "stop_condition": "slice implemented, reviews approved, validation recorded",
+  "must_read": [
+    "openspec/changes/add-dashboard/development/tasks/001-dashboard-summary/brief.md",
+    "openspec/changes/add-dashboard/prototype/handoff.md"
+  ],
+  "allowed_files": [
+    "src/dashboard/DashboardView.tsx",
+    "tests/dashboard/dashboard-summary.test.tsx"
+  ],
+  "non_goals": [
+    "analytics export",
+    "database persistence"
+  ],
+  "expected_evidence": [
+    "RED test output",
+    "GREEN test output",
+    "focused validation command"
+  ],
+  "unsafe_assumptions": []
+}
+JSON
+
+  cat >"$task/report.md" <<'MD'
+# Implementation Report
+
+## Status
+
+DONE
+
+## Files Changed
+
+- src/dashboard/DashboardView.tsx
+- tests/dashboard/dashboard-summary.test.tsx
+
+## What Changed
+
+Implemented the summary view and connected the state hook to the service seam.
+
+## TDD Evidence
+
+### RED
+
+Initial dashboard summary test failed before implementation.
+
+### GREEN
+
+Dashboard summary test passed after implementation.
+
+### REFACTOR
+
+No behavior-changing refactor was needed.
+
+## Verification Commands
+
+- npm test dashboard-summary.test.tsx
+
+## Concerns
+
+Backend naming remains a review watch item.
+
+## Scope Deviations
+
+No scope deviations were made.
+
+## Follow-up Needed
+
+Verification should exercise the states in the browser.
+MD
+
+  cat >"$task/spec-review.md" <<'MD'
+# Spec Review
+
+## Verdict
+
+approved
+
+## Missing Requirements
+
+No missing requirements were found.
+
+## Extra Behavior
+
+No extra behavior was introduced.
+
+## Misunderstood Requirements
+
+No misunderstood requirements were found.
+
+## Cannot Verify From Diff
+
+Browser state coverage remains for verification.
+
+## Required Fixes
+
+No required fixes remain.
+MD
+
+  cat >"$task/quality-review.md" <<'MD'
+# Quality Review
+
+## Verdict
+
+approved
+
+## Separation Of Concerns
+
+View, hook, and service responsibilities remain separated.
+
+## Component Cohesion / Coupling
+
+The dashboard summary component is cohesive.
+
+## Test Quality
+
+Tests cover the focused slice states.
+
+## Error Handling
+
+Error state rendering is covered.
+
+## Reuse / Duplication
+
+Existing summary card primitives are reused.
+
+## Complexity Delta
+
+Complexity stays within the recorded budget.
+
+## Required Fixes
+
+No required fixes remain.
+MD
+
+  cat >"$development/handoff-to-verify.md" <<'MD'
+# Handoff To Verification
+
+## Implemented Slices
+
+Dashboard summary view slice is implemented.
+
+## Files Changed
+
+Dashboard view and focused dashboard summary tests changed.
+
+## Requirements Covered
+
+Requirements for dashboard loading, empty, and error states are covered.
+
+## Prototype Decisions Implemented
+
+Approved balanced dashboard variant decisions are implemented.
+
+## Components Created / Reused / Extracted
+
+DashboardView was created, shell primitives were reused, and DashboardSummary remains an extraction candidate.
+
+## API / Data Flow Changes
+
+Dashboard summary data flows through dashboardSummaryService into useDashboardState.
+
+## Tests Added
+
+Focused dashboard summary tests were added.
+
+## Local Validation
+
+npm test dashboard-summary.test.tsx passed locally.
+
+## Known Risks
+
+Backend field naming remains a verification watch item.
+
+## Items Requiring Six-Domain Verification
+
+Six-domain verification must check user-visible states, data flow, and component boundaries.
+MD
+}
+
+test -f "$DEV/scripts/development-contract.js"
+test -f "$DEV/skills/before-dev/SKILL.md"
+test -f "$DEV/skills/scope-lock/SKILL.md"
+test -f "$DEV/skills/vertical-slice-tasking/SKILL.md"
+grep -q 'helm-development' "$DEV/commands/helm-implement.md"
+grep -Fq '../../helm-prototype/scripts/prototype-contract' "$DEV/scripts/development-contract.js"
+! grep -Fq 'plugins/helm-core/scripts/contracts' "$DEV/scripts/development-contract.js"
+! grep -Fq '../../helm-core/scripts/contracts' "$DEV/scripts/development-contract.js"
+
+grep -Fq 'node "$CLAUDE_PLUGIN_ROOT/../helm-core/scripts/plugin-suite.js" require' "$DEV/commands/helm-implement.md"
+grep -Fq -- '--marketplace-root "$CLAUDE_PLUGIN_ROOT/../.."' "$DEV/commands/helm-implement.md"
+grep -Fq -- '--plugin helm-core --plugin helm-requirements --plugin helm-prototype --plugin helm-development' "$DEV/commands/helm-implement.md"
+grep -Fq 'node "$CLAUDE_PLUGIN_ROOT/scripts/development-contract.js" --json' "$DEV/commands/helm-implement.md"
+grep -Fiq 'fallback' "$DEV/commands/helm-implement.md"
+
+for skill in before-dev scope-lock vertical-slice-tasking; do
+  grep -Fq 'node "$CLAUDE_PLUGIN_ROOT/scripts/development-contract.js" --json' "$DEV/skills/$skill/SKILL.md"
+  grep -Fiq 'fallback' "$DEV/skills/$skill/SKILL.md"
+done
+
+jq -e '.contracts.development == "scripts/development-contract.js"' "$DEV/helm-stage.json" >/dev/null
+jq -e 'has("planned_contracts") | not' "$DEV/helm-stage.json" >/dev/null
+
+run_json "$PROJECT" "$TMP_DIR/simple-project.json" 2
+jq -e '.ok == false' "$TMP_DIR/simple-project.json" >/dev/null
+assert_blocker "$TMP_DIR/simple-project.json" 'prototype-blocked'
+
+HAPPY_PROJECT="$TMP_DIR/happy-project"
+write_requirements_project "$HAPPY_PROJECT"
+write_ui_prototype "$HAPPY_PROJECT"
+write_development_artifacts "$HAPPY_PROJECT"
+run_json "$HAPPY_PROJECT" "$TMP_DIR/happy-development.json" 0
+jq -e '.ok == true' "$TMP_DIR/happy-development.json" >/dev/null
+jq -e '.active_change == "add-dashboard"' "$TMP_DIR/happy-development.json" >/dev/null
+jq -e '.prototype.ok == true' "$TMP_DIR/happy-development.json" >/dev/null
+jq -e '.tasks[] | select(.task_id == "001-dashboard-summary" and .ok == true)' "$TMP_DIR/happy-development.json" >/dev/null
+
+PROTOTYPE_BLOCKED_PROJECT="$TMP_DIR/prototype-blocked-project"
+cp -R "$HAPPY_PROJECT" "$PROTOTYPE_BLOCKED_PROJECT"
+jq 'del(.approved_variant)' \
+  "$PROTOTYPE_BLOCKED_PROJECT/openspec/changes/add-dashboard/prototype/decision.json" \
+  >"$TMP_DIR/prototype-blocked-decision.json"
+mv "$TMP_DIR/prototype-blocked-decision.json" "$PROTOTYPE_BLOCKED_PROJECT/openspec/changes/add-dashboard/prototype/decision.json"
+run_json "$PROTOTYPE_BLOCKED_PROJECT" "$TMP_DIR/prototype-blocked.json" 2
+assert_blocker "$TMP_DIR/prototype-blocked.json" 'prototype-blocked'
+assert_blocker "$TMP_DIR/prototype-blocked.json" 'prototype:invalid-prototype-decision:approved_variant'
+
+SCOPE_PATH_PROJECT="$TMP_DIR/scope-path-project"
+cp -R "$HAPPY_PROJECT" "$SCOPE_PATH_PROJECT"
+jq '.allowed_roots = ["/tmp/escape"]' \
+  "$SCOPE_PATH_PROJECT/openspec/changes/add-dashboard/scope.json" \
+  >"$TMP_DIR/scope-path.json.tmp"
+mv "$TMP_DIR/scope-path.json.tmp" "$SCOPE_PATH_PROJECT/openspec/changes/add-dashboard/scope.json"
+run_json "$SCOPE_PATH_PROJECT" "$TMP_DIR/scope-path.json" 2
+assert_blocker "$TMP_DIR/scope-path.json" 'invalid-scope-path:allowed_roots'
+
+SCOPE_CHANGE_PROJECT="$TMP_DIR/scope-change-project"
+cp -R "$HAPPY_PROJECT" "$SCOPE_CHANGE_PROJECT"
+jq '.change_id = "other-change"' \
+  "$SCOPE_CHANGE_PROJECT/openspec/changes/add-dashboard/scope.json" \
+  >"$TMP_DIR/scope-change.json.tmp"
+mv "$TMP_DIR/scope-change.json.tmp" "$SCOPE_CHANGE_PROJECT/openspec/changes/add-dashboard/scope.json"
+run_json "$SCOPE_CHANGE_PROJECT" "$TMP_DIR/scope-change.json" 2
+assert_blocker "$TMP_DIR/scope-change.json" 'invalid-scope-contract:change_id'
+
+LAYER_TASK_PROJECT="$TMP_DIR/layer-task-project"
+cp -R "$HAPPY_PROJECT" "$LAYER_TASK_PROJECT"
+cat >"$LAYER_TASK_PROJECT/openspec/changes/add-dashboard/tasks.md" <<'MD'
+# Development Tasks
+
+- build api
+MD
+run_json "$LAYER_TASK_PROJECT" "$TMP_DIR/layer-task.json" 2
+assert_blocker "$TMP_DIR/layer-task.json" 'tasks-md:layer-only:build api'
+assert_blocker "$TMP_DIR/layer-task.json" 'tasks-md:no-vertical-slice'
+
+MISSING_PROMOTION_PROJECT="$TMP_DIR/missing-promotion-project"
+cp -R "$HAPPY_PROJECT" "$MISSING_PROMOTION_PROJECT"
+rm "$MISSING_PROMOTION_PROJECT/openspec/changes/add-dashboard/development/prototype-promotion-map.json"
+run_json "$MISSING_PROMOTION_PROJECT" "$TMP_DIR/missing-promotion.json" 2
+assert_blocker "$TMP_DIR/missing-promotion.json" 'missing-development-artifact:prototype-promotion-map.json'
+
+INVALID_PROMOTION_PROJECT="$TMP_DIR/invalid-promotion-project"
+cp -R "$HAPPY_PROJECT" "$INVALID_PROMOTION_PROJECT"
+jq '.allowed_to_copy = [" padded"]' \
+  "$INVALID_PROMOTION_PROJECT/openspec/changes/add-dashboard/development/prototype-promotion-map.json" \
+  >"$TMP_DIR/invalid-promotion.json.tmp"
+mv "$TMP_DIR/invalid-promotion.json.tmp" "$INVALID_PROMOTION_PROJECT/openspec/changes/add-dashboard/development/prototype-promotion-map.json"
+run_json "$INVALID_PROMOTION_PROJECT" "$TMP_DIR/invalid-promotion.json" 2
+assert_blocker "$TMP_DIR/invalid-promotion.json" 'invalid-promotion-map:allowed_to_copy'
+
+BAD_BRIEF_PROJECT="$TMP_DIR/bad-brief-project"
+cp -R "$HAPPY_PROJECT" "$BAD_BRIEF_PROJECT"
+cat >"$BAD_BRIEF_PROJECT/openspec/changes/add-dashboard/development/tasks/001-dashboard-summary/brief.md" <<'MD'
+# Task 001: Dashboard Summary Slice
+
+## Goal
+
+Implement the dashboard summary slice.
+MD
+run_json "$BAD_BRIEF_PROJECT" "$TMP_DIR/bad-brief.json" 2
+assert_blocker "$TMP_DIR/bad-brief.json" 'invalid-task-brief:missing-heading:TDD Requirement'
+
+SPEC_REVIEW_PROJECT="$TMP_DIR/spec-review-project"
+cp -R "$HAPPY_PROJECT" "$SPEC_REVIEW_PROJECT"
+cat >"$SPEC_REVIEW_PROJECT/openspec/changes/add-dashboard/development/tasks/001-dashboard-summary/spec-review.md" <<'MD'
+# Spec Review
+
+## Verdict
+
+needs-fix
+MD
+run_json "$SPEC_REVIEW_PROJECT" "$TMP_DIR/spec-review.json" 2
+assert_blocker "$TMP_DIR/spec-review.json" 'invalid-spec-review:verdict'
+
+QUALITY_REVIEW_PROJECT="$TMP_DIR/quality-review-project"
+cp -R "$HAPPY_PROJECT" "$QUALITY_REVIEW_PROJECT"
+cat >"$QUALITY_REVIEW_PROJECT/openspec/changes/add-dashboard/development/tasks/001-dashboard-summary/quality-review.md" <<'MD'
+# Quality Review
+
+## Verdict
+
+blocked
+MD
+run_json "$QUALITY_REVIEW_PROJECT" "$TMP_DIR/quality-review.json" 2
+assert_blocker "$TMP_DIR/quality-review.json" 'invalid-quality-review:verdict'
+
+DRIFT_PROJECT="$TMP_DIR/drift-project"
+cp -R "$HAPPY_PROJECT" "$DRIFT_PROJECT"
+cat >"$DRIFT_PROJECT/openspec/changes/add-dashboard/development/drift-check.jsonl" <<'JSONL'
+{"task":"001-dashboard-summary","blocking":true,"drift":"scope changed without approval"}
+JSONL
+run_json "$DRIFT_PROJECT" "$TMP_DIR/drift.json" 2
+assert_blocker "$TMP_DIR/drift.json" 'blocking-drift:001-dashboard-summary'
+
+INVALID_JSONL_PROJECT="$TMP_DIR/invalid-jsonl-project"
+cp -R "$HAPPY_PROJECT" "$INVALID_JSONL_PROJECT"
+cat >"$INVALID_JSONL_PROJECT/openspec/changes/add-dashboard/development/task-ledger.jsonl" <<'JSONL'
+{"task":"001-dashboard-summary","status":"started"
+JSONL
+run_json "$INVALID_JSONL_PROJECT" "$TMP_DIR/invalid-jsonl.json" 2
+assert_blocker "$TMP_DIR/invalid-jsonl.json" 'invalid-jsonl:task-ledger.jsonl:1'
+
+VALIDATION_FAIL_PROJECT="$TMP_DIR/validation-fail-project"
+cp -R "$HAPPY_PROJECT" "$VALIDATION_FAIL_PROJECT"
+cat >"$VALIDATION_FAIL_PROJECT/openspec/changes/add-dashboard/development/validation-log.jsonl" <<'JSONL'
+{"task":"001-dashboard-summary","command":"npm test dashboard-summary.test.tsx","status":"fail","ok":false}
+JSONL
+run_json "$VALIDATION_FAIL_PROJECT" "$TMP_DIR/validation-fail.json" 2
+assert_blocker "$TMP_DIR/validation-fail.json" 'validation-log:no-pass'
+
+echo "helm development plugin fixtures ok"
