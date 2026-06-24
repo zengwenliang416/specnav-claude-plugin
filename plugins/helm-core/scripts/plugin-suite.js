@@ -3,8 +3,17 @@
 
 const fs = require('fs');
 const path = require('path');
+const childProcess = require('child_process');
 
 const COMMANDS = new Set(['list', 'resolve', 'require']);
+const REQUIRED_HELM_PLUGINS = [
+  'helm-core',
+  'helm-requirements',
+  'helm-prototype',
+  'helm-development',
+  'helm-verification',
+  'helm-operations'
+];
 
 function readJson(file) {
   try {
@@ -53,6 +62,12 @@ function marketplaceBlocker(status) {
   return 'missing-marketplace-json';
 }
 
+function pluginListBlocker(status) {
+  if (status === 'malformed') return 'malformed-claude-plugin-list';
+  if (status === 'unreadable') return 'unreadable-claude-plugin-list';
+  return 'missing-claude-plugin-list';
+}
+
 function isValidPluginMetadata(value) {
   return isObject(value)
     && isNonEmpty(value.name)
@@ -99,6 +114,21 @@ function sourceOutsideMarketplace(marketplaceRoot, pluginRoot) {
   const marketplaceReal = realpathOrNull(resolvedMarketplaceRoot) || resolvedMarketplaceRoot;
   const pluginReal = realpathOrNull(resolvedPluginRoot);
   return !!pluginReal && !isPathInside(marketplaceReal, pluginReal);
+}
+
+function isClaudeCacheMarketplaceRoot(root) {
+  const parts = path.resolve(root).split(path.sep).filter(Boolean);
+  for (let index = 0; index < parts.length - 2; index += 1) {
+    if (parts[index] === '.claude' && parts[index + 1] === 'plugins' && parts[index + 2] === 'cache') return true;
+  }
+  return false;
+}
+
+function installedDiscoveryAllowed(marketplaceRoot, options = {}) {
+  return options.installedDiscovery === true
+    || process.env.HELM_ALLOW_INSTALLED_PLUGIN_DISCOVERY === '1'
+    || isNonEmpty(process.env.HELM_PLUGIN_LIST_JSON)
+    || isClaudeCacheMarketplaceRoot(marketplaceRoot);
 }
 
 function argValues(args, name) {
@@ -204,6 +234,51 @@ function loadMarketplace(root) {
   return { ok: true, marketplaceRoot, marketplace: marketplace.value };
 }
 
+function readClaudePluginList(marketplaceRoot) {
+  if (isNonEmpty(process.env.HELM_PLUGIN_LIST_JSON)) {
+    try {
+      const value = JSON.parse(process.env.HELM_PLUGIN_LIST_JSON);
+      if (!Array.isArray(value)) {
+        return { ok: false, status: 'malformed', plugins: [], error: 'HELM_PLUGIN_LIST_JSON must be an array' };
+      }
+      return { ok: true, status: 'ok', plugins: value, source: 'HELM_PLUGIN_LIST_JSON' };
+    } catch (_error) {
+      return { ok: false, status: 'malformed', plugins: [], error: 'HELM_PLUGIN_LIST_JSON is invalid JSON' };
+    }
+  }
+
+  const result = childProcess.spawnSync('claude', ['plugin', 'list', '--json'], {
+    cwd: marketplaceRoot,
+    encoding: 'utf8',
+    timeout: 30000
+  });
+  if (result.error) {
+    return {
+      ok: false,
+      status: result.error.code === 'ENOENT' ? 'missing' : 'unreadable',
+      plugins: [],
+      error: result.error.message
+    };
+  }
+  if (result.status !== 0) {
+    return {
+      ok: false,
+      status: 'unreadable',
+      plugins: [],
+      error: result.stderr || result.stdout || `claude plugin list exited ${result.status}`
+    };
+  }
+  try {
+    const value = JSON.parse(result.stdout);
+    if (!Array.isArray(value)) {
+      return { ok: false, status: 'malformed', plugins: [], error: 'claude plugin list returned non-array JSON' };
+    }
+    return { ok: true, status: 'ok', plugins: value, source: 'claude plugin list --json' };
+  } catch (_error) {
+    return { ok: false, status: 'malformed', plugins: [], error: 'claude plugin list returned invalid JSON' };
+  }
+}
+
 function pluginRecord(marketplaceRoot, entry, index) {
   if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
     return {
@@ -304,11 +379,120 @@ function pluginRecord(marketplaceRoot, entry, index) {
   };
 }
 
+function installedPluginRecord(marketplaceRoot, marketplaceName, pluginName, inventoryPlugin) {
+  if (!inventoryPlugin) {
+    return {
+      name: pluginName,
+      source: null,
+      root: null,
+      version: null,
+      stage: null,
+      required: false,
+      commands: [],
+      skills: [],
+      contracts: {},
+      installed: false,
+      enabled: false,
+      ok: false,
+      blockers: [`missing-installed-plugin:${pluginName}`]
+    };
+  }
+
+  const root = isNonEmpty(inventoryPlugin.installPath) ? path.resolve(inventoryPlugin.installPath) : null;
+  const expectedId = `${pluginName}@${marketplaceName}`;
+  const pluginJson = root ? readJson(path.join(root, '.claude-plugin', 'plugin.json')) : { ok: false, status: 'missing' };
+  const stage = root ? readJson(path.join(root, 'helm-stage.json')) : { ok: false, status: 'missing' };
+  const pluginMetadataValid = pluginJson.ok && isValidPluginMetadata(pluginJson.value);
+  const stageManifestValid = stage.ok && isValidStageManifest(stage.value);
+  const pluginNameMatches = pluginJson.ok
+    && isObject(pluginJson.value)
+    && isNonEmpty(pluginJson.value.name)
+    && pluginJson.value.name === pluginName;
+  const stagePluginMatches = stage.ok
+    && isObject(stage.value)
+    && isNonEmpty(stage.value.plugin)
+    && stage.value.plugin === pluginName;
+  const pluginMetadata = pluginMetadataValid ? pluginJson.value : null;
+  const stageManifest = stageManifestValid ? stage.value : null;
+  const blockers = [
+    inventoryPlugin.id !== expectedId ? `plugin-id-mismatch:${pluginName}` : null,
+    inventoryPlugin.enabled === true ? null : `disabled-plugin:${pluginName}`,
+    root ? null : `missing-install-path:${pluginName}`,
+    root && !fs.existsSync(root) ? `missing-install-path:${pluginName}` : null,
+    root && !isPathInside(path.resolve(marketplaceRoot), root) ? `installed-plugin-outside-marketplace:${pluginName}` : null,
+    pluginJson.ok
+      ? (pluginMetadataValid ? null : `invalid-plugin-json:${pluginName}`)
+      : valueBlocker(pluginJson.status, 'plugin-json', pluginName),
+    pluginJson.ok && isObject(pluginJson.value) && isNonEmpty(pluginJson.value.name) && !pluginNameMatches
+      ? `plugin-name-mismatch:${pluginName}`
+      : null,
+    stage.ok
+      ? (stageManifestValid ? null : `invalid-stage-manifest:${pluginName}`)
+      : valueBlocker(stage.status, 'stage-manifest', pluginName),
+    stage.ok && isObject(stage.value) && isNonEmpty(stage.value.plugin) && !stagePluginMatches
+      ? `stage-plugin-mismatch:${pluginName}`
+      : null
+  ];
+
+  return {
+    name: pluginName,
+    source: inventoryPlugin.installPath || null,
+    root,
+    version: inventoryPlugin.version || (pluginMetadata && pluginMetadata.version) || null,
+    stage: stageManifest && stageManifest.stage,
+    required: !!(stageManifest && stageManifest.required),
+    commands: stageManifest ? (stageManifest.commands || []) : null,
+    skills: stageManifest ? (stageManifest.skills || []) : null,
+    contracts: stageManifest ? (stageManifest.contracts || {}) : null,
+    installed: true,
+    enabled: inventoryPlugin.enabled === true,
+    ok: unique(blockers).length === 0,
+    blockers: unique(blockers)
+  };
+}
+
+function installedMarketplaceSuite(marketplaceRoot, options = {}) {
+  const marketplaceName = options.marketplaceName || path.basename(path.resolve(marketplaceRoot)) || 'helm-marketplace';
+  const inventory = readClaudePluginList(marketplaceRoot);
+  if (!inventory.ok) {
+    return {
+      ok: false,
+      discovery: 'claude-plugin-list',
+      marketplace_root: marketplaceRoot,
+      marketplace_name: marketplaceName,
+      blockers: [pluginListBlocker(inventory.status)],
+      plugins: []
+    };
+  }
+  const plugins = REQUIRED_HELM_PLUGINS.map((pluginName) => {
+    const pluginId = `${pluginName}@${marketplaceName}`;
+    const inventoryPlugin = inventory.plugins.find((item) => item && item.id === pluginId);
+    return installedPluginRecord(marketplaceRoot, marketplaceName, pluginName, inventoryPlugin);
+  });
+  const blockers = plugins.flatMap((plugin) => plugin.blockers);
+  return {
+    ok: blockers.length === 0,
+    discovery: 'claude-plugin-list',
+    marketplace_root: marketplaceRoot,
+    marketplace_name: marketplaceName,
+    blockers: unique(blockers),
+    plugins
+  };
+}
+
 function listPlugins(options = {}) {
   const loaded = loadMarketplace(options.marketplaceRoot);
   if (!loaded.ok) {
+    if (
+      loaded.blockers.length === 1
+      && loaded.blockers[0] === 'missing-marketplace-json'
+      && installedDiscoveryAllowed(loaded.marketplaceRoot, options)
+    ) {
+      return installedMarketplaceSuite(loaded.marketplaceRoot, options);
+    }
     return {
       ok: false,
+      discovery: 'marketplace-json',
       blockers: unique(loaded.blockers),
       marketplace_root: loaded.marketplaceRoot,
       plugins: []
@@ -318,6 +502,7 @@ function listPlugins(options = {}) {
   const blockers = plugins.flatMap((plugin) => plugin.blockers);
   return {
     ok: blockers.length === 0,
+    discovery: 'marketplace-json',
     marketplace_root: loaded.marketplaceRoot,
     marketplace_name: loaded.marketplace.name || null,
     blockers: unique(blockers),
@@ -364,12 +549,14 @@ function requirePlugins(options = {}) {
       plugins: []
     };
   }
-  const loaded = loadMarketplace(options.marketplaceRoot);
-  if (!loaded.ok) {
+  const suiteStatus = listPlugins(options);
+  if (!suiteStatus.ok && !suiteStatus.plugins.length) {
     return {
       ok: false,
-      marketplace_root: loaded.marketplaceRoot,
-      blockers: unique(loaded.blockers),
+      discovery: suiteStatus.discovery,
+      marketplace_root: suiteStatus.marketplace_root,
+      marketplace_name: suiteStatus.marketplace_name || null,
+      blockers: unique(suiteStatus.blockers),
       required,
       plugins: []
     };
@@ -378,14 +565,7 @@ function requirePlugins(options = {}) {
   const plugins = [];
   const blockers = [];
   for (const name of required) {
-    const index = loaded.marketplace.plugins.findIndex((entry) => (
-      isObject(entry)
-      && isNonEmpty(entry.name)
-      && entry.name.trim() === name
-    ));
-    const plugin = index >= 0
-      ? pluginRecord(loaded.marketplaceRoot, loaded.marketplace.plugins[index], index)
-      : null;
+    const plugin = suiteStatus.plugins.find((item) => item.name === name) || null;
     if (!plugin) blockers.push(`missing-plugin:${name}`);
     else {
       plugins.push(plugin);
@@ -394,7 +574,9 @@ function requirePlugins(options = {}) {
   }
   return {
     ok: blockers.length === 0,
-    marketplace_root: loaded.marketplaceRoot,
+    discovery: suiteStatus.discovery,
+    marketplace_root: suiteStatus.marketplace_root,
+    marketplace_name: suiteStatus.marketplace_name || null,
     blockers: unique(blockers),
     required,
     plugins
@@ -432,6 +614,7 @@ function main() {
 if (require.main === module) main();
 
 module.exports = {
+  REQUIRED_HELM_PLUGINS,
   findMarketplaceRoot,
   listPlugins,
   resolvePlugin,

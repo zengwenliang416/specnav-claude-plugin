@@ -7,14 +7,7 @@ const lib = require('./helm-lib');
 const suite = require('./plugin-suite');
 const workflow = require('./workflow-state');
 
-const REQUIRED_PLUGINS = [
-  'helm-core',
-  'helm-requirements',
-  'helm-prototype',
-  'helm-development',
-  'helm-verification',
-  'helm-operations'
-];
+const REQUIRED_PLUGINS = suite.REQUIRED_HELM_PLUGINS;
 
 function argValue(args, name, fallback = null) {
   const index = args.indexOf(name);
@@ -43,6 +36,17 @@ function readJsonFile(file, fallback = null) {
 }
 
 function claudePluginInventory(marketplaceRoot) {
+  if (process.env.HELM_PLUGIN_LIST_JSON && process.env.HELM_PLUGIN_LIST_JSON.trim()) {
+    try {
+      const plugins = JSON.parse(process.env.HELM_PLUGIN_LIST_JSON);
+      if (!Array.isArray(plugins)) {
+        return { ok: false, plugins: [], error: 'HELM_PLUGIN_LIST_JSON must be an array' };
+      }
+      return { ok: true, plugins, error: null };
+    } catch (_error) {
+      return { ok: false, plugins: [], error: 'HELM_PLUGIN_LIST_JSON is invalid JSON' };
+    }
+  }
   const result = lib.runCommand('claude plugin list --json', {
     cwd: marketplaceRoot,
     timeoutMs: 30000
@@ -71,12 +75,17 @@ function doctor(options = {}) {
   const targetRoot = process.env.PROJECT_DIR ? path.resolve(process.env.PROJECT_DIR) : null;
   const suiteStatus = suite.listPlugins({ marketplaceRoot });
   const marketplace = readJsonFile(path.join(marketplaceRoot, '.claude-plugin', 'marketplace.json'), {});
-  const marketplaceName = marketplace && marketplace.name ? marketplace.name : 'helm-marketplace';
+  const marketplaceName = suiteStatus.marketplace_name || (marketplace && marketplace.name) || 'helm-marketplace';
   const claudeInventory = claudePluginInventory(marketplaceRoot);
+  const hasMarketplaceManifest = fs.existsSync(path.join(marketplaceRoot, '.claude-plugin', 'marketplace.json'));
   const checks = [];
 
   checks.push(check('plugin-root', fs.existsSync(path.join(pluginRoot, '.claude-plugin', 'plugin.json')), pluginRoot));
-  checks.push(check('marketplace-root', fs.existsSync(path.join(marketplaceRoot, '.claude-plugin', 'marketplace.json')), marketplaceRoot));
+  checks.push(check(
+    'marketplace-root',
+    hasMarketplaceManifest || suiteStatus.discovery === 'claude-plugin-list',
+    hasMarketplaceManifest ? marketplaceRoot : `${marketplaceRoot} (${suiteStatus.discovery || 'unknown'})`
+  ));
   checks.push(check('plugin-suite', suiteStatus.ok, suiteStatus.blockers.join(', ') || 'ok'));
   checks.push(check('hooks', fs.existsSync(path.join(pluginRoot, 'hooks', 'hooks.json')), 'plugins/helm-core/hooks/hooks.json'));
   checks.push(check('core-runtime', fs.existsSync(path.join(pluginRoot, 'scripts', 'plugin-suite.js')) && fs.existsSync(path.join(pluginRoot, 'scripts', 'workflow-state.js')), 'core scripts'));

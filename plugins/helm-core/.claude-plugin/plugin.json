@@ -1,6 +1,6 @@
 {
   "name": "helm-core",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Core runtime for the Helm OpenSpec lifecycle plugin suite.",
   "author": {
     "name": "Wenliang Zeng"

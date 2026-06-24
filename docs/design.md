@@ -4,7 +4,7 @@ This document describes the current Claude Code implementation of Helm. The long
 
 ## 1. Current Shape
 
-Helm is currently a Claude Code marketplace repository containing six installable plugins. Current implementation version: `0.3.1`.
+Helm is currently a Claude Code marketplace repository containing six installable plugins. Current implementation version: `0.3.2`.
 
 The accepted target is now the current implementation shape: one marketplace root, one core runtime plugin, and one plugin for each major lifecycle stage.
 
@@ -2110,6 +2110,12 @@ Completed in `0.3.1`:
 2. Enforce `scope.json` `allowed_roots` / `denied_roots` in `PreToolUse` and block production writes when `scope.json` is missing or invalid.
 3. Remove the old `design.md` file-scope fallback from guard enforcement.
 4. Refresh install/update docs for the six-plugin marketplace.
+
+Completed in `0.3.2`:
+
+1. Add installed-cache suite discovery through `claude plugin list --json` for real Claude installations where the marketplace root manifest is not copied into the plugin cache.
+2. Update `/helm-doctor` so installed-cache mode validates all six required plugins by installed/enabled state.
+3. Add fixture coverage for installed-cache discovery and disabled-plugin blocking.
 
 Next:
 

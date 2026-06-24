@@ -86,6 +86,59 @@ if [ "$suite_missing_root_status" -ne 2 ]; then
 fi
 assert_jq '.blockers | index("missing-marketplace-json")' "$suite_missing_root_json" "plugin-suite require without marketplace root did not report missing marketplace"
 
+INSTALLED_CACHE="$TMP_DIR/installed-cache/helm-marketplace"
+mkdir -p "$INSTALLED_CACHE"
+HELM_PLUGINS=(helm-core helm-requirements helm-prototype helm-development helm-verification helm-operations)
+for plugin in "${HELM_PLUGINS[@]}"; do
+  installed_plugin="$INSTALLED_CACHE/$plugin/9.9.9"
+  mkdir -p "$installed_plugin"
+  cp -R "$ROOT/plugins/$plugin/.claude-plugin" "$installed_plugin/.claude-plugin"
+  cp "$ROOT/plugins/$plugin/helm-stage.json" "$installed_plugin/helm-stage.json"
+done
+installed_inventory="$TMP_DIR/installed-inventory.json"
+for plugin in "${HELM_PLUGINS[@]}"; do
+  jq -n \
+    --arg id "$plugin@helm-marketplace" \
+    --arg installPath "$INSTALLED_CACHE/$plugin/9.9.9" \
+    '{id: $id, version: "9.9.9", scope: "user", enabled: true, installPath: $installPath}'
+done | jq -s '.' >"$installed_inventory"
+
+installed_suite_json="$TMP_DIR/plugin-suite-installed-cache.json"
+installed_suite_status=0
+(
+  cd "$EXTERNAL_PROJECT"
+  export HELM_ALLOW_INSTALLED_PLUGIN_DISCOVERY=1
+  export HELM_PLUGIN_LIST_JSON
+  HELM_PLUGIN_LIST_JSON="$(cat "$installed_inventory")"
+  node "$CORE/scripts/plugin-suite.js" list --marketplace-root "$INSTALLED_CACHE" --json >"$installed_suite_json"
+) || installed_suite_status=$?
+if [ "$installed_suite_status" -ne 0 ]; then
+  echo "plugin-suite installed-cache list failed with exit $installed_suite_status" >&2
+  cat "$installed_suite_json" >&2
+  exit 1
+fi
+assert_jq '.ok == true' "$installed_suite_json" "plugin-suite installed-cache list did not return ok true"
+assert_jq '.discovery == "claude-plugin-list"' "$installed_suite_json" "plugin-suite installed-cache list did not use claude-plugin-list discovery"
+assert_jq '.plugins | length == 6' "$installed_suite_json" "plugin-suite installed-cache list did not include all six plugins"
+
+disabled_inventory="$TMP_DIR/installed-disabled-inventory.json"
+jq 'map(if .id == "helm-core@helm-marketplace" then .enabled = false else . end)' "$installed_inventory" >"$disabled_inventory"
+disabled_suite_json="$TMP_DIR/plugin-suite-installed-disabled.json"
+disabled_suite_status=0
+(
+  cd "$EXTERNAL_PROJECT"
+  export HELM_ALLOW_INSTALLED_PLUGIN_DISCOVERY=1
+  export HELM_PLUGIN_LIST_JSON
+  HELM_PLUGIN_LIST_JSON="$(cat "$disabled_inventory")"
+  node "$CORE/scripts/plugin-suite.js" list --marketplace-root "$INSTALLED_CACHE" --json >"$disabled_suite_json"
+) || disabled_suite_status=$?
+if [ "$disabled_suite_status" -ne 2 ]; then
+  echo "plugin-suite installed-cache disabled exited $disabled_suite_status, expected 2" >&2
+  cat "$disabled_suite_json" >&2
+  exit 1
+fi
+assert_jq '.blockers | index("disabled-plugin:helm-core")' "$disabled_suite_json" "plugin-suite installed-cache disabled did not report disabled plugin"
+
 workflow_state_json="$TMP_DIR/workflow-state.json"
 workflow_state_status=0
 PROJECT_DIR="$PROJECT" node "$CORE/scripts/workflow-state.js" --json >"$workflow_state_json" || workflow_state_status=$?

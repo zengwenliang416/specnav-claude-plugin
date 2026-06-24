@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.2
+
+- Support installed-cache suite discovery through `claude plugin list --json` when Claude has installed the six Helm plugins without a marketplace root manifest.
+- Update `/helm-doctor` so installed-cache mode validates the six required plugins by installed/enabled state instead of requiring `.claude-plugin/marketplace.json`.
+- Add core runtime fixtures for installed-cache discovery and disabled-plugin blocking.
+
 ## 0.3.1
 
 - Enable verification guidance for explicit Claude plugin enablement after install.
