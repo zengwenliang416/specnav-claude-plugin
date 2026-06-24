@@ -14,12 +14,13 @@ function main() {
       blockers: ['missing-openspec'],
       project_root: root,
       allowed_actions: [
-        'initialize OpenSpec',
+        '/helm-bootstrap',
         '/helm-status',
         '/helm-doctor'
-      ]
+      ],
+      recommended_command: '/helm-bootstrap'
     };
-    process.stderr.write(`[helm] missing-openspec: production work is blocked until OpenSpec is initialized for ${root}.\n`);
+    process.stderr.write(`[helm] missing-openspec: run /helm-bootstrap to initialize OpenSpec for ${root} before production work.\n`);
     process.stdout.write(`${JSON.stringify(result)}\n`);
     return;
   }

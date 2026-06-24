@@ -1,6 +1,6 @@
 {
   "name": "helm-requirements",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Requirements stage plugin for the Helm OpenSpec lifecycle suite.",
   "author": {
     "name": "Wenliang Zeng"

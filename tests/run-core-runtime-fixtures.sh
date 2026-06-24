@@ -49,8 +49,10 @@ assert_jq() {
 
 assert_grep 'helm-core/scripts/helm-session-start.js\|CLAUDE_PLUGIN_ROOT/scripts/helm-session-start.js' "$CORE/hooks/hooks.json" "session-start hook does not reference the helm core runtime"
 assert_grep 'plugin-suite.js' "$CORE/commands/helm.md" "helm command does not reference plugin-suite.js"
+assert_grep 'helm-bootstrap.js' "$CORE/commands/helm-bootstrap.md" "helm-bootstrap command does not reference helm-bootstrap.js"
 assert_grep 'workflow-state.js' "$CORE/commands/helm-status.md" "helm-status command does not reference workflow-state.js"
 assert_grep 'helm-doctor.js' "$CORE/commands/helm-doctor.md" "helm-doctor command does not reference helm-doctor.js"
+assert_grep 'helm-bootstrap' "$CORE/skills/helm-route/SKILL.md" "helm router does not mention helm-bootstrap"
 assert_grep 'helm-requirements' "$CORE/skills/helm-route/SKILL.md" "helm router does not mention helm-requirements"
 assert_grep 'helm-verification' "$CORE/skills/helm-route/SKILL.md" "helm router does not mention helm-verification"
 assert_grep 'helm-operations' "$CORE/skills/helm-route/SKILL.md" "helm router does not mention helm-operations"
@@ -163,6 +165,22 @@ assert_jq '.status == "blocked"' "$workflow_missing_json" "workflow-state did no
 assert_jq '.blockers | index("missing-openspec")' "$workflow_missing_json" "workflow-state did not report missing-openspec"
 assert_jq '.actions[] | select(.id == "bootstrap" and .state == "ready")' "$workflow_missing_json" "workflow-state did not expose bootstrap repair action"
 
+bootstrap_project="$TMP_DIR/bootstrap-project"
+cp -R "$NO_STATE_FIXTURE" "$bootstrap_project"
+bootstrap_json="$TMP_DIR/helm-bootstrap.json"
+bootstrap_status=0
+PROJECT_DIR="$bootstrap_project" node "$CORE/scripts/helm-bootstrap.js" --json >"$bootstrap_json" || bootstrap_status=$?
+if [ "$bootstrap_status" -ne 0 ]; then
+  echo "helm-bootstrap exited $bootstrap_status, expected 0" >&2
+  cat "$bootstrap_json" >&2
+  exit 1
+fi
+assert_jq '.ok == true' "$bootstrap_json" "helm-bootstrap did not report ok true"
+assert_jq '.status == "initialized"' "$bootstrap_json" "helm-bootstrap did not report initialized"
+assert_jq '.next_actions | index("/helm-requirements")' "$bootstrap_json" "helm-bootstrap did not report requirements next action"
+test -d "$bootstrap_project/openspec"
+test -f "$bootstrap_project/openspec/.helm/workflow-state.json"
+
 session_ready_json="$TMP_DIR/session-ready.json"
 PROJECT_DIR="$PROJECT" node "$CORE/scripts/helm-session-start.js" >"$session_ready_json"
 assert_jq '.status == "ready"' "$session_ready_json" "session start did not report ready for openspec project"
@@ -178,7 +196,10 @@ session_blocked_json="$TMP_DIR/session-blocked.json"
 PROJECT_DIR="$NO_STATE" node "$CORE/scripts/helm-session-start.js" >"$session_blocked_json" 2>"$TMP_DIR/session-blocked.err"
 assert_jq '.status == "blocked"' "$session_blocked_json" "session start did not report blocked without openspec"
 assert_jq '.blockers | index("missing-openspec")' "$session_blocked_json" "session start did not report missing-openspec"
+assert_jq '.recommended_command == "/helm-bootstrap"' "$session_blocked_json" "session start did not recommend helm-bootstrap"
+assert_jq '.allowed_actions | index("/helm-bootstrap")' "$session_blocked_json" "session start did not include helm-bootstrap allowed action"
 grep -Fq 'missing-openspec' "$TMP_DIR/session-blocked.err"
+grep -Fq '/helm-bootstrap' "$TMP_DIR/session-blocked.err"
 
 doctor_json="$TMP_DIR/helm-doctor.json"
 doctor_status=0

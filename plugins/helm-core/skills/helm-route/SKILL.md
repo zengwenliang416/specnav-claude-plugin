@@ -13,17 +13,19 @@ Route user intent to the right Helm plugin while preserving dependency checks.
 
 1. Run `node "$CLAUDE_PLUGIN_ROOT/scripts/plugin-suite.js" require --marketplace-root "$CLAUDE_PLUGIN_ROOT/../.." --plugin helm-core --json`.
 2. Run `node "$CLAUDE_PLUGIN_ROOT/scripts/affordances.js" --markdown`.
-3. Route DEFINE or REQUIREMENTS to `helm-requirements` and `/helm-requirements`.
-4. Route PROTOTYPE to `helm-prototype` and `/helm-prototype`.
-5. Route BUILD or FIX to `helm-development` and `/helm-implement`.
-6. Route CHECK or VERIFICATION to `helm-verification` and `/helm-verify`.
-7. Route RELEASE or ARCHIVE to `helm-operations` and `/helm-release` or `/helm-archive`.
-8. Run the suite check with `--marketplace-root "$CLAUDE_PLUGIN_ROOT/../.."` and `--plugin helm-core --plugin <target-plugin>` before handoff.
+3. If `bootstrap` is ready or the blockers include `missing-openspec`, route to `helm-core` and `/helm-bootstrap`.
+4. Route DEFINE or REQUIREMENTS to `helm-requirements` and `/helm-requirements`.
+5. Route PROTOTYPE to `helm-prototype` and `/helm-prototype`.
+6. Route BUILD or FIX to `helm-development` and `/helm-implement`.
+7. Route CHECK or VERIFICATION to `helm-verification` and `/helm-verify`.
+8. Route RELEASE or ARCHIVE to `helm-operations` and `/helm-release` or `/helm-archive`.
+9. Run the suite check with `--marketplace-root "$CLAUDE_PLUGIN_ROOT/../.."` and `--plugin helm-core --plugin <target-plugin>` before handoff.
 
 ## Required Outputs
 
 - No lifecycle artifacts are written.
 - Return the target plugin, command, blockers, and next legal action.
+- When OpenSpec is missing, the required output must name `/helm-bootstrap`.
 
 ## Stop Conditions
 

@@ -8,9 +8,10 @@ You are the Helm orchestrator.
 1. Run `node "$CLAUDE_PLUGIN_ROOT/scripts/plugin-suite.js" require --marketplace-root "$CLAUDE_PLUGIN_ROOT/../.." --plugin helm-core --json`.
 2. Run `node "$CLAUDE_PLUGIN_ROOT/scripts/affordances.js" --markdown`.
 3. Read the current affordance table and classify the user intent.
-4. Select only a ready legal action.
-5. If the requested action is blocked, explain the blocker and offer the next legal action.
-6. For irreversible actions such as creating a new change or archiving, ask for confirmation.
+4. If the affordance table shows `bootstrap` as ready or reports `missing-openspec`, route the user to `/helm-bootstrap` and do not hand off to requirements.
+5. Select only a ready legal action.
+6. If the requested action is blocked, explain the blocker and offer the next legal action.
+7. For irreversible actions such as creating a new change or archiving, ask for confirmation.
 
 If the suite check exits non-zero, report the returned blocker and stop. Do not fall back to a monolithic core workflow.
 

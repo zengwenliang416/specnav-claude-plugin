@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.3
+
+- Add `/helm-bootstrap` and `helm-bootstrap` as the explicit OpenSpec initialization entrypoint when Helm reports `missing-openspec`.
+- Update SessionStart, router, and workflow guidance to name `/helm-bootstrap` as the next legal action.
+- Allow bootstrap and read-only suite/status commands through the missing-OpenSpec guard while keeping production writes blocked.
+
 ## 0.3.2
 
 - Support installed-cache suite discovery through `claude plugin list --json` when Claude has installed the six Helm plugins without a marketplace root manifest.

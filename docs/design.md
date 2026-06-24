@@ -4,7 +4,7 @@ This document describes the current Claude Code implementation of Helm. The long
 
 ## 1. Current Shape
 
-Helm is currently a Claude Code marketplace repository containing six installable plugins. Current implementation version: `0.3.2`.
+Helm is currently a Claude Code marketplace repository containing six installable plugins. Current implementation version: `0.3.3`.
 
 The accepted target is now the current implementation shape: one marketplace root, one core runtime plugin, and one plugin for each major lifecycle stage.
 
@@ -834,6 +834,7 @@ Development can hand off to verification only when:
 ## 7. User Entry Points
 
 - `/helm` routes intent through the active affordance table.
+- `/helm-bootstrap` initializes OpenSpec when Helm reports `missing-openspec`.
 - `/helm-status` shows active change, risk tier, verify status, ready actions, and blockers.
 - `/helm-verify` runs deterministic verification and writes reports.
 - `/helm-archive` checks the archive gate.
@@ -841,6 +842,7 @@ Development can hand off to verification only when:
 Target entry points:
 
 - `/helm-requirements`: requirement discovery, PRD/spec framing, acceptance criteria.
+- `/helm-bootstrap`: non-interactive OpenSpec initialization and Helm runtime state bootstrap.
 - `/helm-prototype`: UI/API/interaction prototype work before production implementation.
 - `/helm-implement`: development execution after requirements, prototype decisions, design, and tasks are ready.
 - `/helm-verify`: orchestration for the six verification skills.
@@ -2116,6 +2118,12 @@ Completed in `0.3.2`:
 1. Add installed-cache suite discovery through `claude plugin list --json` for real Claude installations where the marketplace root manifest is not copied into the plugin cache.
 2. Update `/helm-doctor` so installed-cache mode validates all six required plugins by installed/enabled state.
 3. Add fixture coverage for installed-cache discovery and disabled-plugin blocking.
+
+Completed in `0.3.3`:
+
+1. Add `/helm-bootstrap` and `helm-bootstrap` as the explicit OpenSpec initialization entrypoint for `missing-openspec`.
+2. Update SessionStart, route, and workflow guidance to name `/helm-bootstrap` as the next legal action.
+3. Allow bootstrap and read-only suite/status commands through the missing-OpenSpec guard while keeping production writes blocked.
 
 Next:
 

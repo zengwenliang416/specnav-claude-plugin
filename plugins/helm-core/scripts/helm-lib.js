@@ -293,5 +293,6 @@ module.exports = {
   readJson,
   readText,
   runCommand,
+  shellQuote,
   writeJson
 };

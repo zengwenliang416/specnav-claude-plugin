@@ -44,6 +44,8 @@ run_case bash-safe "$PROJECT" 0
 run_case bash-danger "$PROJECT" 2
 run_case write-missing-path "$PROJECT" 1
 run_case write-allowed "$NO_STATE" 2
+run_case bash-bootstrap "$NO_STATE" 0
+run_case bash-plugin-suite "$NO_STATE" 0
 
 MISSING_SCOPE_PROJECT="$TMP_DIR/missing-scope-project"
 cp -R "$PROJECT" "$MISSING_SCOPE_PROJECT"

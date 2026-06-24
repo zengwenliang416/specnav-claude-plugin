@@ -53,7 +53,7 @@ claude plugin enable helm-operations@helm-marketplace
 
 主要 skills：
 
-- Core：`helm-workflow`、`helm-route`、`helm-status`、`helm-doctor`、`helm-debug`、`helm-recovery`
+- Core：`helm-workflow`、`helm-bootstrap`、`helm-route`、`helm-status`、`helm-doctor`、`helm-debug`、`helm-recovery`
 - Requirements：`helm-foundation-specs`、`helm-requirements`
 - Prototype：`helm-prototype`、`helm-prototype-verify`、`helm-prototype-handoff`
 - Development：`helm-development-entry`、`helm-scope-lock`、`helm-vertical-slices`

@@ -56,8 +56,8 @@ docs/                                 Engineering design notes
 All public skills use Agent Skills frontmatter with only `name` and
 `description`, and all names are `helm-*` scoped.
 
-- Core: `helm-workflow`, `helm-route`, `helm-status`, `helm-doctor`,
-  `helm-debug`, `helm-recovery`
+- Core: `helm-workflow`, `helm-bootstrap`, `helm-route`, `helm-status`,
+  `helm-doctor`, `helm-debug`, `helm-recovery`
 - Requirements: `helm-foundation-specs`, `helm-requirements`
 - Prototype: `helm-prototype`, `helm-prototype-verify`,
   `helm-prototype-handoff`

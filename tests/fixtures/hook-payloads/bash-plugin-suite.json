@@ -1,0 +1,6 @@
+{
+  "tool_name": "Bash",
+  "tool_input": {
+    "command": "node \"$CLAUDE_PLUGIN_ROOT/scripts/plugin-suite.js\" require --marketplace-root \"$CLAUDE_PLUGIN_ROOT/../..\" --plugin helm-core --json"
+  }
+}

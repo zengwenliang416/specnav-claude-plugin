@@ -112,8 +112,8 @@ function pathAllowedByScope(scope, rel) {
 function isOpenSpecRepairCommand(command) {
   if (!command) return false;
   return /\bopenspec\b.*\b(init|validate|status)\b/.test(command)
-    || /\bhelm-(status|doctor)\b/.test(command)
-    || /\bnode\b.*\b(helm-doctor|workflow-state|affordances)\.js\b/.test(command);
+    || /\bhelm-(bootstrap|status|doctor)\b/.test(command)
+    || /\bnode\b.*\b(helm-bootstrap|helm-doctor|workflow-state|affordances|plugin-suite)\.js\b/.test(command);
 }
 
 function main() {
