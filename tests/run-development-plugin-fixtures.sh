@@ -698,6 +698,91 @@ jq -e '.active_change == "add-dashboard"' "$TMP_DIR/happy-development.json" >/de
 jq -e '.prototype.ok == true' "$TMP_DIR/happy-development.json" >/dev/null
 jq -e '.tasks[] | select(.task_id == "001-dashboard-summary" and .ok == true)' "$TMP_DIR/happy-development.json" >/dev/null
 
+SPEC_REVIEW_MINIMAL_PROJECT="$TMP_DIR/spec-review-minimal-project"
+cp -R "$HAPPY_PROJECT" "$SPEC_REVIEW_MINIMAL_PROJECT"
+cat >"$SPEC_REVIEW_MINIMAL_PROJECT/openspec/changes/add-dashboard/development/tasks/001-dashboard-summary/spec-review.md" <<'MD'
+# Spec Review
+
+## Verdict
+
+approved
+MD
+run_json "$SPEC_REVIEW_MINIMAL_PROJECT" "$TMP_DIR/spec-review-minimal.json" 2
+assert_blocker "$TMP_DIR/spec-review-minimal.json" 'invalid-spec-review:missing-heading:Missing Requirements'
+
+QUALITY_REVIEW_MINIMAL_PROJECT="$TMP_DIR/quality-review-minimal-project"
+cp -R "$HAPPY_PROJECT" "$QUALITY_REVIEW_MINIMAL_PROJECT"
+cat >"$QUALITY_REVIEW_MINIMAL_PROJECT/openspec/changes/add-dashboard/development/tasks/001-dashboard-summary/quality-review.md" <<'MD'
+# Quality Review
+
+## Verdict
+
+approved
+MD
+run_json "$QUALITY_REVIEW_MINIMAL_PROJECT" "$TMP_DIR/quality-review-minimal.json" 2
+assert_blocker "$TMP_DIR/quality-review-minimal.json" 'invalid-quality-review:missing-heading:Separation Of Concerns'
+
+REPORT_MINIMAL_PROJECT="$TMP_DIR/report-minimal-project"
+cp -R "$HAPPY_PROJECT" "$REPORT_MINIMAL_PROJECT"
+cat >"$REPORT_MINIMAL_PROJECT/openspec/changes/add-dashboard/development/tasks/001-dashboard-summary/report.md" <<'MD'
+# Implementation Report
+
+## Status
+
+DONE
+
+## TDD Evidence
+
+- RED and GREEN evidence recorded.
+
+## Verification Commands
+
+- npm test dashboard-summary.test.tsx
+MD
+run_json "$REPORT_MINIMAL_PROJECT" "$TMP_DIR/report-minimal.json" 2
+assert_blocker "$TMP_DIR/report-minimal.json" 'invalid-task-report:missing-heading:Files Changed'
+
+REPORT_CONCERNS_PROJECT="$TMP_DIR/report-concerns-project"
+cp -R "$HAPPY_PROJECT" "$REPORT_CONCERNS_PROJECT"
+cat >"$REPORT_CONCERNS_PROJECT/openspec/changes/add-dashboard/development/tasks/001-dashboard-summary/report.md" <<'MD'
+# Implementation Report
+
+## Status
+
+DONE_WITH_CONCERNS
+
+## Files Changed
+
+- src/dashboard/DashboardView.tsx
+- tests/dashboard/dashboard-summary.test.tsx
+
+## What Changed
+
+Implemented the summary view and connected the state hook to the service seam.
+
+## TDD Evidence
+
+- RED and GREEN evidence recorded.
+
+## Verification Commands
+
+- npm test dashboard-summary.test.tsx
+
+## Concerns
+
+Backend naming still needs controller review.
+
+## Scope Deviations
+
+No scope deviations were made.
+
+## Follow-up Needed
+
+Verification should exercise the states in the browser.
+MD
+run_json "$REPORT_CONCERNS_PROJECT" "$TMP_DIR/report-concerns.json" 2
+assert_blocker "$TMP_DIR/report-concerns.json" 'invalid-task-report:concerns-adjudication'
+
 PROTOTYPE_BLOCKED_PROJECT="$TMP_DIR/prototype-blocked-project"
 cp -R "$HAPPY_PROJECT" "$PROTOTYPE_BLOCKED_PROJECT"
 jq 'del(.approved_variant)' \

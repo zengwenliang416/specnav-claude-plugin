@@ -57,6 +57,37 @@ const HANDOFF_HEADINGS = [
   'Items Requiring Six-Domain Verification'
 ];
 
+const REPORT_REQUIRED_HEADINGS = [
+  'Status',
+  'Files Changed',
+  'What Changed',
+  'TDD Evidence',
+  'Verification Commands',
+  'Concerns',
+  'Scope Deviations',
+  'Follow-up Needed'
+];
+
+const SPEC_REVIEW_REQUIRED_HEADINGS = [
+  'Verdict',
+  'Missing Requirements',
+  'Extra Behavior',
+  'Misunderstood Requirements',
+  'Cannot Verify From Diff',
+  'Required Fixes'
+];
+
+const QUALITY_REVIEW_REQUIRED_HEADINGS = [
+  'Verdict',
+  'Separation Of Concerns',
+  'Component Cohesion / Coupling',
+  'Test Quality',
+  'Error Handling',
+  'Reuse / Duplication',
+  'Complexity Delta',
+  'Required Fixes'
+];
+
 const TASK_FILES = ['brief.md', 'context.json', 'report.md', 'spec-review.md', 'quality-review.md'];
 const TASK_CONTEXT_ARRAYS = ['must_read', 'allowed_files', 'non_goals', 'expected_evidence', 'unsafe_assumptions'];
 const NON_EMPTY_TASK_CONTEXT_ARRAYS = new Set(['must_read', 'allowed_files', 'non_goals', 'expected_evidence']);
@@ -214,6 +245,14 @@ function parseMarkdownHeadings(text) {
 function findHeading(parsed, label) {
   const normalized = normalizeContractText(label);
   return parsed.headings.find((heading) => heading.normalized === normalized) || null;
+}
+
+function findAnyHeading(parsed, labels) {
+  for (const label of labels) {
+    const heading = findHeading(parsed, label);
+    if (heading) return heading;
+  }
+  return null;
 }
 
 function headingBodyLines(parsed, heading) {
@@ -674,6 +713,8 @@ function validateReport(taskDir, relativeTaskPath) {
   if (text.value.trim() === '') blockers.push(`empty-task-artifact:${name}`);
 
   const parsed = parseMarkdownHeadings(text.value);
+  blockers.push(...validateRequiredHeadings(text.value, REPORT_REQUIRED_HEADINGS, 'invalid-task-report'));
+
   const statusHeading = findHeading(parsed, 'Status');
   if (!statusHeading) {
     blockers.push('invalid-task-report:missing-status');
@@ -683,23 +724,11 @@ function validateReport(taskDir, relativeTaskPath) {
       blockers.push('invalid-task-report:status');
     }
     if (status === 'DONE_WITH_CONCERNS') {
-      const concernHeading = parsed.headings.find((heading) => {
-        const normalized = heading.normalized;
-        return normalized.includes('concern') || normalized.includes('adjudication');
-      });
-      if (!concernHeading || !hasSubstantiveBody(parsed, concernHeading)) {
+      const adjudicationHeading = findAnyHeading(parsed, ['Adjudication', 'Controller Adjudication']);
+      if (!adjudicationHeading || !hasSubstantiveBody(parsed, adjudicationHeading)) {
         blockers.push('invalid-task-report:concerns-adjudication');
       }
     }
-  }
-
-  for (const heading of ['TDD Evidence', 'Verification Commands']) {
-    const match = findHeading(parsed, heading);
-    if (!match) {
-      blockers.push(`invalid-task-report:missing-heading:${heading}`);
-      continue;
-    }
-    if (!hasSubstantiveBody(parsed, match)) blockers.push(`invalid-task-report:empty-heading:${heading}`);
   }
 
   return { name, path: path.join(relativeTaskPath, name), ok: blockers.length === 0, blockers: unique(blockers) };
@@ -717,6 +746,11 @@ function validateVerdictFile(taskDir, relativeTaskPath, name) {
   if (text.value.trim() === '') blockers.push(`empty-task-artifact:${name}`);
 
   const parsed = parseMarkdownHeadings(text.value);
+  const requiredHeadings = type === 'spec-review'
+    ? SPEC_REVIEW_REQUIRED_HEADINGS
+    : QUALITY_REVIEW_REQUIRED_HEADINGS;
+  blockers.push(...validateRequiredHeadings(text.value, requiredHeadings, `invalid-${type}`));
+
   const verdictHeading = findHeading(parsed, 'Verdict');
   if (!verdictHeading) {
     blockers.push(`invalid-${type}:missing-verdict`);
