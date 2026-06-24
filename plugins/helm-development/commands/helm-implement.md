@@ -23,7 +23,7 @@ If the suite check exits non-zero, report the emitted blockers and stop. If it p
 node "$CLAUDE_PLUGIN_ROOT/scripts/development-contract.js" --mode entry --json
 ```
 
-If the entry contract is blocked, load `before-dev`, `scope-lock`, or `vertical-slice-tasking` according to the exact blocker and repair only the allowed development artifacts. Do not fallback to a different change, infer missing upstream decisions, bypass prototype approval, or continue with production edits while the entry contract is blocked. Start production edits only after the entry gate returns `"ok": true`.
+If the entry contract is blocked, load `helm-development-entry`, `helm-scope-lock`, or `helm-vertical-slices` according to the exact blocker and repair only the allowed development artifacts. Do not fallback to a different change, infer missing upstream decisions, bypass prototype approval, or continue with production edits while the entry contract is blocked. Start production edits only after the entry gate returns `"ok": true`.
 
 Before handoff to verification, run the handoff gate:
 

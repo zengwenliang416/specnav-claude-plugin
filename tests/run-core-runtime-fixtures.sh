@@ -46,13 +46,13 @@ assert_grep 'helm-core/scripts/helm-session-start.js\|CLAUDE_PLUGIN_ROOT/scripts
 assert_grep 'plugin-suite.js' "$CORE/commands/helm.md" "helm command does not reference plugin-suite.js"
 assert_grep 'workflow-state.js' "$CORE/commands/helm-status.md" "helm-status command does not reference workflow-state.js"
 assert_grep 'helm-doctor.js' "$CORE/commands/helm-doctor.md" "helm-doctor command does not reference helm-doctor.js"
-assert_grep 'helm-requirements' "$CORE/skills/helm-router/SKILL.md" "helm router does not mention helm-requirements"
-assert_grep 'helm-verification' "$CORE/skills/helm-router/SKILL.md" "helm router does not mention helm-verification"
-assert_grep 'helm-operations' "$CORE/skills/helm-router/SKILL.md" "helm router does not mention helm-operations"
+assert_grep 'helm-requirements' "$CORE/skills/helm-route/SKILL.md" "helm router does not mention helm-requirements"
+assert_grep 'helm-verification' "$CORE/skills/helm-route/SKILL.md" "helm router does not mention helm-verification"
+assert_grep 'helm-operations' "$CORE/skills/helm-route/SKILL.md" "helm router does not mention helm-operations"
 assert_grep_fixed '--marketplace-root "$CLAUDE_PLUGIN_ROOT/../.."' "$CORE/commands/helm.md" "helm command does not document cwd-independent marketplace root"
 assert_grep_fixed '--plugin helm-core --plugin <target-plugin>' "$CORE/commands/helm.md" "helm command does not document core plus target plugin require"
-assert_grep_fixed '--marketplace-root "$CLAUDE_PLUGIN_ROOT/../.."' "$CORE/skills/helm-router/SKILL.md" "helm router does not document cwd-independent marketplace root"
-assert_grep_fixed '--plugin helm-core --plugin <target-plugin>' "$CORE/skills/helm-router/SKILL.md" "helm router does not document core plus target plugin require"
+assert_grep_fixed '--marketplace-root "$CLAUDE_PLUGIN_ROOT/../.."' "$CORE/skills/helm-route/SKILL.md" "helm router does not document cwd-independent marketplace root"
+assert_grep_fixed '--plugin helm-core --plugin <target-plugin>' "$CORE/skills/helm-route/SKILL.md" "helm router does not document core plus target plugin require"
 
 suite_json="$TMP_DIR/plugin-suite-require.json"
 suite_status=0
@@ -84,20 +84,25 @@ assert_jq '.blockers | index("missing-marketplace-json")' "$suite_missing_root_j
 workflow_state_json="$TMP_DIR/workflow-state.json"
 workflow_state_status=0
 node "$CORE/scripts/workflow-state.js" --json >"$workflow_state_json" || workflow_state_status=$?
-if [ "$workflow_state_status" -ne 2 ]; then
-  echo "workflow-state placeholder exited $workflow_state_status, expected 2" >&2
+if [ "$workflow_state_status" -ne 0 ]; then
+  echo "workflow-state exited $workflow_state_status, expected 0" >&2
   exit 1
 fi
-assert_jq '.blockers | index("not-implemented:helm-core/workflow-state")' "$workflow_state_json" "workflow-state placeholder did not report not-implemented blocker"
+assert_jq '.ok == true' "$workflow_state_json" "workflow-state did not report ok true"
+assert_jq '.plugin_suite.ok == true' "$workflow_state_json" "workflow-state did not include ok plugin suite"
+assert_jq '.required_plugins | index("helm-operations")' "$workflow_state_json" "workflow-state did not include operations dependency"
+assert_jq '.actions[] | select(.id == "status" and .state == "ready")' "$workflow_state_json" "workflow-state did not expose ready status action"
 
 doctor_json="$TMP_DIR/helm-doctor.json"
 doctor_status=0
 node "$CORE/scripts/helm-doctor.js" --json >"$doctor_json" || doctor_status=$?
-if [ "$doctor_status" -ne 2 ]; then
-  echo "helm-doctor placeholder exited $doctor_status, expected 2" >&2
+if [ "$doctor_status" -ne 0 ]; then
+  echo "helm-doctor exited $doctor_status, expected 0" >&2
   exit 1
 fi
-assert_jq '.blockers | index("not-implemented:helm-core/helm-doctor")' "$doctor_json" "helm-doctor placeholder did not report not-implemented blocker"
+assert_jq '.ok == true' "$doctor_json" "helm-doctor did not report ok true"
+assert_jq '.suite.ok == true' "$doctor_json" "helm-doctor did not include ok plugin suite"
+assert_jq '.checks[] | select(.name == "plugin-suite" and .ok == true)' "$doctor_json" "helm-doctor did not pass plugin-suite check"
 
 affordances_json="$TMP_DIR/helm-core-affordances.json"
 PROJECT_DIR="$PROJECT" node "$CORE/scripts/affordances.js" --json >"$affordances_json"

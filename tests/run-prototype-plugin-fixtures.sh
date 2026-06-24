@@ -289,9 +289,9 @@ JSON
 }
 
 test -f "$PROTO/scripts/prototype-contract.js"
-test -f "$PROTO/skills/prototype/SKILL.md"
-test -f "$PROTO/skills/prototype-verify/SKILL.md"
-test -f "$PROTO/skills/prototype-handoff/SKILL.md"
+test -f "$PROTO/skills/helm-prototype/SKILL.md"
+test -f "$PROTO/skills/helm-prototype-verify/SKILL.md"
+test -f "$PROTO/skills/helm-prototype-handoff/SKILL.md"
 grep -q 'helm-prototype' "$PROTO/commands/helm-prototype.md"
 grep -Fq '../../helm-requirements/scripts/requirements-contract' "$PROTO/scripts/prototype-contract.js"
 ! grep -Fq 'scripts/contracts' "$PROTO/scripts/prototype-contract.js"
@@ -300,13 +300,13 @@ grep -Fq 'node "$CLAUDE_PLUGIN_ROOT/../helm-core/scripts/plugin-suite.js" requir
 grep -Fq -- '--marketplace-root "$CLAUDE_PLUGIN_ROOT/../.."' "$PROTO/commands/helm-prototype.md"
 grep -Fq 'node "$CLAUDE_PLUGIN_ROOT/scripts/prototype-contract.js" --json' "$PROTO/commands/helm-prototype.md"
 
-grep -Fiq 'no fallback' "$PROTO/skills/prototype/SKILL.md"
-grep -Fq 'Branch Classification' "$PROTO/skills/prototype/SKILL.md"
-grep -Fq 'node "$CLAUDE_PLUGIN_ROOT/scripts/prototype-contract.js" --json' "$PROTO/skills/prototype/SKILL.md"
-grep -Fq 'verifier-report.json' "$PROTO/skills/prototype-verify/SKILL.md"
-grep -Fq 'node "$CLAUDE_PLUGIN_ROOT/scripts/prototype-contract.js" --json' "$PROTO/skills/prototype-verify/SKILL.md"
-grep -Fq 'required_present' "$PROTO/skills/prototype-handoff/SKILL.md"
-grep -Fq 'node "$CLAUDE_PLUGIN_ROOT/scripts/prototype-contract.js" --json' "$PROTO/skills/prototype-handoff/SKILL.md"
+grep -Fiq 'no fallback' "$PROTO/skills/helm-prototype/SKILL.md"
+grep -Fq 'Branch Classification' "$PROTO/skills/helm-prototype/SKILL.md"
+grep -Fq 'node "$CLAUDE_PLUGIN_ROOT/scripts/prototype-contract.js" --json' "$PROTO/skills/helm-prototype/SKILL.md"
+grep -Fq 'verifier-report.json' "$PROTO/skills/helm-prototype-verify/SKILL.md"
+grep -Fq 'node "$CLAUDE_PLUGIN_ROOT/scripts/prototype-contract.js" --json' "$PROTO/skills/helm-prototype-verify/SKILL.md"
+grep -Fq 'required_present' "$PROTO/skills/helm-prototype-handoff/SKILL.md"
+grep -Fq 'node "$CLAUDE_PLUGIN_ROOT/scripts/prototype-contract.js" --json' "$PROTO/skills/helm-prototype-handoff/SKILL.md"
 
 jq -e '.contracts.prototype == "scripts/prototype-contract.js"' "$PROTO/helm-stage.json" >/dev/null
 jq -e 'has("planned_contracts") | not' "$PROTO/helm-stage.json" >/dev/null

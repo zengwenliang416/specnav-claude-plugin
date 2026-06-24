@@ -23,7 +23,7 @@ node "$CLAUDE_PLUGIN_ROOT/../helm-development/scripts/development-contract.js" -
 
 If development is blocked, report the exact blockers and stop. Do not fabricate verification evidence.
 
-If development passes, load `verify-plan`, then run all six domain skills: `verify-facticity`, `verify-static`, `verify-unit`, `verify-redteam`, `verify-e2e`, and `verify-sensory`.
+If development passes, load `helm-verify-plan`, then run all six domain skills: `helm-verify-facticity`, `helm-verify-static`, `helm-verify-unit`, `helm-verify-redteam`, `helm-verify-e2e`, and `helm-verify-sensory`.
 
 After the domain artifacts exist, run:
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0
+
+- Convert Helm into a six-plugin Claude Code marketplace suite with `helm-*` scoped public skills.
+- Rewrite all skill frontmatter to the strict Agent Skills subset: `name` and `description` only.
+- Add `tests/run-skill-contract-fixtures.sh` to enforce skill names, descriptions, stage manifests, and unfinished text checks.
+- Replace core workflow-state and doctor placeholders with real cross-plugin state and diagnostic output.
+- Add cross-plugin state fixtures and update README with Chinese and English usage notes.
+
 ## 0.2.1
 
 - Avoid creating `openspec/.helm/events.jsonl` in repositories that have not been bootstrapped.

@@ -1,0 +1,33 @@
+---
+name: helm-development-entry
+description: Use this skill when Helm development is about to start or is blocked at entry, including before-dev checks, basis.md, approved prototype consumption, development scope preparation, or proving that production edits may begin.
+---
+
+# Helm Development Entry
+
+## Purpose
+
+Validate upstream requirements and prototype gates, then record the basis for production development.
+
+## Workflow
+
+1. Run `node "$CLAUDE_PLUGIN_ROOT/scripts/development-contract.js" --mode entry --json`.
+2. If prototype or requirements blockers remain, route to the owning upstream skill. No fallback to a guessed change is allowed.
+3. Read only the active change reported by the contract.
+4. Write or repair `development/before-dev-check.json` and `development/basis.md` with exact relative path references.
+5. Do not start production edits until entry passes.
+
+## Required Outputs
+
+- `development/before-dev-check.json`.
+- `development/basis.md`.
+
+## Stop Conditions
+
+- Any upstream artifact is missing or invalid.
+- Approved prototype source is unclear.
+- The implementation needs a new product, architecture, data-flow, or component-boundary decision.
+
+## Validation
+
+- Rerun `node "$CLAUDE_PLUGIN_ROOT/scripts/development-contract.js" --mode entry --json` and proceed only when `ok` is true.

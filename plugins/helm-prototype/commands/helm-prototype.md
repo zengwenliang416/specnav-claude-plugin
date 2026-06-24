@@ -17,7 +17,7 @@ fi
 node "$CLAUDE_PLUGIN_ROOT/../helm-core/scripts/plugin-suite.js" require --marketplace-root "$CLAUDE_PLUGIN_ROOT/../.." --plugin helm-core --plugin helm-requirements --plugin helm-prototype --json
 ```
 
-If the suite check exits non-zero, report the emitted blockers and stop. If the suite check passes, load the `prototype` skill.
+If the suite check exits non-zero, report the emitted blockers and stop. If the suite check passes, load the `helm-prototype` skill.
 
 After prototype artifacts are written, run:
 

@@ -3,11 +3,22 @@
   "plugin": "helm-prototype",
   "stage": "prototype",
   "required": true,
-  "depends_on": ["helm-core", "helm-requirements"],
-  "commands": ["helm-prototype"],
-  "skills": ["prototype", "prototype-verify", "prototype-handoff"],
+  "depends_on": [
+    "helm-core",
+    "helm-requirements"
+  ],
+  "commands": [
+    "helm-prototype"
+  ],
+  "skills": [
+    "helm-prototype",
+    "helm-prototype-verify",
+    "helm-prototype-handoff"
+  ],
   "contracts": {
     "prototype": "scripts/prototype-contract.js"
   },
-  "state_outputs": ["openspec/changes/<change>/prototype/"]
+  "state_outputs": [
+    "openspec/changes/<change>/prototype/"
+  ]
 }

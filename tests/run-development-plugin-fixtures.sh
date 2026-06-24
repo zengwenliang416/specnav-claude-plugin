@@ -694,9 +694,9 @@ MD
 }
 
 test -f "$DEV/scripts/development-contract.js"
-test -f "$DEV/skills/before-dev/SKILL.md"
-test -f "$DEV/skills/scope-lock/SKILL.md"
-test -f "$DEV/skills/vertical-slice-tasking/SKILL.md"
+test -f "$DEV/skills/helm-development-entry/SKILL.md"
+test -f "$DEV/skills/helm-scope-lock/SKILL.md"
+test -f "$DEV/skills/helm-vertical-slices/SKILL.md"
 grep -q 'helm-development' "$DEV/commands/helm-implement.md"
 grep -Fq '../../helm-prototype/scripts/prototype-contract' "$DEV/scripts/development-contract.js"
 ! grep -Fq 'plugins/helm-core/scripts/contracts' "$DEV/scripts/development-contract.js"
@@ -709,11 +709,11 @@ grep -Fq 'node "$CLAUDE_PLUGIN_ROOT/scripts/development-contract.js" --mode entr
 grep -Fq 'node "$CLAUDE_PLUGIN_ROOT/scripts/development-contract.js" --mode handoff --json' "$DEV/commands/helm-implement.md"
 grep -Fiq 'fallback' "$DEV/commands/helm-implement.md"
 
-for skill in before-dev scope-lock vertical-slice-tasking; do
+for skill in helm-development-entry helm-scope-lock helm-vertical-slices; do
   grep -Fq 'node "$CLAUDE_PLUGIN_ROOT/scripts/development-contract.js" --mode entry --json' "$DEV/skills/$skill/SKILL.md"
   grep -Fiq 'fallback' "$DEV/skills/$skill/SKILL.md"
 done
-grep -Fq 'node "$CLAUDE_PLUGIN_ROOT/scripts/development-contract.js" --mode handoff --json' "$DEV/skills/vertical-slice-tasking/SKILL.md"
+grep -Fq 'node "$CLAUDE_PLUGIN_ROOT/scripts/development-contract.js" --mode handoff --json' "$DEV/skills/helm-vertical-slices/SKILL.md"
 
 jq -e '.contracts.development == "scripts/development-contract.js"' "$DEV/helm-stage.json" >/dev/null
 jq -e 'has("planned_contracts") | not' "$DEV/helm-stage.json" >/dev/null

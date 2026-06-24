@@ -1,0 +1,30 @@
+---
+name: helm-update-policy
+description: Use this skill when Helm needs an installation update policy, current-host scoped update rule, all-host explicit request rule, tracked refs, discovery roots, plugin roots, or reload hints.
+---
+
+# Helm Update Policy
+
+## Purpose
+
+Record how installed plugin surfaces update and get re-verified.
+
+## Workflow
+
+1. Document every known installation, host, plugin root, discovery root, discovery shape, tracked ref, and reload hint.
+2. Default updates are current-host scoped.
+3. All-host updates require explicit user request.
+4. Run `node "$CLAUDE_PLUGIN_ROOT/scripts/operations-gate.js" --json` after writing.
+
+## Required Outputs
+
+- `operations/update-policy.json`.
+
+## Stop Conditions
+
+- Installation evidence is missing.
+- All-host update lacks explicit confirmation.
+
+## Validation
+
+- Run `node "$CLAUDE_PLUGIN_ROOT/scripts/operations-gate.js" --json` and require ok or exact blockers.

@@ -559,13 +559,13 @@ MD
 }
 
 test -f "$VERIFY/scripts/verify-domains.js"
-test -f "$VERIFY/skills/verify-plan/SKILL.md"
-test -f "$VERIFY/skills/verify-facticity/SKILL.md"
-test -f "$VERIFY/skills/verify-static/SKILL.md"
-test -f "$VERIFY/skills/verify-unit/SKILL.md"
-test -f "$VERIFY/skills/verify-redteam/SKILL.md"
-test -f "$VERIFY/skills/verify-e2e/SKILL.md"
-test -f "$VERIFY/skills/verify-sensory/SKILL.md"
+test -f "$VERIFY/skills/helm-verify-plan/SKILL.md"
+test -f "$VERIFY/skills/helm-verify-facticity/SKILL.md"
+test -f "$VERIFY/skills/helm-verify-static/SKILL.md"
+test -f "$VERIFY/skills/helm-verify-unit/SKILL.md"
+test -f "$VERIFY/skills/helm-verify-redteam/SKILL.md"
+test -f "$VERIFY/skills/helm-verify-e2e/SKILL.md"
+test -f "$VERIFY/skills/helm-verify-sensory/SKILL.md"
 jq -e '.contracts.verification == "scripts/verify-domains.js"' "$VERIFY/helm-stage.json" >/dev/null
 jq -e 'has("planned_contracts") | not' "$VERIFY/helm-stage.json" >/dev/null
 grep -Fq -- '--marketplace-root "$CLAUDE_PLUGIN_ROOT/../.."' "$VERIFY/commands/helm-verify.md"

@@ -3,9 +3,16 @@
   "plugin": "helm-requirements",
   "stage": "requirements",
   "required": true,
-  "depends_on": ["helm-core"],
-  "commands": ["helm-requirements"],
-  "skills": ["foundation-spec", "requirements"],
+  "depends_on": [
+    "helm-core"
+  ],
+  "commands": [
+    "helm-requirements"
+  ],
+  "skills": [
+    "helm-foundation-specs",
+    "helm-requirements"
+  ],
   "contracts": {
     "foundation": "scripts/foundation-specs.js",
     "requirements": "scripts/requirements-contract.js"

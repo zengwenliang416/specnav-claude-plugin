@@ -3,19 +3,26 @@
   "plugin": "helm-verification",
   "stage": "verification",
   "required": true,
-  "depends_on": ["helm-core", "helm-development"],
-  "commands": ["helm-verify"],
+  "depends_on": [
+    "helm-core",
+    "helm-development"
+  ],
+  "commands": [
+    "helm-verify"
+  ],
   "skills": [
-    "verify-plan",
-    "verify-facticity",
-    "verify-static",
-    "verify-unit",
-    "verify-redteam",
-    "verify-e2e",
-    "verify-sensory"
+    "helm-verify-plan",
+    "helm-verify-facticity",
+    "helm-verify-static",
+    "helm-verify-unit",
+    "helm-verify-redteam",
+    "helm-verify-e2e",
+    "helm-verify-sensory"
   ],
   "contracts": {
     "verification": "scripts/verify-domains.js"
   },
-  "state_outputs": ["openspec/changes/<change>/verify/"]
+  "state_outputs": [
+    "openspec/changes/<change>/verify/"
+  ]
 }

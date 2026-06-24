@@ -4,11 +4,42 @@
 const fs = require('fs');
 const path = require('path');
 const lib = require('./helm-lib');
+const suite = require('./plugin-suite');
 
-function buildAffordances(root) {
+const REQUIRED_PLUGINS = [
+  'helm-core',
+  'helm-requirements',
+  'helm-prototype',
+  'helm-development',
+  'helm-verification',
+  'helm-operations'
+];
+
+const ACTION_PLUGINS = {
+  bootstrap: ['helm-core'],
+  propose: ['helm-core', 'helm-requirements'],
+  design: ['helm-core', 'helm-requirements'],
+  tasks: ['helm-core', 'helm-requirements'],
+  implement: ['helm-core', 'helm-development'],
+  fix: ['helm-core', 'helm-development', 'helm-verification'],
+  verify: ['helm-core', 'helm-verification'],
+  release: ['helm-core', 'helm-verification', 'helm-operations'],
+  archive: ['helm-core', 'helm-verification', 'helm-operations'],
+  status: ['helm-core']
+};
+
+function defaultMarketplaceRoot() {
+  return path.resolve(__dirname, '../../..');
+}
+
+function buildAffordances(root, options = {}) {
   const open = lib.openspecDir(root);
   const change = lib.activeChange(root);
   const dir = lib.changeDir(root, change);
+  const suiteStatus = options.suiteStatus || suite.listPlugins({
+    marketplaceRoot: options.marketplaceRoot || process.env.HELM_MARKETPLACE_ROOT || defaultMarketplaceRoot()
+  });
+  const okPlugins = new Set((suiteStatus.plugins || []).filter((plugin) => plugin.ok).map((plugin) => plugin.name));
   const hasOpenSpec = fs.existsSync(open);
   const openspecStatus = hasOpenSpec && change ? lib.openspecStatus(root, change) : { ok: false, error: 'openspec-missing-or-no-change' };
   const openspecArtifacts = new Map(
@@ -29,10 +60,23 @@ function buildAffordances(root) {
   const verifyStatus = verify ? verify.status : 'not_run';
   const verifyReportStale = !!(verify && staleMarker);
   const signoff = dir && lib.fileExists(path.join(dir, 'signoff.yaml'));
+  const operations = lib.readJson(dir && path.join(dir, 'operations', 'readiness.json'), null);
+  const operationsReady = !!(operations && operations.ready === true);
 
   const actions = [];
   const add = (id, ready, blockers = [], reversible = true) => {
-    actions.push({ id, state: ready ? 'ready' : 'blocked', reversible, blocked_by: blockers });
+    const requiredPlugins = ACTION_PLUGINS[id] || ['helm-core'];
+    const pluginBlockers = requiredPlugins
+      .filter((plugin) => !okPlugins.has(plugin))
+      .map((plugin) => `missing-plugin:${plugin}`);
+    const allBlockers = [...blockers, ...pluginBlockers];
+    actions.push({
+      id,
+      state: ready && allBlockers.length === 0 ? 'ready' : 'blocked',
+      reversible,
+      required_plugins: requiredPlugins,
+      blocked_by: allBlockers
+    });
   };
 
   add('bootstrap', !hasOpenSpec, hasOpenSpec ? ['openspec-exists'] : []);
@@ -42,10 +86,13 @@ function buildAffordances(root) {
   add('implement', !!(tasks && (verifyStatus !== 'green' || verifyReportStale)), tasks ? [] : ['tasks']);
   add('fix', !!(tasks && verify && (verifyStatus !== 'green' || verifyReportStale)), verify ? [] : ['verify']);
   add('verify', !!tasks, tasks ? [] : ['tasks']);
-  const archiveBlockers = [];
-  if (!verify || verify.status !== 'green') archiveBlockers.push('verify');
-  if (verifyReportStale) archiveBlockers.push('fresh-verify');
-  if (risk.tier === 'high-risk' && !signoff) archiveBlockers.push('human-signoff');
+  const releaseBlockers = [];
+  if (!verify || verify.status !== 'green') releaseBlockers.push('verify');
+  if (verifyReportStale) releaseBlockers.push('fresh-verify');
+  if (risk.tier === 'high-risk' && !signoff) releaseBlockers.push('human-signoff');
+  add('release', releaseBlockers.length === 0, releaseBlockers, false);
+  const archiveBlockers = [...releaseBlockers];
+  if (!operationsReady) archiveBlockers.push('operations');
   add('archive', archiveBlockers.length === 0, archiveBlockers, false);
   add('status', true);
 
@@ -53,6 +100,12 @@ function buildAffordances(root) {
     schema_version: 1,
     generated_at: new Date().toISOString(),
     project_root: root,
+    required_plugins: REQUIRED_PLUGINS,
+    plugin_suite: {
+      ok: suiteStatus.ok,
+      marketplace_root: suiteStatus.marketplace_root,
+      blockers: suiteStatus.blockers || []
+    },
     state_source: useOpenSpec ? 'openspec-cli' : 'filesystem',
     openspec_status: openspecStatus.ok
       ? {
@@ -76,7 +129,8 @@ function buildAffordances(root) {
       scope: !!scope,
       tasks: !!tasks,
       specs: !!specs,
-      signoff: !!signoff
+      signoff: !!signoff,
+      operations_readiness: operationsReady
     },
     actions
   };
@@ -91,11 +145,12 @@ function toMarkdown(table) {
   lines.push(`- active change: \`${table.active_change || 'none'}\``);
   lines.push(`- risk tier: \`${table.risk_tier}\` (${table.risk_source})`);
   lines.push(`- verify: \`${table.verify_status}\`${table.verify_report_stale ? ' (stale)' : ''}`);
+  lines.push(`- required plugins: \`${table.required_plugins.join(', ')}\``);
   lines.push('');
-  lines.push('| Action | State | Blockers |');
-  lines.push('| --- | --- | --- |');
+  lines.push('| Action | State | Required Plugins | Blockers |');
+  lines.push('| --- | --- | --- | --- |');
   for (const action of table.actions) {
-    lines.push(`| ${action.id} | ${action.state} | ${action.blocked_by.join(', ') || '-'} |`);
+    lines.push(`| ${action.id} | ${action.state} | ${(action.required_plugins || []).join(', ') || '-'} | ${action.blocked_by.join(', ') || '-'} |`);
   }
   return `${lines.join('\n')}\n`;
 }

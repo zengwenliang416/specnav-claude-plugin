@@ -103,7 +103,7 @@ assert_first_before \
 
 for routing_file in \
   "$ROOT/plugins/helm-core/commands/helm.md" \
-  "$ROOT/plugins/helm-core/skills/helm-router/SKILL.md"; do
+  "$ROOT/plugins/helm-core/skills/helm-route/SKILL.md"; do
   if grep -Eq 'load the corresponding Helm skill|-> `(explore|propose|design|tasks|implement|fix|verify|archive)`' "$routing_file"; then
     echo "legacy core lifecycle route remains in $routing_file" >&2
     exit 1

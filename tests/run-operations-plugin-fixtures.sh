@@ -180,7 +180,7 @@ JSON
 
 test -f "$OPS/scripts/operations-gate.js"
 test -f "$OPS/scripts/archive-gate.js"
-for skill in ops-readiness release-plan install-verify update-policy compatibility-matrix branch-finish deploy rollback monitor postmortem update-spec; do
+for skill in helm-ops-readiness helm-release-plan helm-install-verify helm-update-policy helm-compatibility-matrix helm-branch-finish helm-deploy helm-rollback helm-monitor helm-postmortem helm-update-spec; do
   test -f "$OPS/skills/$skill/SKILL.md"
   grep -q "name: $skill" "$OPS/skills/$skill/SKILL.md"
   grep -Fq 'node "$CLAUDE_PLUGIN_ROOT/scripts/operations-gate.js" --json' "$OPS/skills/$skill/SKILL.md"

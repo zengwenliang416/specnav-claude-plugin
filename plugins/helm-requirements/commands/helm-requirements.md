@@ -13,4 +13,4 @@ Run this suite check:
 node "$CLAUDE_PLUGIN_ROOT/../helm-core/scripts/plugin-suite.js" require --marketplace-root "$CLAUDE_PLUGIN_ROOT/../.." --plugin helm-core --plugin helm-requirements --json
 ```
 
-If the suite check exits non-zero, report the emitted blockers and stop. If the suite check passes, load the `requirements` skill.
+If the suite check exits non-zero, report the emitted blockers and stop. If the suite check passes, load the `helm-requirements` skill.

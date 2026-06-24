@@ -3,24 +3,32 @@
   "plugin": "helm-operations",
   "stage": "operations",
   "required": true,
-  "depends_on": ["helm-core", "helm-verification"],
-  "commands": ["helm-release", "helm-archive"],
+  "depends_on": [
+    "helm-core",
+    "helm-verification"
+  ],
+  "commands": [
+    "helm-release",
+    "helm-archive"
+  ],
   "skills": [
-    "ops-readiness",
-    "release-plan",
-    "install-verify",
-    "update-policy",
-    "compatibility-matrix",
-    "branch-finish",
-    "deploy",
-    "rollback",
-    "monitor",
-    "postmortem",
-    "update-spec"
+    "helm-ops-readiness",
+    "helm-release-plan",
+    "helm-install-verify",
+    "helm-update-policy",
+    "helm-compatibility-matrix",
+    "helm-branch-finish",
+    "helm-deploy",
+    "helm-rollback",
+    "helm-monitor",
+    "helm-postmortem",
+    "helm-update-spec"
   ],
   "contracts": {
     "operations": "scripts/operations-gate.js",
     "archive": "scripts/archive-gate.js"
   },
-  "state_outputs": ["openspec/changes/<change>/operations/"]
+  "state_outputs": [
+    "openspec/changes/<change>/operations/"
+  ]
 }
