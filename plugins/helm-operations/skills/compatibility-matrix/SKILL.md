@@ -1,16 +1,24 @@
 ---
 name: compatibility-matrix
-description: "Placeholder for Helm compatibility matrix"
+description: Document host compatibility and support evidence
+allowed-tools:
+  - Read
+  - Bash
+  - Write
 ---
 
-# compatibility-matrix
+# Compatibility Matrix
 
-This skill is not implemented yet.
+Review install verification, doctor output, host limitations, and reload behavior. Do not claim fresh support without fresh smoke evidence.
 
-Stop and report:
+Write:
 
-```text
-not-implemented:helm-operations/compatibility-matrix
+- `operations/compatibility-matrix.md`
+
+Include supported hosts, support level, verification command, doctor result, known limitations, and reload requirement.
+
+Run:
+
+```bash
+node "$CLAUDE_PLUGIN_ROOT/scripts/operations-gate.js" --json
 ```
-
-Do not provide fallback behavior until the owning stage task implements this skill.

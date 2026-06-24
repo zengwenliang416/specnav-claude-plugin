@@ -1,16 +1,24 @@
 ---
 name: monitor
-description: "Placeholder for Helm monitoring"
+description: Prepare post-release monitoring
+allowed-tools:
+  - Read
+  - Bash
+  - Write
 ---
 
-# monitor
+# Monitor
 
-This skill is not implemented yet.
+Use this for deploy or runtime release targets. If monitoring is impossible, operations is blocked until the user explicitly accepts the risk in `operations/signoff.yaml`.
 
-Stop and report:
+Write:
 
-```text
-not-implemented:helm-operations/monitor
+- `operations/monitor-plan.md`
+
+Include signals, logs, metrics, endpoints, queues, user flows to watch, observation window, owner, expected normal values, and escalation route.
+
+Run:
+
+```bash
+node "$CLAUDE_PLUGIN_ROOT/scripts/operations-gate.js" --json
 ```
-
-Do not provide fallback behavior until the owning stage task implements this skill.

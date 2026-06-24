@@ -1,16 +1,24 @@
 ---
 name: rollback
-description: "Placeholder for Helm rollback"
+description: Prepare rollback operations
+allowed-tools:
+  - Read
+  - Bash
+  - Write
 ---
 
-# rollback
+# Rollback
 
-This skill is not implemented yet.
+Use this for any release target with deploy risk. If rollback is impossible, operations is blocked until the user explicitly accepts the risk in `operations/signoff.yaml`.
 
-Stop and report:
+Write:
 
-```text
-not-implemented:helm-operations/rollback
+- `operations/rollback-plan.md`
+
+Include rollback triggers, exact rollback command or manual step, data recovery or migration reversal notes, and rollback verification.
+
+Run:
+
+```bash
+node "$CLAUDE_PLUGIN_ROOT/scripts/operations-gate.js" --json
 ```
-
-Do not provide fallback behavior until the owning stage task implements this skill.

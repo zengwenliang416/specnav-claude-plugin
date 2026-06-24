@@ -96,10 +96,9 @@ for command_file in "$ROOT"/plugins/*/commands/*.md; do
   fi
 done
 
-grep -q 'not-implemented:helm-operations/archive-gate' "$ROOT/plugins/helm-operations/commands/helm-archive.md"
 assert_first_before \
   "$ROOT/plugins/helm-operations/commands/helm-archive.md" \
-  'not-implemented:helm-operations/archive-gate' \
+  'node "$CLAUDE_PLUGIN_ROOT/../helm-core/scripts/plugin-suite.js"' \
   'node "$CLAUDE_PLUGIN_ROOT/scripts/archive-gate.js"'
 
 for routing_file in \

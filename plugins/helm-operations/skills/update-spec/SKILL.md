@@ -1,16 +1,24 @@
 ---
 name: update-spec
-description: "Placeholder for Helm spec update"
+description: Record operations learning writeback to OpenSpec
+allowed-tools:
+  - Read
+  - Bash
+  - Write
 ---
 
-# update-spec
+# Update Spec
 
-This skill is not implemented yet.
+Review operations, verification, release, deploy, rollback, monitor, and postmortem outputs for learning that belongs in requirements, acceptance, UI design, architecture, data-flow, component architecture, operational runbook, or known limitations.
 
-Stop and report:
+Write:
 
-```text
-not-implemented:helm-operations/update-spec
+- `operations/update-spec.json`
+
+Use status `no_writeback_needed`, `written_back`, or `deferred`. Any unresolved learning item blocks archive.
+
+Run:
+
+```bash
+node "$CLAUDE_PLUGIN_ROOT/scripts/operations-gate.js" --json
 ```
-
-Do not provide fallback behavior until the owning stage task implements this skill.

@@ -10,12 +10,8 @@ if [ ! -f "$CLAUDE_PLUGIN_ROOT/../helm-core/scripts/plugin-suite.js" ]; then
   printf '%s\n' 'not-implemented:helm-core/plugin-suite'
   exit 2
 fi
-node "$CLAUDE_PLUGIN_ROOT/../helm-core/scripts/plugin-suite.js" require --plugin helm-core --plugin helm-verification --plugin helm-operations --json
-if [ ! -f "$CLAUDE_PLUGIN_ROOT/scripts/archive-gate.js" ]; then
-  printf '%s\n' 'not-implemented:helm-operations/archive-gate'
-  exit 2
-fi
-node "$CLAUDE_PLUGIN_ROOT/scripts/archive-gate.js"
+node "$CLAUDE_PLUGIN_ROOT/../helm-core/scripts/plugin-suite.js" require --marketplace-root "$CLAUDE_PLUGIN_ROOT/../.." --plugin helm-core --plugin helm-verification --plugin helm-operations --json
+node "$CLAUDE_PLUGIN_ROOT/scripts/archive-gate.js" --json
 ```
 
-Archive only when both commands pass.
+Archive only when both commands pass and `operations/archive-gate.json.verdict` is `green`.

@@ -1,16 +1,25 @@
 ---
 name: release-plan
-description: "Placeholder for Helm release planning"
+description: Select and document the Helm release target
+allowed-tools:
+  - Read
+  - Bash
+  - Write
 ---
 
-# release-plan
+# Release Plan
 
-This skill is not implemented yet.
+Read verification output, user intent, repository shape, and distribution surface. Select exactly one primary release target: `local-only`, `plugin-marketplace`, `package`, `host-compatibility`, or `project-deploy`.
 
-Stop and report:
+Write:
 
-```text
-not-implemented:helm-operations/release-plan
+- `operations/release-plan.md`
+- `operations/release-checklist.json`
+
+The checklist must include every required artifact for the chosen target and all required checks must pass before release.
+
+Run:
+
+```bash
+node "$CLAUDE_PLUGIN_ROOT/scripts/operations-gate.js" --json
 ```
-
-Do not provide fallback behavior until the owning stage task implements this skill.

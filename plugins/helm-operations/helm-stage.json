@@ -18,7 +18,7 @@
     "postmortem",
     "update-spec"
   ],
-  "planned_contracts": {
+  "contracts": {
     "operations": "scripts/operations-gate.js",
     "archive": "scripts/archive-gate.js"
   },

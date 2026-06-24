@@ -1,16 +1,24 @@
 ---
 name: update-policy
-description: "Placeholder for Helm update policy"
+description: Record Helm installation update policy
+allowed-tools:
+  - Read
+  - Bash
+  - Write
 ---
 
-# update-policy
+# Update Policy
 
-This skill is not implemented yet.
+Document how installed plugin surfaces are updated and re-verified. Default updates are current-host scoped; all-host updates require explicit user request.
 
-Stop and report:
+Write:
 
-```text
-not-implemented:helm-operations/update-policy
+- `operations/update-policy.json`
+
+Record every known installation, host, plugin root, discovery root, discovery shape, tracked ref, and reload hint.
+
+Run:
+
+```bash
+node "$CLAUDE_PLUGIN_ROOT/scripts/operations-gate.js" --json
 ```
-
-Do not provide fallback behavior until the owning stage task implements this skill.

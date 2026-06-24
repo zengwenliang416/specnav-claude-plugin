@@ -1,16 +1,25 @@
 ---
 name: ops-readiness
-description: "Placeholder for Helm operations readiness"
+description: Build the Helm operations readiness decision
+allowed-tools:
+  - Read
+  - Bash
+  - Write
 ---
 
-# ops-readiness
+# Ops Readiness
 
-This skill is not implemented yet.
+Read the verification aggregate report, receipt, blocker classification, development handoff, release plan, git state, and operations artifacts.
 
-Stop and report:
+Write:
 
-```text
-not-implemented:helm-operations/ops-readiness
+- `operations/readiness.md`
+- `operations/readiness.json`
+
+`readiness.json.ready` may be `true` only when verification is green, release target is selected, git state is known, untracked files are reviewed, required docs exist, and the selected target's operations artifacts are present.
+
+Run:
+
+```bash
+node "$CLAUDE_PLUGIN_ROOT/scripts/operations-gate.js" --json
 ```
-
-Do not provide fallback behavior until the owning stage task implements this skill.
