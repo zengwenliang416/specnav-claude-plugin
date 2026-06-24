@@ -11,10 +11,16 @@ run_json() {
   local project="$1"
   local output="$2"
   local expected_status="$3"
+  local mode="${4:-}"
   local status
+  local command=(node "$DEV/scripts/development-contract.js" --json)
+
+  if [[ -n "$mode" ]]; then
+    command+=(--mode "$mode")
+  fi
 
   set +e
-  PROJECT_DIR="$project" node "$DEV/scripts/development-contract.js" --json >"$output"
+  PROJECT_DIR="$project" "${command[@]}" >"$output"
   status=$?
   set -e
   if [[ "$status" != "$expected_status" ]]; then
@@ -339,6 +345,18 @@ JSON
 # Development Basis
 
 Development is based on the approved requirements, acceptance criteria, prototype decision, and prototype handoff for add-dashboard.
+
+- openspec/specs/ui-design/design.md
+- openspec/specs/system-architecture/design.md
+- openspec/specs/frontend-backend-data-flow/design.md
+- openspec/specs/component-architecture/design.md
+- openspec/changes/add-dashboard/requirements.md
+- openspec/changes/add-dashboard/acceptance.md
+- openspec/changes/add-dashboard/spec-map.json
+- openspec/changes/add-dashboard/component-impact-map.json
+- openspec/changes/add-dashboard/prototype/handoff.md
+- openspec/changes/add-dashboard/prototype/decision.json
+- openspec/changes/add-dashboard/prototype/artifact/index.html
 MD
 
   cat >"$development/prototype-promotion-map.json" <<'JSON'
@@ -486,7 +504,17 @@ MD
   "stop_condition": "slice implemented, reviews approved, validation recorded",
   "must_read": [
     "openspec/changes/add-dashboard/development/tasks/001-dashboard-summary/brief.md",
-    "openspec/changes/add-dashboard/prototype/handoff.md"
+    "openspec/specs/ui-design/design.md",
+    "openspec/specs/system-architecture/design.md",
+    "openspec/specs/frontend-backend-data-flow/design.md",
+    "openspec/specs/component-architecture/design.md",
+    "openspec/changes/add-dashboard/requirements.md",
+    "openspec/changes/add-dashboard/acceptance.md",
+    "openspec/changes/add-dashboard/spec-map.json",
+    "openspec/changes/add-dashboard/component-impact-map.json",
+    "openspec/changes/add-dashboard/prototype/handoff.md",
+    "openspec/changes/add-dashboard/prototype/decision.json",
+    "openspec/changes/add-dashboard/prototype/artifact/index.html"
   ],
   "allowed_files": [
     "src/dashboard/DashboardView.tsx",
@@ -673,13 +701,15 @@ grep -Fq '../../helm-prototype/scripts/prototype-contract' "$DEV/scripts/develop
 grep -Fq 'node "$CLAUDE_PLUGIN_ROOT/../helm-core/scripts/plugin-suite.js" require' "$DEV/commands/helm-implement.md"
 grep -Fq -- '--marketplace-root "$CLAUDE_PLUGIN_ROOT/../.."' "$DEV/commands/helm-implement.md"
 grep -Fq -- '--plugin helm-core --plugin helm-requirements --plugin helm-prototype --plugin helm-development' "$DEV/commands/helm-implement.md"
-grep -Fq 'node "$CLAUDE_PLUGIN_ROOT/scripts/development-contract.js" --json' "$DEV/commands/helm-implement.md"
+grep -Fq 'node "$CLAUDE_PLUGIN_ROOT/scripts/development-contract.js" --mode entry --json' "$DEV/commands/helm-implement.md"
+grep -Fq 'node "$CLAUDE_PLUGIN_ROOT/scripts/development-contract.js" --mode handoff --json' "$DEV/commands/helm-implement.md"
 grep -Fiq 'fallback' "$DEV/commands/helm-implement.md"
 
 for skill in before-dev scope-lock vertical-slice-tasking; do
-  grep -Fq 'node "$CLAUDE_PLUGIN_ROOT/scripts/development-contract.js" --json' "$DEV/skills/$skill/SKILL.md"
+  grep -Fq 'node "$CLAUDE_PLUGIN_ROOT/scripts/development-contract.js" --mode entry --json' "$DEV/skills/$skill/SKILL.md"
   grep -Fiq 'fallback' "$DEV/skills/$skill/SKILL.md"
 done
+grep -Fq 'node "$CLAUDE_PLUGIN_ROOT/scripts/development-contract.js" --mode handoff --json' "$DEV/skills/vertical-slice-tasking/SKILL.md"
 
 jq -e '.contracts.development == "scripts/development-contract.js"' "$DEV/helm-stage.json" >/dev/null
 jq -e 'has("planned_contracts") | not' "$DEV/helm-stage.json" >/dev/null
@@ -694,9 +724,108 @@ write_ui_prototype "$HAPPY_PROJECT"
 write_development_artifacts "$HAPPY_PROJECT"
 run_json "$HAPPY_PROJECT" "$TMP_DIR/happy-development.json" 0
 jq -e '.ok == true' "$TMP_DIR/happy-development.json" >/dev/null
+jq -e '.mode == "handoff"' "$TMP_DIR/happy-development.json" >/dev/null
 jq -e '.active_change == "add-dashboard"' "$TMP_DIR/happy-development.json" >/dev/null
 jq -e '.prototype.ok == true' "$TMP_DIR/happy-development.json" >/dev/null
 jq -e '.tasks[] | select(.task_id == "001-dashboard-summary" and .ok == true)' "$TMP_DIR/happy-development.json" >/dev/null
+run_json "$HAPPY_PROJECT" "$TMP_DIR/happy-entry.json" 0 entry
+jq -e '.ok == true and .mode == "entry"' "$TMP_DIR/happy-entry.json" >/dev/null
+
+ENTRY_REVIEW_FIX_PROJECT="$TMP_DIR/entry-review-fix-project"
+cp -R "$HAPPY_PROJECT" "$ENTRY_REVIEW_FIX_PROJECT"
+cat >"$ENTRY_REVIEW_FIX_PROJECT/openspec/changes/add-dashboard/development/tasks/001-dashboard-summary/spec-review.md" <<'MD'
+# Spec Review
+
+## Verdict
+
+needs-fix
+
+## Missing Requirements
+
+One required browser state still needs a fix.
+
+## Extra Behavior
+
+No extra behavior was introduced.
+
+## Misunderstood Requirements
+
+No misunderstood requirements were found.
+
+## Cannot Verify From Diff
+
+Browser state coverage remains for verification.
+
+## Required Fixes
+
+Add the missing browser state coverage.
+MD
+run_json "$ENTRY_REVIEW_FIX_PROJECT" "$TMP_DIR/entry-review-fix-entry.json" 0 entry
+run_json "$ENTRY_REVIEW_FIX_PROJECT" "$TMP_DIR/entry-review-fix-handoff.json" 2 handoff
+assert_blocker "$TMP_DIR/entry-review-fix-handoff.json" 'invalid-spec-review:verdict'
+
+MISSING_BEFORE_DEV_PROJECT="$TMP_DIR/missing-before-dev-project"
+cp -R "$HAPPY_PROJECT" "$MISSING_BEFORE_DEV_PROJECT"
+rm "$MISSING_BEFORE_DEV_PROJECT/openspec/changes/add-dashboard/development/before-dev-check.json"
+run_json "$MISSING_BEFORE_DEV_PROJECT" "$TMP_DIR/missing-before-dev.json" 2 entry
+assert_blocker "$TMP_DIR/missing-before-dev.json" 'missing-development-artifact:before-dev-check.json'
+
+BAD_BEFORE_DEV_PROJECT="$TMP_DIR/bad-before-dev-project"
+cp -R "$HAPPY_PROJECT" "$BAD_BEFORE_DEV_PROJECT"
+jq '.status = "blocked" | .ok = false' \
+  "$BAD_BEFORE_DEV_PROJECT/openspec/changes/add-dashboard/development/before-dev-check.json" \
+  >"$TMP_DIR/bad-before-dev.json.tmp"
+mv "$TMP_DIR/bad-before-dev.json.tmp" "$BAD_BEFORE_DEV_PROJECT/openspec/changes/add-dashboard/development/before-dev-check.json"
+run_json "$BAD_BEFORE_DEV_PROJECT" "$TMP_DIR/bad-before-dev.json" 2 entry
+assert_blocker "$TMP_DIR/bad-before-dev.json" 'invalid-before-dev-check:status'
+
+BASIS_FOUNDATION_PROJECT="$TMP_DIR/basis-foundation-project"
+cp -R "$HAPPY_PROJECT" "$BASIS_FOUNDATION_PROJECT"
+cat >"$BASIS_FOUNDATION_PROJECT/openspec/changes/add-dashboard/development/basis.md" <<'MD'
+# Development Basis
+
+Development is based on the approved requirements, acceptance criteria, prototype decision, and prototype handoff for add-dashboard.
+
+- openspec/changes/add-dashboard/requirements.md
+- openspec/changes/add-dashboard/acceptance.md
+- openspec/changes/add-dashboard/spec-map.json
+- openspec/changes/add-dashboard/component-impact-map.json
+- openspec/changes/add-dashboard/prototype/handoff.md
+- openspec/changes/add-dashboard/prototype/decision.json
+- openspec/changes/add-dashboard/prototype/artifact/index.html
+MD
+run_json "$BASIS_FOUNDATION_PROJECT" "$TMP_DIR/basis-foundation.json" 2 entry
+assert_blocker "$TMP_DIR/basis-foundation.json" 'invalid-basis:missing-reference:openspec/specs/ui-design/design.md'
+
+TASK_CONTEXT_SOURCE_PROJECT="$TMP_DIR/task-context-source-project"
+cp -R "$HAPPY_PROJECT" "$TASK_CONTEXT_SOURCE_PROJECT"
+jq '.must_read = [
+  "openspec/changes/add-dashboard/development/tasks/001-dashboard-summary/brief.md",
+  "openspec/changes/add-dashboard/requirements.md",
+  "openspec/changes/add-dashboard/acceptance.md",
+  "openspec/changes/add-dashboard/spec-map.json",
+  "openspec/changes/add-dashboard/component-impact-map.json",
+  "openspec/changes/add-dashboard/prototype/handoff.md"
+]' \
+  "$TASK_CONTEXT_SOURCE_PROJECT/openspec/changes/add-dashboard/development/tasks/001-dashboard-summary/context.json" \
+  >"$TMP_DIR/task-context-source.json.tmp"
+mv "$TMP_DIR/task-context-source.json.tmp" "$TASK_CONTEXT_SOURCE_PROJECT/openspec/changes/add-dashboard/development/tasks/001-dashboard-summary/context.json"
+run_json "$TASK_CONTEXT_SOURCE_PROJECT" "$TMP_DIR/task-context-source.json" 2 entry
+assert_blocker "$TMP_DIR/task-context-source.json" 'invalid-task-context:must_read-missing:openspec/specs/ui-design/design.md'
+assert_blocker "$TMP_DIR/task-context-source.json" 'invalid-task-context:must_read-missing:openspec/changes/add-dashboard/prototype/decision.json'
+assert_blocker "$TMP_DIR/task-context-source.json" 'invalid-task-context:must_read-missing:openspec/changes/add-dashboard/prototype/artifact/index.html'
+
+SCOPE_UNAPPROVED_SOURCE_PROJECT="$TMP_DIR/scope-unapproved-source-project"
+cp -R "$HAPPY_PROJECT" "$SCOPE_UNAPPROVED_SOURCE_PROJECT"
+jq '.prototype_sources = [
+  "openspec/changes/add-dashboard/prototype/artifact/index.html",
+  "openspec/changes/add-dashboard/prototype/handoff.md"
+]' \
+  "$SCOPE_UNAPPROVED_SOURCE_PROJECT/openspec/changes/add-dashboard/scope.json" \
+  >"$TMP_DIR/scope-unapproved-source.json.tmp"
+mv "$TMP_DIR/scope-unapproved-source.json.tmp" "$SCOPE_UNAPPROVED_SOURCE_PROJECT/openspec/changes/add-dashboard/scope.json"
+run_json "$SCOPE_UNAPPROVED_SOURCE_PROJECT" "$TMP_DIR/scope-unapproved-source.json" 2 entry
+assert_blocker "$TMP_DIR/scope-unapproved-source.json" 'unapproved-prototype-source:openspec/changes/add-dashboard/prototype/handoff.md'
 
 SPEC_REVIEW_MINIMAL_PROJECT="$TMP_DIR/spec-review-minimal-project"
 cp -R "$HAPPY_PROJECT" "$SPEC_REVIEW_MINIMAL_PROJECT"

@@ -13,7 +13,7 @@ allowed-tools:
 Run the development contract before planning or dispatching a task:
 
 ```bash
-node "$CLAUDE_PLUGIN_ROOT/scripts/development-contract.js" --json
+node "$CLAUDE_PLUGIN_ROOT/scripts/development-contract.js" --mode entry --json
 ```
 
 If upstream prototype, requirements, or scope blockers remain, stop and route to the exact owning skill. Do not fallback to layer-only implementation tasks, unapproved prototype code, or a different active change.
@@ -23,10 +23,10 @@ Write vertical slices in `openspec/changes/<active-change>/tasks.md`. Tasks must
 For each slice, create `openspec/changes/<active-change>/development/tasks/<task-id>/` where `<task-id>` is like `001-checkout-summary`. Each task must include:
 
 - `brief.md` with the required Goal, Parent Artifacts, Vertical Slice, In Scope, Out Of Scope, Files Allowed, Interfaces / Seams, Components To Create, Components To Reuse, Components To Extract, API / Data Flow Contracts, State / Error / Empty / Loading Behavior, TDD Requirement, Verification Commands, Stop Conditions, and Unsafe Assumptions sections.
-- `context.json` with clean `task_id`, `goal`, `stop_condition`, `must_read`, `allowed_files`, `non_goals`, `expected_evidence`, and `unsafe_assumptions`.
-- `report.md` with `## Status`, TDD Evidence, and Verification Commands.
-- `spec-review.md` with verdict `approved`.
-- `quality-review.md` with verdict `approved`.
+- `context.json` with clean `task_id`, `goal`, `stop_condition`, `must_read`, `allowed_files`, `non_goals`, `expected_evidence`, and `unsafe_assumptions`. `must_read` must include all four foundation specs, active change requirements, acceptance, spec map, component impact map, prototype handoff, prototype decision, and approved prototype entry source.
+- `report.md` with required `## Status`, `## Files Changed`, `## What Changed`, `## TDD Evidence`, `## Verification Commands`, `## Concerns`, `## Scope Deviations`, and `## Follow-up Needed` sections. Entry mode allows `DONE`, `DONE_WITH_CONCERNS`, `NEEDS_CONTEXT`, or `BLOCKED`; `DONE_WITH_CONCERNS` must include a substantive `## Adjudication` or `## Controller Adjudication` section.
+- `spec-review.md` with required `## Verdict`, `## Missing Requirements`, `## Extra Behavior`, `## Misunderstood Requirements`, `## Cannot Verify From Diff`, and `## Required Fixes` sections. Entry mode allows verdict `approved`, `needs-fix`, or `blocked`.
+- `quality-review.md` with required `## Verdict`, `## Separation Of Concerns`, `## Component Cohesion / Coupling`, `## Test Quality`, `## Error Handling`, `## Reuse / Duplication`, `## Complexity Delta`, and `## Required Fixes` sections. Entry mode allows verdict `approved`, `needs-fix`, or `blocked`.
 
 Maintain these development artifacts as the append-only execution contract:
 
@@ -45,10 +45,12 @@ Use `prototype-promotion-map.json` to reimplement approved prototype decisions u
 
 The ledger must show each task reaching `spec_review_passed`, `quality_review_passed`, and `complete`. Blocking drift stops development and routes to the owning stage. `validation-log.jsonl` must include a passing local validation entry before verification handoff.
 
+Before verification handoff, every task report must be final, every spec and quality review verdict must be `approved`, task ledger statuses must include `spec_review_passed`, `quality_review_passed`, and `complete`, drift must have no blocking entries, validation must include a pass, and `handoff-to-verify.md` must be complete.
+
 Before handing off to verification, rerun:
 
 ```bash
-node "$CLAUDE_PLUGIN_ROOT/scripts/development-contract.js" --json
+node "$CLAUDE_PLUGIN_ROOT/scripts/development-contract.js" --mode handoff --json
 ```
 
 Proceed only when the contract returns `"ok": true`.

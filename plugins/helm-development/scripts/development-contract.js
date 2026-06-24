@@ -8,22 +8,53 @@ const { validatePrototype } = require('../../helm-prototype/scripts/prototype-co
 
 const CHANGE_ARTIFACTS = ['scope.json', 'tasks.md'];
 
-const DEVELOPMENT_ARTIFACTS = [
+const DEVELOPMENT_ENTRY_ARTIFACTS = [
   'before-dev-check.json',
   'basis.md',
   'prototype-promotion-map.json',
   'complexity-budget.json',
   'task-graph.json',
   'task-context.jsonl',
+  'code-owner-map.json',
+  'extraction-map.json'
+];
+
+const DEVELOPMENT_HANDOFF_ARTIFACTS = [
+  ...DEVELOPMENT_ENTRY_ARTIFACTS,
   'task-ledger.jsonl',
   'drift-check.jsonl',
-  'code-owner-map.json',
-  'extraction-map.json',
   'validation-log.jsonl',
   'handoff-to-verify.md'
 ];
 
+const VALID_MODES = new Set(['entry', 'handoff']);
+const DEFAULT_MODE = 'handoff';
+
 const OPERATION_FIELDS = ['create', 'modify', 'delete', 'rename'];
+
+const FOUNDATION_SPEC_PATHS = [
+  'openspec/specs/ui-design/design.md',
+  'openspec/specs/system-architecture/design.md',
+  'openspec/specs/frontend-backend-data-flow/design.md',
+  'openspec/specs/component-architecture/design.md'
+];
+
+const CHANGE_REQUIREMENT_ARTIFACTS = [
+  'requirements.md',
+  'acceptance.md',
+  'spec-map.json',
+  'component-impact-map.json'
+];
+
+const PROTOTYPE_DECISION_ARTIFACTS = [
+  'prototype/handoff.md',
+  'prototype/decision.json'
+];
+
+const ENTRY_REPORT_STATUSES = new Set(['DONE', 'DONE_WITH_CONCERNS', 'NEEDS_CONTEXT', 'BLOCKED']);
+const HANDOFF_REPORT_STATUSES = new Set(['DONE', 'DONE_WITH_CONCERNS']);
+const ENTRY_REVIEW_VERDICTS = new Set(['approved', 'needs-fix', 'blocked']);
+const HANDOFF_REVIEW_VERDICTS = new Set(['approved']);
 
 const BRIEF_HEADINGS = [
   'Goal',
@@ -112,6 +143,10 @@ const VERTICAL_SLICE_PATTERN = /\b(?:user|users|customer|customers|admin|operato
 
 function unique(values) {
   return Array.from(new Set(values.filter(Boolean)));
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function isPlainObject(value) {
@@ -311,7 +346,150 @@ function validateRequiredHeadings(text, headings, blockerPrefix) {
   return blockers;
 }
 
-function validateScope(projectRoot, changeDir, activeChange) {
+function requiredSourcePaths(activeChange, approvedSourcePath = null) {
+  return [
+    ...FOUNDATION_SPEC_PATHS,
+    ...CHANGE_REQUIREMENT_ARTIFACTS.map((name) => artifactPath(activeChange, name)),
+    ...PROTOTYPE_DECISION_ARTIFACTS.map((name) => artifactPath(activeChange, name)),
+    approvedSourcePath
+  ].filter(Boolean);
+}
+
+function pathReferencesText(text, relativePath) {
+  return String(text || '').includes(relativePath);
+}
+
+function validateUpstreamContracts(projectRoot, activeChange, prototype) {
+  const name = 'upstream-contracts';
+  const blockers = [];
+  const requirements = prototype && prototype.requirements;
+  const foundation = requirements && requirements.foundation;
+
+  if (!requirements || requirements.ok !== true) {
+    blockers.push('upstream-requirements:not-ok');
+  } else {
+    if (!requirements.project_root || path.resolve(requirements.project_root) !== projectRoot) {
+      blockers.push('upstream-requirements:project-root');
+    }
+    if (requirements.active_change !== activeChange) {
+      blockers.push('upstream-requirements:active_change');
+    }
+
+    for (const artifactName of CHANGE_REQUIREMENT_ARTIFACTS) {
+      const expectedPath = artifactPath(activeChange, artifactName);
+      const artifact = Array.isArray(requirements.artifacts)
+        ? requirements.artifacts.find((item) => item && item.path === expectedPath)
+        : null;
+      if (!artifact || artifact.ok !== true) {
+        blockers.push(`upstream-requirements:missing-artifact:${expectedPath}`);
+      }
+    }
+  }
+
+  if (!foundation || foundation.ok !== true) {
+    blockers.push('upstream-foundation:not-ok');
+  } else {
+    if (!foundation.project_root || path.resolve(foundation.project_root) !== projectRoot) {
+      blockers.push('upstream-foundation:project-root');
+    }
+    for (const specPath of FOUNDATION_SPEC_PATHS) {
+      const spec = Array.isArray(foundation.specs)
+        ? foundation.specs.find((item) => item && item.path === specPath)
+        : null;
+      if (!spec || spec.ok !== true) {
+        blockers.push(`upstream-foundation:missing-spec:${specPath}`);
+      }
+    }
+  }
+
+  return artifactResult(activeChange, name, unique(blockers), false);
+}
+
+function validatePrototypeApprovalBinding(projectRoot, activeChange) {
+  const name = 'prototype-approval-binding';
+  const changeDir = lib.changeDir(projectRoot, activeChange);
+  const prototypeDir = path.join(changeDir, 'prototype');
+  const blockers = [];
+  let manifest = null;
+  let decision = null;
+  let approvedSourcePath = null;
+  let approvedVariant = null;
+  let prototypeType = null;
+
+  const manifestParsed = readJsonFile(path.join(prototypeDir, 'prototype-manifest.json'));
+  if (!manifestParsed.ok) {
+    blockers.push(manifestParsed.status === 'invalid-json' ? 'invalid-json:prototype-manifest.json' : 'missing-prototype-artifact:prototype-manifest.json');
+  } else if (!isPlainObject(manifestParsed.value)) {
+    blockers.push('invalid-json-shape:prototype-manifest.json');
+  } else {
+    manifest = manifestParsed.value;
+    prototypeType = manifest.type || null;
+    if (!isCleanRelativePath(manifest.entry)) {
+      blockers.push('invalid-prototype-manifest:entry');
+    } else {
+      approvedSourcePath = `openspec/changes/${activeChange}/prototype/${manifest.entry}`;
+      const prototypeRoot = path.resolve(projectRoot, 'openspec', 'changes', activeChange, 'prototype');
+      const candidate = path.resolve(projectRoot, approvedSourcePath);
+      const relative = path.relative(prototypeRoot, candidate);
+      if (!relative || relative.startsWith('..') || path.isAbsolute(relative)) {
+        blockers.push(`prototype-source-escape:${approvedSourcePath}`);
+      } else if (!fs.existsSync(candidate)) {
+        blockers.push(`missing-approved-prototype-source:${approvedSourcePath}`);
+      } else {
+        try {
+          const prototypeRealpath = realpathSync(prototypeRoot);
+          const candidateRealpath = realpathSync(candidate);
+          if (!isRealpathContained(prototypeRealpath, candidateRealpath)) {
+            blockers.push(`prototype-source-escape:${approvedSourcePath}`);
+          }
+        } catch {
+          blockers.push(`unreadable-approved-prototype-source:${approvedSourcePath}`);
+        }
+      }
+    }
+  }
+
+  const decisionParsed = readJsonFile(path.join(prototypeDir, 'decision.json'));
+  if (!decisionParsed.ok) {
+    blockers.push(decisionParsed.status === 'invalid-json' ? 'invalid-json:decision.json' : 'missing-prototype-artifact:decision.json');
+  } else if (!isPlainObject(decisionParsed.value)) {
+    blockers.push('invalid-json-shape:decision.json');
+  } else {
+    decision = decisionParsed.value;
+    if (decision.status !== 'approved') blockers.push('invalid-prototype-decision:status');
+    if (!isCleanString(decision.approved_variant)) {
+      blockers.push('invalid-prototype-decision:approved_variant');
+    } else {
+      approvedVariant = decision.approved_variant;
+    }
+  }
+
+  if (prototypeType === 'ui-html' && approvedSourcePath && approvedVariant) {
+    const entry = readTextFile(path.resolve(projectRoot, approvedSourcePath));
+    if (!entry.ok) {
+      blockers.push(`unreadable-approved-prototype-source:${approvedSourcePath}`);
+    } else {
+      const variantPattern = new RegExp(`data-helm-variant\\s*=\\s*(["'])${escapeRegExp(approvedVariant)}\\1`);
+      if (!variantPattern.test(entry.value)) {
+        blockers.push(`approved-prototype-entry:missing-variant:${approvedVariant}`);
+      }
+    }
+  }
+
+  return {
+    artifact: artifactResult(activeChange, name, unique(blockers), false, {
+      approved_source: approvedSourcePath,
+      approved_variant: approvedVariant,
+      prototype_type: prototypeType
+    }),
+    approved_source_path: approvedSourcePath,
+    approved_sources: approvedSourcePath ? [approvedSourcePath] : [],
+    approved_variant: approvedVariant,
+    blockers: unique(blockers)
+  };
+}
+
+function validateScope(projectRoot, changeDir, activeChange, approvalBinding = null) {
   const name = 'scope.json';
   const parsed = readJsonFile(path.join(changeDir, name));
   const blockers = [];
@@ -360,6 +538,9 @@ function validateScope(projectRoot, changeDir, activeChange) {
   if (Array.isArray(scope.prototype_sources)) {
     const prefix = `openspec/changes/${activeChange}/prototype/`;
     const prototypeRoot = path.resolve(projectRoot, prefix);
+    const approvedSources = new Set(approvalBinding && Array.isArray(approvalBinding.approved_sources)
+      ? approvalBinding.approved_sources
+      : []);
     let prototypeRealpath = null;
     try {
       prototypeRealpath = realpathSync(prototypeRoot);
@@ -367,10 +548,18 @@ function validateScope(projectRoot, changeDir, activeChange) {
       blockers.push('unreadable-prototype-source-root');
     }
 
+    if (approvalBinding && approvalBinding.approved_source_path && !scope.prototype_sources.includes(approvalBinding.approved_source_path)) {
+      blockers.push(`missing-approved-prototype-source:${approvalBinding.approved_source_path}`);
+    }
+
     for (const source of scope.prototype_sources) {
       if (!isCleanRelativePath(source) || !source.startsWith(prefix) || source === prefix) {
         blockers.push(`invalid-prototype-source:${source || '<empty>'}`);
         continue;
+      }
+
+      if (approvedSources.size > 0 && !approvedSources.has(source)) {
+        blockers.push(`unapproved-prototype-source:${source}`);
       }
 
       const candidate = path.resolve(projectRoot, source);
@@ -501,7 +690,7 @@ function validateBeforeDevCheck(developmentDir, activeChange) {
   return artifactResult(activeChange, name, unique(blockers), true);
 }
 
-function validateBasis(developmentDir, activeChange) {
+function validateBasis(developmentDir, activeChange, requiredReferences) {
   const name = 'basis.md';
   const text = readTextFile(path.join(developmentDir, name));
   const blockers = [];
@@ -516,6 +705,11 @@ function validateBasis(developmentDir, activeChange) {
   if (!normalized.includes('requirements')) blockers.push('invalid-basis:requirements-reference');
   if (!normalized.includes('prototype')) blockers.push('invalid-basis:prototype-reference');
   if (!normalized.includes('handoff')) blockers.push('invalid-basis:handoff-reference');
+  for (const relativePath of requiredReferences) {
+    if (!pathReferencesText(text.value, relativePath)) {
+      blockers.push(`invalid-basis:missing-reference:${relativePath}`);
+    }
+  }
 
   return artifactResult(activeChange, name, unique(blockers), true);
 }
@@ -665,7 +859,7 @@ function validateTaskBrief(taskDir, relativeTaskPath) {
   return { name, path: path.join(relativeTaskPath, name), ok: blockers.length === 0, blockers: unique(blockers) };
 }
 
-function validateTaskContext(taskDir, relativeTaskPath, taskId) {
+function validateTaskContext(taskDir, relativeTaskPath, taskId, requiredMustRead) {
   const name = 'context.json';
   const parsed = readJsonFile(path.join(taskDir, name));
   const blockers = [];
@@ -698,10 +892,18 @@ function validateTaskContext(taskDir, relativeTaskPath, taskId) {
     }
   }
 
+  if (Array.isArray(value.must_read)) {
+    for (const relativePath of requiredMustRead) {
+      if (!value.must_read.includes(relativePath)) {
+        blockers.push(`invalid-task-context:must_read-missing:${relativePath}`);
+      }
+    }
+  }
+
   return { name, path: path.join(relativeTaskPath, name), ok: blockers.length === 0, blockers: unique(blockers) };
 }
 
-function validateReport(taskDir, relativeTaskPath) {
+function validateReport(taskDir, relativeTaskPath, mode) {
   const name = 'report.md';
   const text = readTextFile(path.join(taskDir, name));
   const blockers = [];
@@ -720,7 +922,8 @@ function validateReport(taskDir, relativeTaskPath) {
     blockers.push('invalid-task-report:missing-status');
   } else {
     const status = firstSubstantiveValue(parsed, statusHeading);
-    if (!['DONE', 'DONE_WITH_CONCERNS'].includes(status)) {
+    const allowedStatuses = mode === 'entry' ? ENTRY_REPORT_STATUSES : HANDOFF_REPORT_STATUSES;
+    if (!allowedStatuses.has(status)) {
       blockers.push('invalid-task-report:status');
     }
     if (status === 'DONE_WITH_CONCERNS') {
@@ -734,7 +937,7 @@ function validateReport(taskDir, relativeTaskPath) {
   return { name, path: path.join(relativeTaskPath, name), ok: blockers.length === 0, blockers: unique(blockers) };
 }
 
-function validateVerdictFile(taskDir, relativeTaskPath, name) {
+function validateVerdictFile(taskDir, relativeTaskPath, name, mode) {
   const text = readTextFile(path.join(taskDir, name));
   const blockers = [];
   const type = name === 'spec-review.md' ? 'spec-review' : 'quality-review';
@@ -756,13 +959,14 @@ function validateVerdictFile(taskDir, relativeTaskPath, name) {
     blockers.push(`invalid-${type}:missing-verdict`);
   } else {
     const verdict = firstSubstantiveValue(parsed, verdictHeading);
-    if (verdict !== 'approved') blockers.push(`invalid-${type}:verdict`);
+    const allowedVerdicts = mode === 'entry' ? ENTRY_REVIEW_VERDICTS : HANDOFF_REVIEW_VERDICTS;
+    if (!allowedVerdicts.has(verdict)) blockers.push(`invalid-${type}:verdict`);
   }
 
   return { name, path: path.join(relativeTaskPath, name), ok: blockers.length === 0, blockers: unique(blockers) };
 }
 
-function validateTaskDir(developmentDir, activeChange, dirName) {
+function validateTaskDir(developmentDir, activeChange, dirName, mode, requiredMustRead) {
   const taskDir = path.join(developmentDir, 'tasks', dirName);
   const relativeTaskPath = artifactPath(activeChange, path.join('tasks', dirName), true);
   const blockers = [];
@@ -774,10 +978,10 @@ function validateTaskDir(developmentDir, activeChange, dirName) {
 
   const validators = [
     () => validateTaskBrief(taskDir, relativeTaskPath),
-    () => validateTaskContext(taskDir, relativeTaskPath, dirName),
-    () => validateReport(taskDir, relativeTaskPath),
-    () => validateVerdictFile(taskDir, relativeTaskPath, 'spec-review.md'),
-    () => validateVerdictFile(taskDir, relativeTaskPath, 'quality-review.md')
+    () => validateTaskContext(taskDir, relativeTaskPath, dirName, requiredMustRead),
+    () => validateReport(taskDir, relativeTaskPath, mode),
+    () => validateVerdictFile(taskDir, relativeTaskPath, 'spec-review.md', mode),
+    () => validateVerdictFile(taskDir, relativeTaskPath, 'quality-review.md', mode)
   ];
 
   for (const validate of validators) {
@@ -812,8 +1016,9 @@ function listTaskDirs(developmentDir) {
   }
 }
 
-function validateDevelopment(root = lib.projectRoot()) {
+function validateDevelopment(root = lib.projectRoot(), options = {}) {
   const projectRoot = path.resolve(root);
+  const mode = VALID_MODES.has(options.mode) ? options.mode : DEFAULT_MODE;
   const prototype = validatePrototype(projectRoot);
 
   if (!prototype.ok) {
@@ -822,6 +1027,7 @@ function validateDevelopment(root = lib.projectRoot()) {
     return {
       ok: false,
       project_root: projectRoot,
+      mode,
       active_change: activeChange,
       change_dir: changeDir,
       development_dir: changeDir ? path.join(changeDir, 'development') : null,
@@ -838,11 +1044,15 @@ function validateDevelopment(root = lib.projectRoot()) {
   const artifacts = [];
   const tasks = [];
   const blockers = [];
+  const approvalBinding = validatePrototypeApprovalBinding(projectRoot, activeChange);
+  const requiredReferences = requiredSourcePaths(activeChange, approvalBinding.approved_source_path);
 
-  artifacts.push(validateScope(projectRoot, changeDir, activeChange));
+  artifacts.push(validateUpstreamContracts(projectRoot, activeChange, prototype));
+  artifacts.push(approvalBinding.artifact);
+  artifacts.push(validateScope(projectRoot, changeDir, activeChange, approvalBinding));
   artifacts.push(validateTasksMarkdown(changeDir, activeChange));
   artifacts.push(validateBeforeDevCheck(developmentDir, activeChange));
-  artifacts.push(validateBasis(developmentDir, activeChange));
+  artifacts.push(validateBasis(developmentDir, activeChange, requiredReferences));
   artifacts.push(validatePromotionMap(developmentDir, activeChange));
 
   for (const name of ['complexity-budget.json', 'task-graph.json', 'code-owner-map.json', 'extraction-map.json']) {
@@ -855,22 +1065,25 @@ function validateDevelopment(root = lib.projectRoot()) {
   } else if (taskDirs.length === 0) {
     blockers.push('missing-development-task-dir');
   } else {
-    for (const dirName of taskDirs) tasks.push(validateTaskDir(developmentDir, activeChange, dirName));
+    for (const dirName of taskDirs) tasks.push(validateTaskDir(developmentDir, activeChange, dirName, mode, requiredReferences));
   }
 
   const taskIds = tasks.map((task) => task.task_id);
   artifacts.push(validateTaskContextLog(developmentDir, activeChange));
-  artifacts.push(validateTaskLedger(developmentDir, activeChange, taskIds));
-  artifacts.push(validateDriftCheck(developmentDir, activeChange));
-  artifacts.push(validateValidationLog(developmentDir, activeChange));
-  artifacts.push(validateHandoffToVerify(developmentDir, activeChange));
+  if (mode === 'handoff') {
+    artifacts.push(validateTaskLedger(developmentDir, activeChange, taskIds));
+    artifacts.push(validateDriftCheck(developmentDir, activeChange));
+    artifacts.push(validateValidationLog(developmentDir, activeChange));
+    artifacts.push(validateHandoffToVerify(developmentDir, activeChange));
+  }
 
   for (const name of CHANGE_ARTIFACTS) {
     if (!artifacts.some((artifact) => artifact.name === name)) {
       artifacts.push(artifactResult(activeChange, name, [`missing-development-artifact:${name}`]));
     }
   }
-  for (const name of DEVELOPMENT_ARTIFACTS) {
+  const requiredDevelopmentArtifacts = mode === 'entry' ? DEVELOPMENT_ENTRY_ARTIFACTS : DEVELOPMENT_HANDOFF_ARTIFACTS;
+  for (const name of requiredDevelopmentArtifacts) {
     if (!artifacts.some((artifact) => artifact.name === name)) {
       artifacts.push(artifactResult(activeChange, name, [`missing-development-artifact:${name}`], true));
     }
@@ -882,6 +1095,7 @@ function validateDevelopment(root = lib.projectRoot()) {
   return {
     ok: blockers.length === 0,
     project_root: projectRoot,
+    mode,
     active_change: activeChange,
     change_dir: changeDir,
     development_dir: developmentDir,
@@ -897,6 +1111,7 @@ function markdown(result) {
   lines.push('# Helm Development Contract');
   lines.push('');
   lines.push(`- project: \`${result.project_root}\``);
+  lines.push(`- mode: \`${result.mode || DEFAULT_MODE}\``);
   lines.push(`- active change: \`${result.active_change || 'none'}\``);
   lines.push(`- change dir: \`${result.change_dir || 'none'}\``);
   lines.push(`- development dir: \`${result.development_dir || 'none'}\``);
@@ -917,9 +1132,56 @@ function markdown(result) {
   return `${lines.join('\n')}\n`;
 }
 
+function parseArgs(argv) {
+  const args = argv.slice(2);
+  const parsed = { json: args.includes('--json'), mode: DEFAULT_MODE, error: null };
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg === '--mode') {
+      const value = args[index + 1];
+      if (!VALID_MODES.has(value)) {
+        parsed.error = `invalid-mode:${value || '<missing>'}`;
+        return parsed;
+      }
+      parsed.mode = value;
+      index += 1;
+      continue;
+    }
+    if (arg.startsWith('--mode=')) {
+      const value = arg.slice('--mode='.length);
+      if (!VALID_MODES.has(value)) {
+        parsed.error = `invalid-mode:${value || '<missing>'}`;
+        return parsed;
+      }
+      parsed.mode = value;
+    }
+  }
+
+  return parsed;
+}
+
 function main() {
-  const result = validateDevelopment();
-  process.stdout.write(process.argv.includes('--json') ? `${JSON.stringify(result, null, 2)}\n` : markdown(result));
+  const args = parseArgs(process.argv);
+  if (args.error) {
+    const result = {
+      ok: false,
+      mode: args.mode,
+      project_root: path.resolve(lib.projectRoot()),
+      active_change: null,
+      change_dir: null,
+      development_dir: null,
+      blockers: [args.error],
+      prototype: null,
+      artifacts: [],
+      tasks: []
+    };
+    process.stdout.write(args.json ? `${JSON.stringify(result, null, 2)}\n` : markdown(result));
+    process.exit(2);
+  }
+
+  const result = validateDevelopment(lib.projectRoot(), { mode: args.mode });
+  process.stdout.write(args.json ? `${JSON.stringify(result, null, 2)}\n` : markdown(result));
   process.exit(result.ok ? 0 : 2);
 }
 
