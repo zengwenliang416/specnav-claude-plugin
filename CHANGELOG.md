@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.4
+
+- Resolve installed Helm plugin roots inside slash commands instead of relying on hook-only `CLAUDE_PLUGIN_ROOT`.
+- Update Helm skills to use explicit `HELM_*_ROOT` runtime variables and stop if installed plugin roots cannot be resolved.
+- Add a regression fixture that executes `/helm-bootstrap` with `CLAUDE_PLUGIN_ROOT` unset and verifies OpenSpec initialization succeeds.
+
 ## 0.3.3
 
 - Add `/helm-bootstrap` and `helm-bootstrap` as the explicit OpenSpec initialization entrypoint when Helm reports `missing-openspec`.

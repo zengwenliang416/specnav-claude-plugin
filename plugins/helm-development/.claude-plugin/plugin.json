@@ -1,6 +1,6 @@
 {
   "name": "helm-development",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "Development stage plugin for the Helm OpenSpec lifecycle suite.",
   "author": {
     "name": "Wenliang Zeng"

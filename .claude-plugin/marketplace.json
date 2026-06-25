@@ -9,42 +9,42 @@
       "name": "helm-core",
       "source": "./plugins/helm-core",
       "description": "Helm core runtime: router, hooks, state machine, doctor, and suite governance.",
-      "version": "0.3.3",
+      "version": "0.3.4",
       "category": "productivity"
     },
     {
       "name": "helm-requirements",
       "source": "./plugins/helm-requirements",
       "description": "Helm requirements stage: foundation specs, requirements questioning, acceptance, and maps.",
-      "version": "0.3.3",
+      "version": "0.3.4",
       "category": "productivity"
     },
     {
       "name": "helm-prototype",
       "source": "./plugins/helm-prototype",
       "description": "Helm prototype stage: isolated prototype code, review, verification, and handoff.",
-      "version": "0.3.3",
+      "version": "0.3.4",
       "category": "productivity"
     },
     {
       "name": "helm-development",
       "source": "./plugins/helm-development",
       "description": "Helm development stage: scope lock, vertical slices, task ledger, and development handoff.",
-      "version": "0.3.3",
+      "version": "0.3.4",
       "category": "productivity"
     },
     {
       "name": "helm-verification",
       "source": "./plugins/helm-verification",
       "description": "Helm verification stage: six-domain evidence, traceability, receipt, and aggregate report.",
-      "version": "0.3.3",
+      "version": "0.3.4",
       "category": "productivity"
     },
     {
       "name": "helm-operations",
       "source": "./plugins/helm-operations",
       "description": "Helm operations stage: release, install/update policy, deploy, rollback, monitor, and archive.",
-      "version": "0.3.3",
+      "version": "0.3.4",
       "category": "productivity"
     }
   ]
