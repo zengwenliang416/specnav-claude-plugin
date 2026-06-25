@@ -5,6 +5,8 @@
   "required": true,
   "depends_on": [
     "helm-core",
+    "helm-requirements",
+    "helm-prototype",
     "helm-development"
   ],
   "commands": [
@@ -17,7 +19,8 @@
     "helm-verify-unit",
     "helm-verify-redteam",
     "helm-verify-e2e",
-    "helm-verify-sensory"
+    "helm-verify-sensory",
+    "helm-verify-rerun"
   ],
   "contracts": {
     "verification": "scripts/verify-domains.js"

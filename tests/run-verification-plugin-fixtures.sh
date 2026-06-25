@@ -577,6 +577,7 @@ test -f "$VERIFY/skills/helm-verify-unit/SKILL.md"
 test -f "$VERIFY/skills/helm-verify-redteam/SKILL.md"
 test -f "$VERIFY/skills/helm-verify-e2e/SKILL.md"
 test -f "$VERIFY/skills/helm-verify-sensory/SKILL.md"
+test -f "$VERIFY/skills/helm-verify-rerun/SKILL.md"
 jq -e '.contracts.verification == "scripts/verify-domains.js"' "$VERIFY/helm-stage.json" >/dev/null
 jq -e 'has("planned_contracts") | not' "$VERIFY/helm-stage.json" >/dev/null
 grep -Fq -- '--marketplace-root "$HELM_MARKETPLACE_ROOT"' "$VERIFY/commands/helm-verify.md"
@@ -597,6 +598,35 @@ run_json "$PROJECT" aggregate "$TMP_DIR/aggregate-green.json" 0
 jq -e '.verdict == "green"' "$TMP_DIR/aggregate-green.json" >/dev/null
 jq -e '.status == "green"' "$PROJECT/openspec/changes/add-dashboard/verify-report.json" >/dev/null
 test -f "$PROJECT/openspec/changes/add-dashboard/verify/aggregate-report.json"
+
+# Stale marker unresolved: a production edit after green verification (domain reports predate the marker)
+# must block validation and force the aggregate red without re-running domains.
+STALE_PROJECT="$TMP_DIR/stale-project"
+cp -R "$PROJECT" "$STALE_PROJECT"
+STALE_DIR="$STALE_PROJECT/openspec/changes/add-dashboard"
+for d in facticity static unit redteam e2e sensory; do
+  touch -t 202601010000 "$STALE_DIR/verify/$d/report.json"
+done
+printf 'edited\n' >"$STALE_DIR/verify-report.stale"
+run_json "$STALE_PROJECT" validate "$TMP_DIR/stale-validate.json" 2
+assert_blocker "$TMP_DIR/stale-validate.json" 'stale-verify-report'
+run_json "$STALE_PROJECT" aggregate "$TMP_DIR/stale-aggregate.json" 2
+jq -e '.verdict == "red"' "$TMP_DIR/stale-aggregate.json" >/dev/null
+jq -e '.stale == true' "$TMP_DIR/stale-aggregate.json" >/dev/null
+test -f "$STALE_DIR/verify-report.stale"
+
+# Stale marker resolved: re-running domain verification (domain reports newer than the marker)
+# lets the aggregate go green again and clears the marker. Guards against a stale-deadlock.
+FRESH_PROJECT="$TMP_DIR/fresh-after-stale-project"
+cp -R "$PROJECT" "$FRESH_PROJECT"
+FRESH_DIR="$FRESH_PROJECT/openspec/changes/add-dashboard"
+touch -t 202601010000 "$FRESH_DIR/verify-report.stale"
+for d in facticity static unit redteam e2e sensory; do
+  touch "$FRESH_DIR/verify/$d/report.json"
+done
+run_json "$FRESH_PROJECT" aggregate "$TMP_DIR/fresh-aggregate.json" 0
+jq -e '.verdict == "green"' "$TMP_DIR/fresh-aggregate.json" >/dev/null
+test ! -f "$FRESH_DIR/verify-report.stale"
 
 set +e
 PROJECT_DIR="$PROJECT" node "$ROOT/plugins/helm-core/scripts/verify.js" >"$TMP_DIR/core-verify.txt"

@@ -330,6 +330,29 @@ function validateBehaviorEvals(verifyDir, change) {
   return artifacts;
 }
 
+function staleMarkerUnresolved(changeDir, verifyDir) {
+  if (!changeDir) return false;
+  const staleFile = path.join(changeDir, 'verify-report.stale');
+  if (!fs.existsSync(staleFile)) return false;
+  let staleMtime;
+  try {
+    staleMtime = fs.statSync(staleFile).mtimeMs;
+  } catch {
+    return true;
+  }
+  if (!verifyDir) return true;
+  for (const domain of DOMAINS) {
+    let reportMtime;
+    try {
+      reportMtime = fs.statSync(path.join(verifyDir, domain, 'report.json')).mtimeMs;
+    } catch {
+      return true;
+    }
+    if (reportMtime <= staleMtime) return true;
+  }
+  return false;
+}
+
 function validateVerify(root = lib.projectRoot()) {
   const projectRoot = path.resolve(root);
   const development = validateDevelopment(projectRoot, { mode: 'handoff' });
@@ -361,6 +384,7 @@ function validateVerify(root = lib.projectRoot()) {
   }
 
   blockers.push(...artifacts.flatMap((artifact) => artifact.blockers));
+  if (staleMarkerUnresolved(changeDir, verifyDir)) blockers.push('stale-verify-report');
 
   return {
     ok: blockers.length === 0,
@@ -378,6 +402,7 @@ function writeAggregate(root = lib.projectRoot()) {
   const projectRoot = path.resolve(root);
   const validation = validateVerify(projectRoot);
   const verifyDir = validation.verify_dir;
+  const staleUnresolved = staleMarkerUnresolved(validation.change_dir, verifyDir);
   const verdict = validation.ok ? 'green' : 'red';
   const domains = {};
   for (const domain of DOMAINS) {
@@ -395,7 +420,7 @@ function writeAggregate(root = lib.projectRoot()) {
     residual_risk: [],
     evidence_receipt: 'verify/receipt.json',
     behavior_eval_report: 'verify/behavior-evals/report.json',
-    stale: false,
+    stale: staleUnresolved,
     blockers: validation.blockers,
     required_domains: DOMAINS,
     artifacts: validation.artifacts.map((artifact) => ({
