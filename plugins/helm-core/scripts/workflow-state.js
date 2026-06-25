@@ -60,6 +60,7 @@ function journalSessionName(date = new Date()) {
 }
 
 function writeRuntimeArtifacts(root, result = workflowState(root)) {
+  lib.ensureHelmMarker(root);
   const helmDir = lib.helmDir(root);
   lib.writeJson(path.join(helmDir, 'workflow-state.json'), result);
 

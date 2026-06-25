@@ -8,20 +8,28 @@ const workflow = require('./workflow-state');
 function main() {
   const root = lib.projectRoot();
   if (!fs.existsSync(lib.openspecDir(root))) {
-    const result = {
+    if (lib.isHelmProject(root)) {
+      const result = {
+        schema: 'helm.sessionStart.v1',
+        status: 'blocked',
+        blockers: ['missing-openspec'],
+        project_root: root,
+        allowed_actions: [
+          '/helm-bootstrap',
+          '/helm-status',
+          '/helm-doctor'
+        ],
+        recommended_command: '/helm-bootstrap'
+      };
+      process.stderr.write(`[helm] missing-openspec: run /helm-bootstrap to initialize OpenSpec for ${root} before production work.\n`);
+      process.stdout.write(`${JSON.stringify(result)}\n`);
+      return;
+    }
+    process.stdout.write(`${JSON.stringify({
       schema: 'helm.sessionStart.v1',
-      status: 'blocked',
-      blockers: ['missing-openspec'],
-      project_root: root,
-      allowed_actions: [
-        '/helm-bootstrap',
-        '/helm-status',
-        '/helm-doctor'
-      ],
-      recommended_command: '/helm-bootstrap'
-    };
-    process.stderr.write(`[helm] missing-openspec: run /helm-bootstrap to initialize OpenSpec for ${root} before production work.\n`);
-    process.stdout.write(`${JSON.stringify(result)}\n`);
+      status: 'inactive',
+      project_root: root
+    })}\n`);
     return;
   }
 

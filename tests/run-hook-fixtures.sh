@@ -43,13 +43,40 @@ run_case openspec-allowed "$PROJECT" 0
 run_case bash-safe "$PROJECT" 0
 run_case bash-danger "$PROJECT" 2
 run_case write-missing-path "$PROJECT" 1
-run_case write-allowed "$NO_STATE" 2
+# State 1: non-Helm project (no marker, no openspec) — guard stays inert
+run_case write-allowed "$NO_STATE" 0
 run_case bash-bootstrap "$NO_STATE" 0
-run_case bash-plugin-suite "$NO_STATE" 0
+
+# State 2: Helm project missing openspec (.helm.json present) — deny production writes, allow init/repair
+HELM_BROKEN_PROJECT="$TMP_DIR/helm-broken-project"
+mkdir -p "$HELM_BROKEN_PROJECT"
+printf '{"schema_version":1,"enabled":true}\n' >"$HELM_BROKEN_PROJECT/.helm.json"
+run_case write-allowed "$HELM_BROKEN_PROJECT" 2
+run_case bash-bootstrap "$HELM_BROKEN_PROJECT" 0
+run_case bash-plugin-suite "$HELM_BROKEN_PROJECT" 0
+run_case openspec-allowed "$HELM_BROKEN_PROJECT" 0
 
 MISSING_SCOPE_PROJECT="$TMP_DIR/missing-scope-project"
 cp -R "$PROJECT" "$MISSING_SCOPE_PROJECT"
 rm "$MISSING_SCOPE_PROJECT/openspec/changes/add-dark-mode/scope.json"
 run_case write-allowed "$MISSING_SCOPE_PROJECT" 2
+
+# Scope escalation (§6.3): allowed_operations + requires_review_on enforced at edit time.
+ESCALATION_PROJECT="$TMP_DIR/escalation-project"
+mkdir -p "$ESCALATION_PROJECT/openspec/.helm/overrides" "$ESCALATION_PROJECT/openspec/changes/c" "$ESCALATION_PROJECT/src/locked" "$ESCALATION_PROJECT/src/shared"
+printf 'c\n' >"$ESCALATION_PROJECT/openspec/.helm/active-change"
+printf -- '- task\n' >"$ESCALATION_PROJECT/openspec/changes/c/tasks.md"
+cat >"$ESCALATION_PROJECT/openspec/changes/c/scope.json" <<'JSON'
+{"schema_version":1,"allowed_roots":["src/**"],"denied_roots":[],"allowed_operations":{"create":true,"modify":false,"delete":false,"rename":true},"requires_review_on":["src/shared/**"]}
+JSON
+printf 'existing\n' >"$ESCALATION_PROJECT/src/locked/config.ts"
+# modify of an existing in-scope file is blocked when allowed_operations.modify is false
+run_case operation-modify-denied "$ESCALATION_PROJECT" 2
+# a requires_review_on path warns (escalated review) until a review override exists
+run_case review-required "$ESCALATION_PROJECT" 1
+cat >"$ESCALATION_PROJECT/openspec/.helm/overrides/review.json" <<'JSON'
+{"gate":"review","reason":"shared component reviewed","active_change":"c","affected_path":"src/shared/button.tsx","expires_at":"2099-01-01T00:00:00.000Z"}
+JSON
+run_case review-required "$ESCALATION_PROJECT" 0
 
 echo "helm hook fixtures ok"

@@ -138,11 +138,20 @@ function readFileScope(changeDir) {
     blockers.push('invalid-scope-denied-roots');
   }
 
+  const operations = (jsonScope.allowed_operations && typeof jsonScope.allowed_operations === 'object' && !Array.isArray(jsonScope.allowed_operations))
+    ? jsonScope.allowed_operations
+    : null;
+  const reviewRequired = Array.isArray(jsonScope.requires_review_on)
+    ? jsonScope.requires_review_on.filter((value) => typeof value === 'string' && value.trim())
+    : [];
+
   return {
     ok: blockers.length === 0,
     source: 'scope.json',
     include,
     exclude,
+    operations,
+    reviewRequired,
     blockers
   };
 }
@@ -273,15 +282,37 @@ function openspecStatus(root, change) {
   };
 }
 
+function helmMarkerFile(root) {
+  return path.join(root, '.helm.json');
+}
+
+function isHelmProject(root) {
+  return fs.existsSync(helmMarkerFile(root)) || fs.existsSync(openspecDir(root));
+}
+
+function ensureHelmMarker(root) {
+  const file = helmMarkerFile(root);
+  if (fs.existsSync(file)) return false;
+  writeJson(file, {
+    schema_version: 1,
+    enabled: true,
+    created_at: new Date().toISOString()
+  });
+  return true;
+}
+
 module.exports = {
   activeChange,
   changeDir,
   ensureDir,
+  ensureHelmMarker,
   event,
   fileExists,
   findActiveOverride,
   globLikeMatch,
   helmDir,
+  helmMarkerFile,
+  isHelmProject,
   listDirs,
   listOverrides,
   openspecDir,

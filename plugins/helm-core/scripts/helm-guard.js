@@ -133,6 +133,9 @@ function main() {
   const hasOpenSpec = fs.existsSync(lib.openspecDir(root));
 
   if (!hasOpenSpec) {
+    if (!lib.isHelmProject(root)) {
+      allow(root, 'non-helm-project');
+    }
     const openspecRepairPaths = relPaths.length > 0 && productionPaths.length === 0;
     if (openspecRepairPaths) allow(root, 'openspec-repair-without-openspec');
     if (isBashTool(normalized.tool) && isOpenSpecRepairCommand(normalized.command)) {
@@ -174,6 +177,7 @@ function main() {
     deny(`production edits require a valid scope.json: ${(scope.blockers || []).join(', ') || 'invalid-scope'}.`);
   }
 
+  const reviewHits = [];
   for (const rel of productionPaths) {
     if (/^tests\/acceptance\//.test(rel)) {
       if (pathOverrideAllows(root, 'frozen-acceptance', rel, change)) continue;
@@ -194,6 +198,21 @@ function main() {
       });
       deny(`${rel} is outside declared Helm file scope from ${scope.source}: ${scope.include.join(', ') || '(no include scope)'}`);
     }
+    if (scope.operations) {
+      const operation = fs.existsSync(path.resolve(root, rel)) ? 'modify' : 'create';
+      if (scope.operations[operation] === false && !pathOverrideAllows(root, 'operation', rel, change)) {
+        lib.event(root, 'hook.deny', { reason: 'operation', operation, path: rel });
+        deny(`${operation} of ${rel} is blocked by scope.json allowed_operations.`);
+      }
+    }
+    if (Array.isArray(scope.reviewRequired) && scope.reviewRequired.some((pattern) => lib.globLikeMatch(pattern, rel))) {
+      reviewHits.push(rel);
+    }
+  }
+
+  if (reviewHits.length && !reviewHits.every((rel) => pathOverrideAllows(root, 'review', rel, change))) {
+    lib.event(root, 'hook.warn', { reason: 'requires-review', paths: reviewHits });
+    warn(root, `${reviewHits.join(', ')} match requires_review_on; escalate review (shared/dependency/migration) then add a review override.`);
   }
 
   allow(root, 'within-scope');

@@ -219,14 +219,21 @@ test -s "$PROJECT/openspec/.helm/context/verify-context.jsonl"
 test -s "$PROJECT/openspec/.helm/context/ops-context.jsonl"
 test -f "$PROJECT/openspec/.helm/journal/index.md"
 
+# Non-Helm project (no marker, no openspec) — session stays inactive, no routing noise
+session_inactive_json="$TMP_DIR/session-inactive.json"
+PROJECT_DIR="$NO_STATE" node "$CORE/scripts/helm-session-start.js" >"$session_inactive_json" 2>"$TMP_DIR/session-inactive.err"
+assert_jq '.status == "inactive"' "$session_inactive_json" "session start did not report inactive for non-Helm project"
+
+# Helm project missing openspec (.helm.json present) — session blocks and routes to bootstrap
+session_helm_broken="$TMP_DIR/session-helm-broken"
+mkdir -p "$session_helm_broken"
+printf '{"schema_version":1,"enabled":true}\n' >"$session_helm_broken/.helm.json"
 session_blocked_json="$TMP_DIR/session-blocked.json"
-PROJECT_DIR="$NO_STATE" node "$CORE/scripts/helm-session-start.js" >"$session_blocked_json" 2>"$TMP_DIR/session-blocked.err"
-assert_jq '.status == "blocked"' "$session_blocked_json" "session start did not report blocked without openspec"
-assert_jq '.blockers | index("missing-openspec")' "$session_blocked_json" "session start did not report missing-openspec"
-assert_jq '.recommended_command == "/helm-bootstrap"' "$session_blocked_json" "session start did not recommend helm-bootstrap"
-assert_jq '.allowed_actions | index("/helm-bootstrap")' "$session_blocked_json" "session start did not include helm-bootstrap allowed action"
+PROJECT_DIR="$session_helm_broken" node "$CORE/scripts/helm-session-start.js" >"$session_blocked_json" 2>"$TMP_DIR/session-blocked.err"
+assert_jq '.status == "blocked"' "$session_blocked_json" "Helm project without openspec did not block"
+assert_jq '.blockers | index("missing-openspec")' "$session_blocked_json" "Helm project did not report missing-openspec"
+assert_jq '.recommended_command == "/helm-bootstrap"' "$session_blocked_json" "Helm project did not recommend helm-bootstrap"
 grep -Fq 'missing-openspec' "$TMP_DIR/session-blocked.err"
-grep -Fq '/helm-bootstrap' "$TMP_DIR/session-blocked.err"
 
 doctor_json="$TMP_DIR/helm-doctor.json"
 doctor_status=0
