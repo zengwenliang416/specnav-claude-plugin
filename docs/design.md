@@ -94,6 +94,8 @@ Allowed exceptions are explicit non-production actions:
 - edits under `openspec/**` that create or repair required workflow artifacts;
 - documentation edits that do not touch production code.
 
+This policy applies only to Helm-managed projects. A project is Helm-managed once it opts in: either an `openspec/` directory exists or a project-root `.helm.json` marker is present (written by `/helm-bootstrap`). In a project that never opted into Helm (no `openspec/` and no `.helm.json`), the guard and session-start hook stay inert and block nothing. This keeps a globally-installed Helm from interfering with unrelated projects while still enforcing the no-fallback policy wherever Helm is active. See §15.
+
 ## 4. Requirements Stage Foundation Specs
 
 Requirements discovery is gated by project-level specs. Helm must not begin feature grilling until the required foundation specs exist and pass structural checks.
@@ -549,7 +551,9 @@ Scope rules:
 - missing `scope.json` blocks production edits;
 - edits outside `allowed_roots` block;
 - edits inside `denied_roots` block;
-- delete, migration, dependency, and shared-component changes escalate review strength;
+- delete, migration, dependency, and shared-component changes escalate review strength.
+
+The PreToolUse guard enforces these at edit time for file tools (Write/Edit/MultiEdit/NotebookEdit): an operation blocked by `allowed_operations` is denied (`create` vs `modify` is inferred from whether the target file already exists), and a path matching `requires_review_on` warns to escalate review until a `review` override is recorded. Delete and rename performed through Bash are not parsed for scope at the PreToolUse layer — command-string operation semantics are unreliable — so they are governed by the review loop (§6.8) and ledger (§6.9) instead.
 - implementers cannot expand scope and must report `NEEDS_CONTEXT` or `BLOCKED`.
 
 ### 6.4 Vertical Slice Tasking
@@ -863,6 +867,8 @@ Skills provide direct recovery paths:
 - `status`
 - `helm-router`
 
+> Note: The skill names below are the original target taxonomy. The implemented suite consolidates them — see `docs/skill-suite-redesign.md` for the authoritative current skill set (helm-prefixed, fewer skills). The list below is retained for design rationale, not as the literal on-disk inventory.
+
 Target skill groups:
 
 - bootstrap/router: `using-helm`, `helm-router`, `bootstrap`, `doctor`, `status`;
@@ -1106,9 +1112,12 @@ Runs on `PreToolUse`. It denies:
 - dangerous shell commands;
 - edits to `tests/acceptance/`;
 - production edits without active `tasks.md`;
-- edits outside declared file scope.
+- edits outside declared file scope;
+- operations disallowed by `scope.json` `allowed_operations` (create/modify, for file tools).
 
-Missing workflow state must block production writes. The guard may allow read-only actions, status/doctor commands, initialization, and OpenSpec/Helm artifact repair, but it must not allow production edits from inferred state.
+It also warns (escalating review) on edits whose path matches `scope.json` `requires_review_on`, until a `review` override is recorded. Bash-driven delete/rename are not parsed at this layer (see §6.3).
+
+Missing workflow state must block production writes in a Helm-managed project. The guard may allow read-only actions, status/doctor commands, initialization, and OpenSpec/Helm artifact repair, but it must not allow production edits from inferred state. A project is Helm-managed when `openspec/` exists or a project-root `.helm.json` marker is present; in a project that never opted into Helm (neither present), the guard stays inert and allows all actions. See §3 and §15.
 
 ### `scripts/helm-post-tool.js`
 
@@ -1124,7 +1133,10 @@ The hook policy mirrors the main design:
 | frozen acceptance contract | deny |
 | missing tasks before production edit | deny |
 | outside file scope | deny |
-| missing `openspec/` | deny production writes; allow init/status/doctor/OpenSpec repair |
+| operation disallowed by `allowed_operations` (file tools) | deny |
+| path matches `requires_review_on` | warn; escalate review until `review` override |
+| missing `openspec/` in a Helm-managed project (`.helm.json` present) | deny production writes; allow init/status/doctor/OpenSpec repair |
+| missing `openspec/` with no `.helm.json` (never opted into Helm) | stay inert; allow all actions |
 | OpenSpec CLI unavailable when required | block dependent action |
 | missing/incomplete workflow state | deny production writes |
 | missing context manifest for subagent action | block subagent dispatch |
@@ -1133,6 +1145,8 @@ The hook policy mirrors the main design:
 Future work should add fixture coverage for every Claude Code tool payload shape.
 
 ## 11. File Scope Contract
+
+> Note: The canonical `scope.json` schema is defined in §6.3 using `allowed_roots`/`denied_roots`. The `include`/`exclude` keys shown below are the original form; the guard accepts both (`allowed_roots`/`denied_roots` take precedence). New scopes should use the §6.3 schema.
 
 Production edits require machine-readable `scope.json`:
 
@@ -2034,6 +2048,15 @@ claude plugin update helm-operations@helm-marketplace --scope user
 ```
 
 Start a new Claude Code session after changing commands, skills, hooks, or agents.
+
+### Global install and project opt-in
+
+Helm installs at user scope, so its hooks run in every project. Helm governs a project only once that project opts in:
+
+- `/helm-bootstrap` initializes `openspec/` and writes a project-root `.helm.json` marker.
+- A project is Helm-managed when `openspec/` exists or `.helm.json` is present.
+- In a project that never opted in (neither present), the session-start hook reports `status: inactive` and the guard allows all actions, so a globally-installed Helm never blocks unrelated projects.
+- If a Helm-managed project loses its `openspec/` directory, the `.helm.json` marker keeps Helm active: the guard blocks production writes and session-start routes to `/helm-bootstrap` for repair (see §3, §9, §10).
 
 ## 16. Test Strategy
 
