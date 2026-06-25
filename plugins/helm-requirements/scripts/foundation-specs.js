@@ -41,7 +41,24 @@ const REQUIRED_FOUNDATION_SPECS = [
       '## Operational Constraints',
       "## Architecture Do's and Don'ts"
     ],
-    requiredFrontmatterKeys: []
+    requiredFrontmatterKeys: [],
+    requiredFieldLabels: [
+      { label: 'responsibility', patterns: ['responsibilit'] },
+      { label: 'public-contract', patterns: ['public contract'] },
+      { label: 'owned-data', patterns: ['owned data'] },
+      { label: 'dependencies', patterns: ['dependenc'] },
+      { label: 'forbidden-dependencies', patterns: ['forbidden'] },
+      { label: 'extension-points', patterns: ['extension'] },
+      { label: 'entity-purpose', patterns: ['purpose'] },
+      { label: 'entity-owner', patterns: ['owner'] },
+      { label: 'entity-fields', patterns: ['field'] },
+      { label: 'entity-relationships', patterns: ['relationship'] },
+      { label: 'entity-indexes', patterns: ['index'] },
+      { label: 'entity-constraints', patterns: ['constraint'] },
+      { label: 'entity-lifecycle', patterns: ['lifecycle'] },
+      { label: 'entity-migration', patterns: ['migration'] },
+      { label: 'entity-retention', patterns: ['retention', 'deletion'] }
+    ]
   },
   {
     id: 'frontend-backend-data-flow',
@@ -59,7 +76,17 @@ const REQUIRED_FOUNDATION_SPECS = [
       '## Async / Realtime Flows',
       "## Flow Do's and Don'ts"
     ],
-    requiredFrontmatterKeys: []
+    requiredFrontmatterKeys: [],
+    requireFlowId: true,
+    requiredFieldLabels: [
+      { label: 'user-trigger', patterns: ['trigger'] },
+      { label: 'request', patterns: ['request'] },
+      { label: 'response', patterns: ['response'] },
+      { label: 'validation', patterns: ['validation', 'validate'] },
+      { label: 'error', patterns: ['error'] },
+      { label: 'retry-idempotency', patterns: ['retry', 'idempoten'] },
+      { label: 'rollback', patterns: ['rollback'] }
+    ]
   },
   {
     id: 'component-architecture',
@@ -126,6 +153,24 @@ function markdownHasSection(text, heading) {
   const normalized = stripFencedCodeBlocks(text);
   if (heading === '# ') return /^#\s+\S+/m.test(normalized);
   return new RegExp(`^${escapeRegExp(heading)}\\s*$`, 'm').test(normalized);
+}
+
+const FLOW_ID_PATTERN = /\bFLOW-[A-Z0-9][A-Z0-9-]*\b/;
+
+function specBodyText(text) {
+  return stripFencedCodeBlocks(text).toLowerCase();
+}
+
+function specDeclaresContent(text) {
+  const body = stripFencedCodeBlocks(text);
+  return /^\s{0,3}#{3,6}\s+\S/m.test(body) || /^\s*\|.*\|\s*$/m.test(body);
+}
+
+function missingFieldLabels(text, requiredFieldLabels) {
+  const body = specBodyText(text);
+  return requiredFieldLabels
+    .filter((field) => !field.patterns.some((pattern) => body.includes(pattern)))
+    .map((field) => field.label);
 }
 
 function isYamlQuoteStart(value, index) {
@@ -673,6 +718,22 @@ function validateSpecText(text, contract, label = null) {
 
   if (missingSections.length) blockers.push(`invalid-foundation-spec-sections:${contract.id}`);
 
+  const missingFieldLabelValues = [];
+  const missingFlowIds = [];
+  const declaresContent = (contract.requiredFieldLabels || contract.requireFlowId) ? specDeclaresContent(text) : false;
+  if (declaresContent) {
+    if (contract.requiredFieldLabels) {
+      missingFieldLabelValues.push(
+        ...missingFieldLabels(text, contract.requiredFieldLabels).map((field) => labelValue(label, field))
+      );
+      if (missingFieldLabelValues.length) blockers.push(`invalid-foundation-spec-fields:${contract.id}`);
+    }
+    if (contract.requireFlowId && !FLOW_ID_PATTERN.test(text)) {
+      missingFlowIds.push(labelValue(label, 'FLOW-ID'));
+      blockers.push(`missing-flow-id:${contract.id}`);
+    }
+  }
+
   const unresolvedMarkers = [];
   if (/<decision-required>/i.test(text)) unresolvedMarkers.push(labelValue(label, '<decision-required>'));
   if (/\bdecision-required\b/i.test(text)) unresolvedMarkers.push(labelValue(label, 'decision-required'));
@@ -687,6 +748,8 @@ function validateSpecText(text, contract, label = null) {
     frontmatter,
     invalidReferences: unique(invalidReferences),
     invalidFrontmatterValues: unique(invalidFrontmatterValues),
+    missingFieldLabels: unique(missingFieldLabelValues),
+    missingFlowIds: unique(missingFlowIds),
     unresolvedMarkers: unique(unresolvedMarkers)
   };
 }
@@ -885,6 +948,8 @@ function validateOne(root, spec) {
   const blockers = primary.blockers.slice();
   const invalidReferences = primary.invalidReferences.slice();
   const invalidFrontmatterValues = primary.invalidFrontmatterValues.slice();
+  const missingFieldLabelValues = primary.missingFieldLabels.slice();
+  const missingFlowIds = primary.missingFlowIds.slice();
   const frontmatterErrors = [];
   const frontmatter_error = primary.frontmatter ? primary.frontmatter.error : null;
 
@@ -908,7 +973,9 @@ function validateOne(root, spec) {
     ...(frontmatter_error ? { frontmatter_error } : {}),
     ...(frontmatterErrors.length ? { frontmatter_errors: unique(frontmatterErrors) } : {}),
     ...(invalidReferences.length ? { invalid_token_references: unique(invalidReferences) } : {}),
-    ...(invalidFrontmatterValues.length ? { invalid_frontmatter_values: unique(invalidFrontmatterValues) } : {})
+    ...(invalidFrontmatterValues.length ? { invalid_frontmatter_values: unique(invalidFrontmatterValues) } : {}),
+    ...(missingFieldLabelValues.length ? { missing_field_labels: unique(missingFieldLabelValues) } : {}),
+    ...(missingFlowIds.length ? { missing_flow_ids: unique(missingFlowIds) } : {})
   };
 }
 

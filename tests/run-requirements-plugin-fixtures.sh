@@ -127,10 +127,25 @@ MD
 ## Overview
 ## Application Topology
 ## Module Boundaries
+
+### Module: dashboard-shell
+
+- Responsibility: own dashboard layout.
+- Public contract: DashboardShell component.
+- Owned data: layout preferences.
+- Dependencies: ui-design tokens.
+- Forbidden dependencies: backend services.
+- Extension points: slot props.
+
 ## Frontend Architecture
 ## Backend Architecture
 ## API Surface
 ## Database Model
+
+| Entity | Purpose | Owner | Fields | Relationships | Indexes | Constraints | Lifecycle | Migration | Retention/Deletion |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Session | track login | auth | id, user_id | belongs to user | user_id | not null | created on login | add table | delete on logout |
+
 ## Permissions & Security
 ## Integration Boundaries
 ## Operational Constraints
@@ -142,11 +157,23 @@ MD
 
 ## Overview
 ## Flow Index
+
+| Flow ID | Trigger | Request | Response |
+| --- | --- | --- | --- |
+| FLOW-DASHBOARD-LOAD | open page | GET /dashboard | dashboard payload |
+
 ## Boundary Contracts
 ## State Ownership
 ## Validation Ownership
+
+- Server-side validation owner: dashboard service.
+
 ## Error & Empty States
 ## Loading / Optimistic / Retry Behavior
+
+- Retry rule: retry idempotent reads once.
+- Rollback behavior: revert optimistic state on error.
+
 ## End-to-End Flow Details
 ## Async / Realtime Flows
 ## Flow Do's and Don'ts
@@ -1444,5 +1471,71 @@ MD
 run_json "$FENCED_HEADING_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/fenced-heading.json" 2
 jq -e '.blockers[] | select(. == "invalid-foundation-spec-sections:system-architecture")' "$TMP_DIR/fenced-heading.json" >/dev/null
 jq -e '.specs[] | select(.id == "system-architecture") | .missing_sections[] | select(. == "## API Surface")' "$TMP_DIR/fenced-heading.json" >/dev/null
+
+MISSING_ARCH_FIELD_PROJECT="$TMP_DIR/missing-arch-field-project"
+cp -R "$HAPPY_PROJECT" "$MISSING_ARCH_FIELD_PROJECT"
+cat >"$MISSING_ARCH_FIELD_PROJECT/openspec/specs/system-architecture/design.md" <<'MD'
+# System Architecture & Database Spec
+
+## Overview
+## Application Topology
+## Module Boundaries
+
+### Module: dashboard-shell
+
+- Public contract: DashboardShell component.
+- Owned data: layout preferences.
+- Dependencies: ui-design tokens.
+- Forbidden dependencies: backend services.
+- Extension points: slot props.
+
+## Frontend Architecture
+## Backend Architecture
+## API Surface
+## Database Model
+
+| Entity | Purpose | Owner | Fields | Relationships | Indexes | Constraints | Lifecycle | Migration | Retention/Deletion |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Session | track login | auth | id, user_id | belongs to user | user_id | not null | created on login | add table | delete on logout |
+
+## Permissions & Security
+## Integration Boundaries
+## Operational Constraints
+## Architecture Do's and Don'ts
+MD
+run_json "$MISSING_ARCH_FIELD_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/missing-arch-field.json" 2
+jq -e '.blockers[] | select(. == "invalid-foundation-spec-fields:system-architecture")' "$TMP_DIR/missing-arch-field.json" >/dev/null
+jq -e '.specs[] | select(.id == "system-architecture") | .missing_field_labels[] | select(. == "responsibility")' "$TMP_DIR/missing-arch-field.json" >/dev/null
+
+MISSING_FLOW_ID_PROJECT="$TMP_DIR/missing-flow-id-project"
+cp -R "$HAPPY_PROJECT" "$MISSING_FLOW_ID_PROJECT"
+cat >"$MISSING_FLOW_ID_PROJECT/openspec/specs/frontend-backend-data-flow/design.md" <<'MD'
+# Frontend-Backend Data Flow Spec
+
+## Overview
+## Flow Index
+
+| Flow | Trigger | Request | Response |
+| --- | --- | --- | --- |
+| dashboard load | open page | GET /dashboard | dashboard payload |
+
+## Boundary Contracts
+## State Ownership
+## Validation Ownership
+
+- Server-side validation owner: dashboard service.
+
+## Error & Empty States
+## Loading / Optimistic / Retry Behavior
+
+- Retry rule: retry idempotent reads once.
+- Rollback behavior: revert optimistic state on error.
+
+## End-to-End Flow Details
+## Async / Realtime Flows
+## Flow Do's and Don'ts
+MD
+run_json "$MISSING_FLOW_ID_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/missing-flow-id.json" 2
+jq -e '.blockers[] | select(. == "missing-flow-id:frontend-backend-data-flow")' "$TMP_DIR/missing-flow-id.json" >/dev/null
 
 echo "helm requirements plugin fixtures ok"

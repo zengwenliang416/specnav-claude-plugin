@@ -17,12 +17,22 @@ security model. Requirements work must not proceed by guessing these decisions.
 
 ## Module Boundaries
 
+List each module. For every module record:
+
+- Responsibility:
+- Public contract:
+- Owned data:
+- Dependencies:
+- Forbidden dependencies:
+- Extension points:
+
+Module groups:
+
 - UI modules:
 - Domain modules:
 - Application/service modules:
 - Infrastructure modules:
 - Shared libraries:
-- Forbidden dependencies:
 
 ## Frontend Architecture
 
@@ -52,9 +62,12 @@ security model. Requirements work must not proceed by guessing these decisions.
 
 ## Database Model
 
-| Entity | Purpose | Key Fields | Relationships | Constraints |
-| --- | --- | --- | --- | --- |
-| `<decision-required>` | `<purpose>` | `<fields>` | `<relations>` | `<constraints>` |
+For every entity record purpose, owner module, fields, relationships, indexes,
+constraints, lifecycle, migration notes, and retention/deletion behavior.
+
+| Entity | Purpose | Owner | Fields | Relationships | Indexes | Constraints | Lifecycle | Migration | Retention/Deletion |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `<decision-required>` | `<purpose>` | `<owner module>` | `<fields>` | `<relations>` | `<indexes>` | `<constraints>` | `<lifecycle>` | `<migration>` | `<retention/deletion>` |
 
 ## Permissions & Security
 

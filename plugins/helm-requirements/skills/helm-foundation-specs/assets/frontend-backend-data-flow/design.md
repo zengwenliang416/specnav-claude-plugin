@@ -7,9 +7,11 @@ persistence, and response rendering.
 
 ## Flow Index
 
-| Flow | Trigger | Entry UI | API/Service | Persistence | User Result |
+Give every flow a stable id of the form `FLOW-<NAME>` (for example `FLOW-LOGIN`).
+
+| Flow ID | Trigger | Entry UI | API/Service | Persistence | User Result |
 | --- | --- | --- | --- | --- | --- |
-| `<decision-required>` | `<event>` | `<screen>` | `<route/service>` | `<entity/effect>` | `<visible result>` |
+| `FLOW-<decision-required>` | `<event>` | `<screen>` | `<route/service>` | `<entity/effect>` | `<visible result>` |
 
 ## Boundary Contracts
 
@@ -66,7 +68,9 @@ For each flow, record:
 5. Database read/write.
 6. Response payload.
 7. UI render result.
-8. Logging/metrics/audit event.
+8. Retry/idempotency behavior.
+9. Rollback behavior on failure.
+10. Logging/metrics/audit event.
 
 ## Async / Realtime Flows
 
