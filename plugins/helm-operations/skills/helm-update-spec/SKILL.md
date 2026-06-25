@@ -3,6 +3,10 @@ name: helm-update-spec
 description: Use this skill when Helm operations learning must be written back to OpenSpec, deferred with signoff, or marked no writeback needed before archive or release completion.
 ---
 
+## Runtime Paths
+
+Resolve every `HELM_*_ROOT` variable with the owning Helm command's installed-cache resolver before running Bash. Do not rely on `CLAUDE_PLUGIN_ROOT`; it is only guaranteed inside Claude Code hook processes. If a required installed plugin root cannot be resolved, report the exact blocker and stop.
+
 # Helm Update Spec
 
 ## Purpose
@@ -16,7 +20,7 @@ Record whether operations learning changes specs, runbooks, known limitations, r
 3. Use status `no_writeback_needed`, `written_back`, or `deferred`.
 4. Use `assets/update-spec.json` as the shell when the artifact is missing.
 5. Any unresolved learning item blocks archive.
-6. Run `node "$CLAUDE_PLUGIN_ROOT/scripts/operations-gate.js" --json` after writing.
+6. Run `node "$HELM_OPERATIONS_ROOT/scripts/operations-gate.js" --json` after writing.
 
 ## Required Outputs
 
@@ -31,4 +35,4 @@ Record whether operations learning changes specs, runbooks, known limitations, r
 
 ## Validation
 
-- Run `node "$CLAUDE_PLUGIN_ROOT/scripts/operations-gate.js" --json` and require ok or exact blockers.
+- Run `node "$HELM_OPERATIONS_ROOT/scripts/operations-gate.js" --json` and require ok or exact blockers.

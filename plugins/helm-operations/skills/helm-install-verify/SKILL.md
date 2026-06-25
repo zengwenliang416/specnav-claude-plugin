@@ -3,6 +3,10 @@ name: helm-install-verify
 description: Use this skill when Helm must verify plugin installation, host exposure, marketplace discovery, workspace support, reload requirement, config status, or installed plugin root evidence.
 ---
 
+## Runtime Paths
+
+Resolve every `HELM_*_ROOT` variable with the owning Helm command's installed-cache resolver before running Bash. Do not rely on `CLAUDE_PLUGIN_ROOT`; it is only guaranteed inside Claude Code hook processes. If a required installed plugin root cannot be resolved, report the exact blocker and stop.
+
 # Helm Install Verify
 
 ## Purpose
@@ -16,7 +20,7 @@ Verify installed plugin surfaces from current host evidence.
 3. Run doctor or structural install checks from the plugin root.
 4. Do not run install checks from the target project directory.
 5. Use `assets/install-verification.json` as the shell when the artifact is missing.
-6. Run `node "$CLAUDE_PLUGIN_ROOT/scripts/operations-gate.js" --json` after writing.
+6. Run `node "$HELM_OPERATIONS_ROOT/scripts/operations-gate.js" --json` after writing.
 
 ## Required Outputs
 
@@ -32,4 +36,4 @@ Verify installed plugin surfaces from current host evidence.
 
 ## Validation
 
-- Run `node "$CLAUDE_PLUGIN_ROOT/scripts/operations-gate.js" --json` and require ok or exact blockers.
+- Run `node "$HELM_OPERATIONS_ROOT/scripts/operations-gate.js" --json` and require ok or exact blockers.

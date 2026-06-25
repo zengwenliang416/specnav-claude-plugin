@@ -3,6 +3,10 @@ name: helm-monitor
 description: Use this skill when Helm needs post-release monitoring, logs, metrics, endpoints, queues, user flows, observation window, owner, normal values, or escalation route.
 ---
 
+## Runtime Paths
+
+Resolve every `HELM_*_ROOT` variable with the owning Helm command's installed-cache resolver before running Bash. Do not rely on `CLAUDE_PLUGIN_ROOT`; it is only guaranteed inside Claude Code hook processes. If a required installed plugin root cannot be resolved, report the exact blocker and stop.
+
 # Helm Monitor
 
 ## Purpose
@@ -15,7 +19,7 @@ Prepare monitoring and escalation after release or deploy.
 2. Read `references/monitor-plan.md` before writing monitoring.
 3. If monitoring is impossible, require explicit risk acceptance in `operations/signoff.yaml`.
 4. Use `assets/monitor-plan.md` as the shell when the artifact is missing.
-5. Run `node "$CLAUDE_PLUGIN_ROOT/scripts/operations-gate.js" --json` after writing.
+5. Run `node "$HELM_OPERATIONS_ROOT/scripts/operations-gate.js" --json` after writing.
 
 ## Required Outputs
 
@@ -31,4 +35,4 @@ Prepare monitoring and escalation after release or deploy.
 
 ## Validation
 
-- Run `node "$CLAUDE_PLUGIN_ROOT/scripts/operations-gate.js" --json` and require ok or exact blockers.
+- Run `node "$HELM_OPERATIONS_ROOT/scripts/operations-gate.js" --json` and require ok or exact blockers.

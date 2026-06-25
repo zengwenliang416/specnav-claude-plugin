@@ -3,6 +3,10 @@ name: helm-compatibility-matrix
 description: Use this skill when Helm must document host compatibility, support level, supported Claude Code surfaces, doctor result, verification command, known limitations, or reload requirements.
 ---
 
+## Runtime Paths
+
+Resolve every `HELM_*_ROOT` variable with the owning Helm command's installed-cache resolver before running Bash. Do not rely on `CLAUDE_PLUGIN_ROOT`; it is only guaranteed inside Claude Code hook processes. If a required installed plugin root cannot be resolved, report the exact blocker and stop.
+
 # Helm Compatibility Matrix
 
 ## Purpose
@@ -15,7 +19,7 @@ Record support evidence for host and plugin surfaces.
 2. Read `references/compatibility-matrix.md` before writing support claims.
 3. Do not claim support without fresh smoke evidence.
 4. Use `assets/compatibility-matrix.md` as the shell when the artifact is missing.
-5. Run `node "$CLAUDE_PLUGIN_ROOT/scripts/operations-gate.js" --json` after writing.
+5. Run `node "$HELM_OPERATIONS_ROOT/scripts/operations-gate.js" --json` after writing.
 
 ## Required Outputs
 
@@ -30,4 +34,4 @@ Record support evidence for host and plugin surfaces.
 
 ## Validation
 
-- Run `node "$CLAUDE_PLUGIN_ROOT/scripts/operations-gate.js" --json` and require ok or exact blockers.
+- Run `node "$HELM_OPERATIONS_ROOT/scripts/operations-gate.js" --json` and require ok or exact blockers.

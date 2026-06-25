@@ -3,6 +3,10 @@ name: helm-update-policy
 description: Use this skill when Helm needs an installation update policy, current-host scoped update rule, all-host explicit request rule, tracked refs, discovery roots, plugin roots, or reload hints.
 ---
 
+## Runtime Paths
+
+Resolve every `HELM_*_ROOT` variable with the owning Helm command's installed-cache resolver before running Bash. Do not rely on `CLAUDE_PLUGIN_ROOT`; it is only guaranteed inside Claude Code hook processes. If a required installed plugin root cannot be resolved, report the exact blocker and stop.
+
 # Helm Update Policy
 
 ## Purpose
@@ -16,7 +20,7 @@ Record how installed plugin surfaces update and get re-verified.
 3. Default updates are current-host scoped.
 4. All-host updates require explicit user request.
 5. Use `assets/update-policy.json` as the shell when the artifact is missing.
-6. Run `node "$CLAUDE_PLUGIN_ROOT/scripts/operations-gate.js" --json` after writing.
+6. Run `node "$HELM_OPERATIONS_ROOT/scripts/operations-gate.js" --json` after writing.
 
 ## Required Outputs
 
@@ -30,4 +34,4 @@ Record how installed plugin surfaces update and get re-verified.
 
 ## Validation
 
-- Run `node "$CLAUDE_PLUGIN_ROOT/scripts/operations-gate.js" --json` and require ok or exact blockers.
+- Run `node "$HELM_OPERATIONS_ROOT/scripts/operations-gate.js" --json` and require ok or exact blockers.

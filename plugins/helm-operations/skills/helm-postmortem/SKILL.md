@@ -3,6 +3,10 @@ name: helm-postmortem
 description: Use this skill when Helm verification, release, deploy, rollback, security, data, availability, repeated failure, or risk evidence requires a postmortem and learning capture.
 ---
 
+## Runtime Paths
+
+Resolve every `HELM_*_ROOT` variable with the owning Helm command's installed-cache resolver before running Bash. Do not rely on `CLAUDE_PLUGIN_ROOT`; it is only guaranteed inside Claude Code hook processes. If a required installed plugin root cannot be resolved, report the exact blocker and stop.
+
 # Helm Postmortem
 
 ## Purpose
@@ -15,7 +19,7 @@ Record operational learning after failures or risk events.
 2. Read `references/postmortem.md` before writing learning.
 3. Include trigger, root cause, impact, mitigation, follow-up, and whether learning must be written back to OpenSpec.
 4. Use `assets/postmortem.md` as the shell when the artifact is missing.
-5. Run `node "$CLAUDE_PLUGIN_ROOT/scripts/operations-gate.js" --json` after writing.
+5. Run `node "$HELM_OPERATIONS_ROOT/scripts/operations-gate.js" --json` after writing.
 
 ## Required Outputs
 
@@ -30,4 +34,4 @@ Record operational learning after failures or risk events.
 
 ## Validation
 
-- Run `node "$CLAUDE_PLUGIN_ROOT/scripts/operations-gate.js" --json` and require ok or exact blockers.
+- Run `node "$HELM_OPERATIONS_ROOT/scripts/operations-gate.js" --json` and require ok or exact blockers.

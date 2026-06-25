@@ -3,6 +3,10 @@ name: helm-branch-finish
 description: Use this skill when Helm needs to finish a git branch, review worktree state, record cleanup provenance, merge readiness, or decide whether a Helm-owned worktree can be removed.
 ---
 
+## Runtime Paths
+
+Resolve every `HELM_*_ROOT` variable with the owning Helm command's installed-cache resolver before running Bash. Do not rely on `CLAUDE_PLUGIN_ROOT`; it is only guaranteed inside Claude Code hook processes. If a required installed plugin root cannot be resolved, report the exact blocker and stop.
+
 # Helm Branch Finish
 
 ## Purpose
@@ -15,7 +19,7 @@ Record branch and worktree facts before finish or cleanup.
 2. Read `references/branch-finish.md` before writing cleanup decisions.
 3. Preserve unknown or externally managed worktrees.
 4. Use `assets/branch-finish.md` as the shell when the artifact is missing.
-5. Run `node "$CLAUDE_PLUGIN_ROOT/scripts/operations-gate.js" --json` after writing.
+5. Run `node "$HELM_OPERATIONS_ROOT/scripts/operations-gate.js" --json` after writing.
 
 ## Required Outputs
 
@@ -30,4 +34,4 @@ Record branch and worktree facts before finish or cleanup.
 
 ## Validation
 
-- Run `node "$CLAUDE_PLUGIN_ROOT/scripts/operations-gate.js" --json` and require ok or exact blockers.
+- Run `node "$HELM_OPERATIONS_ROOT/scripts/operations-gate.js" --json` and require ok or exact blockers.

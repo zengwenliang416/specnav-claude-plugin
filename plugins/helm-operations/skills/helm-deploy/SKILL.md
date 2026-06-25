@@ -3,6 +3,10 @@ name: helm-deploy
 description: Use this skill when Helm release target is project-deploy and deployment mechanics, environment, commands, config, secrets, migrations, smoke checks, owner, or deploy window must be documented.
 ---
 
+## Runtime Paths
+
+Resolve every `HELM_*_ROOT` variable with the owning Helm command's installed-cache resolver before running Bash. Do not rely on `CLAUDE_PLUGIN_ROOT`; it is only guaranteed inside Claude Code hook processes. If a required installed plugin root cannot be resolved, report the exact blocker and stop.
+
 # Helm Deploy
 
 ## Purpose
@@ -15,7 +19,7 @@ Prepare deployment mechanics for project-deploy targets.
 2. Read `references/deploy-plan.md` before writing deployment mechanics.
 3. Document exact deployment mechanics before deployment.
 4. Use `assets/deploy-plan.md` as the shell when the artifact is missing.
-5. Run `node "$CLAUDE_PLUGIN_ROOT/scripts/operations-gate.js" --json` after writing.
+5. Run `node "$HELM_OPERATIONS_ROOT/scripts/operations-gate.js" --json` after writing.
 
 ## Required Outputs
 
@@ -31,4 +35,4 @@ Prepare deployment mechanics for project-deploy targets.
 
 ## Validation
 
-- Run `node "$CLAUDE_PLUGIN_ROOT/scripts/operations-gate.js" --json` and require ok or exact blockers.
+- Run `node "$HELM_OPERATIONS_ROOT/scripts/operations-gate.js" --json` and require ok or exact blockers.
