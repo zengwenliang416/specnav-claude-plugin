@@ -210,8 +210,9 @@ function validateReadiness(opsDir, change, verificationBlockers) {
 
   if (!isPlainObject(readiness.docs)) blockers.push('invalid-readiness:docs');
   else {
-    if (readiness.docs.changelog !== true) blockers.push('readiness-docs-changelog');
-    if (readiness.docs.release_notes !== true) blockers.push('readiness-docs-release-notes');
+    const userFacing = readiness.docs.user_facing !== false;
+    if (userFacing && readiness.docs.changelog !== true) blockers.push('readiness-docs-changelog');
+    if ((userFacing || readiness.release_target === 'package') && readiness.docs.release_notes !== true) blockers.push('readiness-docs-release-notes');
     if (readiness.release_target === 'plugin-marketplace' && readiness.docs.readme_updated !== true) blockers.push('readiness-docs-readme');
   }
 
@@ -344,8 +345,9 @@ function validateOperations(root = lib.projectRoot()) {
   artifacts.push(validateText(opsDir, change, 'release-plan.md', ['Release Target', 'Required Artifacts', 'Release Decision']));
   if (target) artifacts.push(validateReleaseChecklist(opsDir, change, target));
   artifacts.push(validateText(opsDir, change, 'branch-finish.md', ['Branch State', 'Finish Action', 'Cleanup Decision', 'Provenance']));
-  artifacts.push(validateRequiredText(opsDir, change, 'changelog.md'));
-  artifacts.push(validateRequiredText(opsDir, change, 'release-notes.md'));
+  const userFacing = !!(readiness && isPlainObject(readiness.docs) && readiness.docs.user_facing !== false);
+  if (userFacing) artifacts.push(validateRequiredText(opsDir, change, 'changelog.md'));
+  if (userFacing || target === 'package') artifacts.push(validateRequiredText(opsDir, change, 'release-notes.md'));
   artifacts.push(validateUpdateSpec(opsDir, change, signoff));
 
   if (target) {
@@ -368,6 +370,11 @@ function validateOperations(root = lib.projectRoot()) {
         }
       }
     }
+  }
+
+  if (target === 'package' && readiness && isPlainObject(readiness.ops)) {
+    if (readiness.ops.package_validation !== 'pass') blockers.push('package-validation');
+    if (readiness.ops.checksum_supported === true && !isCleanString(readiness.ops.checksum)) blockers.push('package-checksum');
   }
 
   if (readiness && isPlainObject(readiness.ops) && readiness.ops.postmortem_required === true) {

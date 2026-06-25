@@ -245,6 +245,39 @@ rm "$LOCAL_ONLY/openspec/changes/add-dashboard/operations/compatibility-matrix.m
 run_gate operations-gate.js "$LOCAL_ONLY" "$TMP_DIR/local-only.json" 0
 jq -e '.release_target == "local-only"' "$TMP_DIR/local-only.json" >/dev/null
 
+# Non-user-facing change: changelog/release-notes are not required and may be absent.
+NON_USER_FACING="$TMP_DIR/non-user-facing"
+cp -R "$PROJECT" "$NON_USER_FACING"
+jq '.docs.user_facing = false | .docs.changelog = false | .docs.release_notes = false' \
+  "$NON_USER_FACING/openspec/changes/add-dashboard/operations/readiness.json" >"$TMP_DIR/nuf-readiness.tmp"
+mv "$TMP_DIR/nuf-readiness.tmp" "$NON_USER_FACING/openspec/changes/add-dashboard/operations/readiness.json"
+rm "$NON_USER_FACING/openspec/changes/add-dashboard/operations/changelog.md"
+rm "$NON_USER_FACING/openspec/changes/add-dashboard/operations/release-notes.md"
+run_gate operations-gate.js "$NON_USER_FACING" "$TMP_DIR/non-user-facing.json" 0
+jq -e '.ok == true' "$TMP_DIR/non-user-facing.json" >/dev/null
+
+# Package target: missing package validation blocks; release notes stay required.
+PACKAGE_FAIL="$TMP_DIR/package-fail"
+cp -R "$PROJECT" "$PACKAGE_FAIL"
+jq '.release_target = "package" | .ops.package_validation = "missing"' \
+  "$PACKAGE_FAIL/openspec/changes/add-dashboard/operations/readiness.json" >"$TMP_DIR/pkg-fail-readiness.tmp"
+mv "$TMP_DIR/pkg-fail-readiness.tmp" "$PACKAGE_FAIL/openspec/changes/add-dashboard/operations/readiness.json"
+jq '.release_target = "package"' "$PACKAGE_FAIL/openspec/changes/add-dashboard/operations/release-checklist.json" >"$TMP_DIR/pkg-fail-checklist.tmp"
+mv "$TMP_DIR/pkg-fail-checklist.tmp" "$PACKAGE_FAIL/openspec/changes/add-dashboard/operations/release-checklist.json"
+run_gate operations-gate.js "$PACKAGE_FAIL" "$TMP_DIR/package-fail.json" 2
+assert_blocker "$TMP_DIR/package-fail.json" 'package-validation'
+
+# Package target satisfied: package validation pass + checksum present when supported.
+PACKAGE_OK="$TMP_DIR/package-ok"
+cp -R "$PROJECT" "$PACKAGE_OK"
+jq '.release_target = "package" | .ops.package_validation = "pass" | .ops.checksum_supported = true | .ops.checksum = "sha256:abc123"' \
+  "$PACKAGE_OK/openspec/changes/add-dashboard/operations/readiness.json" >"$TMP_DIR/pkg-ok-readiness.tmp"
+mv "$TMP_DIR/pkg-ok-readiness.tmp" "$PACKAGE_OK/openspec/changes/add-dashboard/operations/readiness.json"
+jq '.release_target = "package"' "$PACKAGE_OK/openspec/changes/add-dashboard/operations/release-checklist.json" >"$TMP_DIR/pkg-ok-checklist.tmp"
+mv "$TMP_DIR/pkg-ok-checklist.tmp" "$PACKAGE_OK/openspec/changes/add-dashboard/operations/release-checklist.json"
+run_gate operations-gate.js "$PACKAGE_OK" "$TMP_DIR/package-ok.json" 0
+jq -e '.ok == true and .release_target == "package"' "$TMP_DIR/package-ok.json" >/dev/null
+
 DEPLOY_FAIL="$TMP_DIR/deploy-fail"
 cp -R "$PROJECT" "$DEPLOY_FAIL"
 jq '.release_target = "project-deploy" | .ops.rollback_plan = "missing"' \
