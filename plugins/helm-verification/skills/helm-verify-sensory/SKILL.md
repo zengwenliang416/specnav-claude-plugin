@@ -3,6 +3,10 @@ name: helm-verify-sensory
 description: Use this skill when Helm needs independent human-in-the-loop UX, accessibility, maintainability, component cohesion/coupling, performance feel, readability, or final code review beyond automated checks.
 ---
 
+## Runtime Paths
+
+Resolve every `HELM_*_ROOT` variable with the owning Helm command's installed-cache resolver before running Bash. Do not rely on `CLAUDE_PLUGIN_ROOT`; it is only guaranteed inside Claude Code hook processes. If a required installed plugin root cannot be resolved, report the exact blocker and stop.
+
 # Helm Verify Sensory
 
 ## Purpose
@@ -31,4 +35,4 @@ Run evidence-backed human review that automation cannot fully cover.
 
 ## Validation
 
-- Run `node "$CLAUDE_PLUGIN_ROOT/scripts/verify-domains.js" validate --json` after writing the domain report.
+- Run `node "$HELM_VERIFICATION_ROOT/scripts/verify-domains.js" validate --json` after writing the domain report.

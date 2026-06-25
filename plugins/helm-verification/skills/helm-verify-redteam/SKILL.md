@@ -3,6 +3,10 @@ name: helm-verify-redteam
 description: Use this skill when Helm must run destructive, adversarial, injection, permission, boundary, abuse, resilience, fuzzing, or hostile-input checks for a completed change.
 ---
 
+## Runtime Paths
+
+Resolve every `HELM_*_ROOT` variable with the owning Helm command's installed-cache resolver before running Bash. Do not rely on `CLAUDE_PLUGIN_ROOT`; it is only guaranteed inside Claude Code hook processes. If a required installed plugin root cannot be resolved, report the exact blocker and stop.
+
 # Helm Verify Redteam
 
 ## Purpose
@@ -31,4 +35,4 @@ Probe security, robustness, and abuse cases missed by normal tests.
 
 ## Validation
 
-- Run `node "$CLAUDE_PLUGIN_ROOT/scripts/verify-domains.js" validate --json` after writing the domain report.
+- Run `node "$HELM_VERIFICATION_ROOT/scripts/verify-domains.js" validate --json` after writing the domain report.

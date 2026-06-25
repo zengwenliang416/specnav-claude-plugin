@@ -3,6 +3,10 @@ name: helm-verify-unit
 description: Use this skill when Helm needs focused unit, regression, edge-case, empty-state, error-path, boundary-input, or test-quality verification for changed production behavior.
 ---
 
+## Runtime Paths
+
+Resolve every `HELM_*_ROOT` variable with the owning Helm command's installed-cache resolver before running Bash. Do not rely on `CLAUDE_PLUGIN_ROOT`; it is only guaranteed inside Claude Code hook processes. If a required installed plugin root cannot be resolved, report the exact blocker and stop.
+
 # Helm Verify Unit
 
 ## Purpose
@@ -31,4 +35,4 @@ Validate behavior-facing unit and regression coverage.
 
 ## Validation
 
-- Run `node "$CLAUDE_PLUGIN_ROOT/scripts/verify-domains.js" validate --json` after writing the domain report.
+- Run `node "$HELM_VERIFICATION_ROOT/scripts/verify-domains.js" validate --json` after writing the domain report.

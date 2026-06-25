@@ -3,6 +3,10 @@ name: helm-verify-static
 description: Use this skill when Helm needs static analysis, OpenSpec validation, lint, type checks, schema checks, dependency checks, banned-pattern scans, or structural validation for a completed change.
 ---
 
+## Runtime Paths
+
+Resolve every `HELM_*_ROOT` variable with the owning Helm command's installed-cache resolver before running Bash. Do not rely on `CLAUDE_PLUGIN_ROOT`; it is only guaranteed inside Claude Code hook processes. If a required installed plugin root cannot be resolved, report the exact blocker and stop.
+
 # Helm Verify Static
 
 ## Purpose
@@ -32,4 +36,4 @@ Run static and structural verification declared by the plan.
 
 ## Validation
 
-- Run `node "$CLAUDE_PLUGIN_ROOT/scripts/verify-domains.js" validate --json` after writing the domain report.
+- Run `node "$HELM_VERIFICATION_ROOT/scripts/verify-domains.js" validate --json` after writing the domain report.
