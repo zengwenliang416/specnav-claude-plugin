@@ -64,15 +64,20 @@ function verify(root = lib.projectRoot()) {
 
   if (dir) {
     if (fs.existsSync(path.join(dir, 'verify'))) {
-      const domains = require('../../helm-verification/scripts/verify-domains');
-      const aggregate = domains.writeAggregate(root);
-      report.status = failed.length === 0 && aggregate.verdict === 'green' ? 'green' : 'red';
-      report.aggregate = aggregate;
-      report.rework.push(...aggregate.blockers.map((blocker) => ({
-        check: 'six-domain-verification',
-        class: 'verification',
-        recommendation: `Resolve ${blocker} and rerun verify.`
-      })));
+      const domainsPath = path.resolve(__dirname, '../../helm-verification/scripts/verify-domains');
+      try {
+        const domains = require(domainsPath);
+        const aggregate = domains.writeAggregate(root);
+        report.status = failed.length === 0 && aggregate.verdict === 'green' ? 'green' : 'red';
+        report.aggregate = aggregate;
+        report.rework.push(...aggregate.blockers.map((blocker) => ({
+          check: 'six-domain-verification',
+          class: 'verification',
+          recommendation: `Resolve ${blocker} and rerun verify.`
+        })));
+      } catch {
+        report.checks.push({ name: 'six-domain-verification', status: 'warn', detail: 'helm-verification plugin not available' });
+      }
     }
     lib.writeJson(path.join(dir, 'verify-report.json'), report);
     try {

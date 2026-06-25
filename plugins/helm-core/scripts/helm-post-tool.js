@@ -5,13 +5,8 @@ const fs = require('fs');
 const path = require('path');
 const lib = require('./helm-lib');
 
-function readStdinJson() {
-  try {
-    const input = fs.readFileSync(0, 'utf8').trim();
-    return input ? JSON.parse(input) : {};
-  } catch {
-    return {};
-  }
+function drainStdin() {
+  try { fs.readFileSync(0, 'utf8'); } catch {}
 }
 
 function main() {
@@ -24,7 +19,7 @@ function main() {
     fs.writeFileSync(path.join(dir, 'verify-report.stale'), `${new Date().toISOString()}\n`);
     lib.event(root, 'verify.stale', { active_change: change });
   }
-  readStdinJson();
+  drainStdin();
   process.exit(0);
 }
 

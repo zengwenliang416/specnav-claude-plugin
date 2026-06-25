@@ -7,7 +7,8 @@ const lib = require('./helm-lib');
 
 function argValue(args, name, fallback = null) {
   const index = args.indexOf(name);
-  return index >= 0 ? args[index + 1] : fallback;
+  const value = index >= 0 ? args[index + 1] : null;
+  return value && !value.startsWith('--') ? value : fallback;
 }
 
 function slug(value) {
