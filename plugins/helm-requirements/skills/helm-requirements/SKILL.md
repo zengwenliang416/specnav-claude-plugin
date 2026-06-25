@@ -3,6 +3,10 @@ name: helm-requirements
 description: Use this skill when the user wants to define, clarify, or continue requirements for a Helm/OpenSpec change, including feature discovery, acceptance criteria, spec maps, component impact maps, or one-question-at-a-time product grilling.
 ---
 
+## Runtime Paths
+
+Resolve every `HELM_*_ROOT` variable with the owning Helm command's installed-cache resolver before running Bash. Do not rely on `CLAUDE_PLUGIN_ROOT`; it is only guaranteed inside Claude Code hook processes. If a required installed plugin root cannot be resolved, report the exact blocker and stop.
+
 # Helm Requirements
 
 ## Purpose
@@ -11,12 +15,12 @@ Discover change requirements after foundation spec validation passes.
 
 ## Workflow
 
-1. Run `node "$CLAUDE_PLUGIN_ROOT/scripts/foundation-specs.js" --json` first.
+1. Run `node "$HELM_REQUIREMENTS_ROOT/scripts/foundation-specs.js" --json` first.
 2. If blocked, route to `helm-foundation-specs` with exact blockers.
 3. Read all four foundation spec files before asking product questions.
 4. Read `references/interview-philosophy.md` before asking product questions.
 5. Read `references/requirements-artifacts.md` before creating or repairing requirements artifacts.
-6. If required change artifacts are missing, run `node "$CLAUDE_PLUGIN_ROOT/skills/helm-requirements/scripts/create-requirements-artifacts.js" --json` to scaffold templates from `assets/change/`.
+6. If required change artifacts are missing, run `node "$HELM_REQUIREMENTS_ROOT/skills/helm-requirements/scripts/create-requirements-artifacts.js" --json` to scaffold templates from `assets/change/`.
 7. Ask one focused question at a time with a recommended answer and tradeoff.
 8. Do not ask information already answered by foundation spec, code evidence, OpenSpec artifacts, or previous answers.
 9. Close each decision branch before opening the next: record the answer, update maps, rerun contracts, and resolve blockers.
@@ -39,4 +43,4 @@ Discover change requirements after foundation spec validation passes.
 
 ## Validation
 
-- Run `node "$CLAUDE_PLUGIN_ROOT/scripts/requirements-contract.js" --json` and hand off only when `ok` is true.
+- Run `node "$HELM_REQUIREMENTS_ROOT/scripts/requirements-contract.js" --json` and hand off only when `ok` is true.
