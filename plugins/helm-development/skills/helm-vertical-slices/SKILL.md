@@ -3,6 +3,10 @@ name: helm-vertical-slices
 description: Use this skill when Helm development needs vertical slice planning, task briefs, task context, task ledger updates, TDD evidence, spec review, quality review, validation logs, or handoff to six-domain verification.
 ---
 
+## Runtime Paths
+
+Resolve every `HELM_*_ROOT` variable with the owning Helm command's installed-cache resolver before running Bash. Do not rely on `CLAUDE_PLUGIN_ROOT`; it is only guaranteed inside Claude Code hook processes. If a required installed plugin root cannot be resolved, report the exact blocker and stop.
+
 # Helm Vertical Slices
 
 ## Purpose
@@ -11,15 +15,15 @@ Plan, dispatch, review, and close production implementation through file-backed 
 
 ## Workflow
 
-1. Run `node "$CLAUDE_PLUGIN_ROOT/scripts/development-contract.js" --mode entry --json` before planning.
+1. Run `node "$HELM_DEVELOPMENT_ROOT/scripts/development-contract.js" --mode entry --json` before planning.
 2. Read `references/development-task-packets.md` before creating task packets.
 3. Read `references/development-review.md` before closing tasks or preparing handoff.
-4. If task artifacts are missing, run `node "$CLAUDE_PLUGIN_ROOT/skills/helm-vertical-slices/scripts/create-vertical-slice.js" --task-id=<task-id> --json`.
+4. If task artifacts are missing, run `node "$HELM_DEVELOPMENT_ROOT/skills/helm-vertical-slices/scripts/create-vertical-slice.js" --task-id=<task-id> --json`.
 5. Write user-visible tracer-bullet slices in `tasks.md`; avoid layer-only tasks.
 6. Create each task packet with `brief.md` and `context.json`.
 7. Maintain task ledger, drift checks, validation logs, extraction map, reports, spec review, and quality review.
 8. No fallback around failed task review is allowed.
-9. Before verification handoff, run `node "$CLAUDE_PLUGIN_ROOT/scripts/development-contract.js" --mode handoff --json`.
+9. Before verification handoff, run `node "$HELM_DEVELOPMENT_ROOT/scripts/development-contract.js" --mode handoff --json`.
 
 ## Required Outputs
 
