@@ -425,6 +425,16 @@ function validateTextArtifact(prototypeDir, change, name, options = {}) {
   return artifactResult(change, name, blockers);
 }
 
+function validateUiHtmlReviewAnchors(prototypeDir, requiredPath) {
+  const file = path.join(prototypeDir, requiredPath);
+  const text = readTextFile(file);
+  if (!text.ok) return [];
+  if (!/data-helm-screen/.test(text.value)) {
+    return [`missing-review-anchors:${requiredPath}`];
+  }
+  return [];
+}
+
 function validateGapSensitiveFiles(prototypeDir, change, requiredNames) {
   const artifacts = [];
   const blockers = [];
@@ -619,6 +629,9 @@ function validateManifest(prototypeDir, change) {
         branchBlockers.push(`unreadable-prototype-branch-artifact:${branch.required}`);
       } else {
         branchBlockers.push(...containment.blockers);
+        if (manifest.type === 'ui-html' && containment.status === 'ok') {
+          branchBlockers.push(...validateUiHtmlReviewAnchors(prototypeDir, branch.required));
+        }
       }
     }
     nestedArtifacts.push(artifactResult(change, branch.required, branchBlockers, { expected_kind: branch.kind }));

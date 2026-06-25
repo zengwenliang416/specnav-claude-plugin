@@ -112,11 +112,11 @@ dd {
   width: min(520px, 100%);
 }
 
-[data-state="default"] .state-default,
-[data-state="loading"] .state-loading,
-[data-state="empty"] .state-empty,
-[data-state="error"] .state-error,
-[data-state="permission"] .state-permission {
+.shell[data-helm-state="default"] .state-default,
+.shell[data-helm-state="loading"] .state-loading,
+.shell[data-helm-state="empty"] .state-empty,
+.shell[data-helm-state="error"] .state-error,
+.shell[data-helm-state="permission"] .state-permission {
   display: block;
 }
 

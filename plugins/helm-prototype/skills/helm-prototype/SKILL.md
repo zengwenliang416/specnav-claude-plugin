@@ -23,7 +23,7 @@ Create isolated, runnable prototype artifacts that answer a specific design or b
 6. Branch Classification: use `ui-html`, `logic-state`, `api-contract`, `data-flow`, or `component-seam`.
 7. If starting from templates, run `node "$HELM_PROTOTYPE_ROOT/skills/helm-prototype/scripts/create-prototype.js" --branch=<branch> --json`.
 8. Write artifacts only under `openspec/changes/<active-change>/prototype/`.
-9. Expose stable screen, component, state, and variant labels for review.
+9. Expose stable review anchors. For `ui-html`, use `data-helm-screen`, `data-helm-component`, `data-helm-state`, and `data-helm-variant`; `artifact/index.html` must include at least one `data-helm-screen` anchor.
 10. Rerun the contract before moving to verification.
 
 ## Required Outputs

@@ -531,6 +531,25 @@ rm "$MISSING_BRANCH_PROJECT/openspec/changes/add-dashboard/prototype/artifact/in
 run_json "$MISSING_BRANCH_PROJECT" "$TMP_DIR/missing-branch.json" 2
 assert_blocker "$TMP_DIR/missing-branch.json" 'missing-prototype-branch-artifact:artifact/index.html'
 
+MISSING_REVIEW_ANCHORS_PROJECT="$TMP_DIR/missing-review-anchors-project"
+cp -R "$HAPPY_PROJECT" "$MISSING_REVIEW_ANCHORS_PROJECT"
+cat >"$MISSING_REVIEW_ANCHORS_PROJECT/openspec/changes/add-dashboard/prototype/artifact/index.html" <<'HTML'
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Dashboard Prototype</title>
+  </head>
+  <body>
+    <main>
+      <section>Dashboard summary</section>
+    </main>
+  </body>
+</html>
+HTML
+run_json "$MISSING_REVIEW_ANCHORS_PROJECT" "$TMP_DIR/missing-review-anchors.json" 2
+assert_blocker "$TMP_DIR/missing-review-anchors.json" 'missing-review-anchors:artifact/index.html'
+
 GAP_TEXT_PROJECT="$TMP_DIR/gap-text-project"
 cp -R "$HAPPY_PROJECT" "$GAP_TEXT_PROJECT"
 printf '%s\n' '# Prototype Handoff' 'This leaves one unresolved item.' >"$GAP_TEXT_PROJECT/openspec/changes/add-dashboard/prototype/handoff.md"

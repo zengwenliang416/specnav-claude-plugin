@@ -21,8 +21,21 @@ include:
 
 - desktop and mobile layout behavior;
 - loading, empty, error, disabled, and permission states when relevant;
-- stable screen and variant labels;
+- stable review anchors so feedback maps back to the prototype;
 - no production code edits.
+
+### Review Anchors (`data-helm-*`)
+
+UI HTML prototypes must expose stable review anchors as project-local
+attributes:
+
+- `data-helm-screen` on the screen root (required);
+- `data-helm-component` on major components;
+- `data-helm-state` on reviewable stateful regions;
+- `data-helm-variant` where variants apply.
+
+The contract requires at least one `data-helm-screen` anchor in
+`artifact/index.html`; absence reports `missing-review-anchors:artifact/index.html`.
 
 ## Review Rule
 
