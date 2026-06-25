@@ -3,6 +3,10 @@ name: helm-prototype
 description: Use this skill when the user wants a runnable Helm prototype, visual review artifact, UI HTML mock, logic-state harness, API contract mock, data-flow harness, or component seam comparison after requirements pass.
 ---
 
+## Runtime Paths
+
+Resolve every `HELM_*_ROOT` variable with the owning Helm command's installed-cache resolver before running Bash. Do not rely on `CLAUDE_PLUGIN_ROOT`; it is only guaranteed inside Claude Code hook processes. If a required installed plugin root cannot be resolved, report the exact blocker and stop.
+
 # Helm Prototype
 
 ## Purpose
@@ -11,13 +15,13 @@ Create isolated, runnable prototype artifacts that answer a specific design or b
 
 ## Workflow
 
-1. Run `node "$CLAUDE_PLUGIN_ROOT/scripts/prototype-contract.js" --json` first.
+1. Run `node "$HELM_PROTOTYPE_ROOT/scripts/prototype-contract.js" --json` first.
 2. If requirements are blocked, report exact blockers. There is no fallback to generic design or a guessed change.
 3. Classify the prototype question before writing code.
 4. Read `references/prototype-branches.md` before choosing the branch.
 5. Read `references/prototype-artifacts.md` before creating prototype files.
 6. Branch Classification: use `ui-html`, `logic-state`, `api-contract`, `data-flow`, or `component-seam`.
-7. If starting from templates, run `node "$CLAUDE_PLUGIN_ROOT/skills/helm-prototype/scripts/create-prototype.js" --branch=<branch> --json`.
+7. If starting from templates, run `node "$HELM_PROTOTYPE_ROOT/skills/helm-prototype/scripts/create-prototype.js" --branch=<branch> --json`.
 8. Write artifacts only under `openspec/changes/<active-change>/prototype/`.
 9. Expose stable screen, component, state, and variant labels for review.
 10. Rerun the contract before moving to verification.
@@ -39,4 +43,4 @@ Create isolated, runnable prototype artifacts that answer a specific design or b
 
 ## Validation
 
-- Run `node "$CLAUDE_PLUGIN_ROOT/scripts/prototype-contract.js" --json` and proceed only when blockers are expected next-stage artifacts.
+- Run `node "$HELM_PROTOTYPE_ROOT/scripts/prototype-contract.js" --json` and proceed only when blockers are expected next-stage artifacts.

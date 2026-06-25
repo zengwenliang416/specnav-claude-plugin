@@ -3,6 +3,10 @@ name: helm-prototype-verify
 description: Use this skill when a Helm prototype exists and must be checked before approval, including runnable HTML review, logic-state execution, API examples, data-flow transitions, component seam review, verifier-report.json, or prototype runtime evidence.
 ---
 
+## Runtime Paths
+
+Resolve every `HELM_*_ROOT` variable with the owning Helm command's installed-cache resolver before running Bash. Do not rely on `CLAUDE_PLUGIN_ROOT`; it is only guaranteed inside Claude Code hook processes. If a required installed plugin root cannot be resolved, report the exact blocker and stop.
+
 # Helm Prototype Verify
 
 ## Purpose
@@ -11,7 +15,7 @@ Verify that the selected prototype branch exists, runs, and exposes reviewable s
 
 ## Workflow
 
-1. Run `node "$CLAUDE_PLUGIN_ROOT/scripts/prototype-contract.js" --json` first.
+1. Run `node "$HELM_PROTOTYPE_ROOT/scripts/prototype-contract.js" --json` first.
 2. Read `prototype/prototype-manifest.json` and verify only the declared branch and entry.
 3. Read `references/prototype-verification.md` before writing verifier evidence.
 4. For `ui-html`, inspect desktop, mobile, variants, tweaks, and loading, empty, error, disabled, and permission states.
@@ -34,4 +38,4 @@ Verify that the selected prototype branch exists, runs, and exposes reviewable s
 
 ## Validation
 
-- Rerun `node "$CLAUDE_PLUGIN_ROOT/scripts/prototype-contract.js" --json` after writing `verifier-report.json`.
+- Rerun `node "$HELM_PROTOTYPE_ROOT/scripts/prototype-contract.js" --json` after writing `verifier-report.json`.

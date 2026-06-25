@@ -3,6 +3,10 @@ name: helm-prototype-handoff
 description: Use this skill when a verified Helm prototype needs explicit user approval, decision.json, required_present status, or a development handoff that freezes approved branch, variant, components, data flows, tests, and risks.
 ---
 
+## Runtime Paths
+
+Resolve every `HELM_*_ROOT` variable with the owning Helm command's installed-cache resolver before running Bash. Do not rely on `CLAUDE_PLUGIN_ROOT`; it is only guaranteed inside Claude Code hook processes. If a required installed plugin root cannot be resolved, report the exact blocker and stop.
+
 # Helm Prototype Handoff
 
 ## Purpose
@@ -11,7 +15,7 @@ Record explicit prototype approval and produce the development handoff.
 
 ## Workflow
 
-1. Run `node "$CLAUDE_PLUGIN_ROOT/scripts/prototype-contract.js" --json` before handoff.
+1. Run `node "$HELM_PROTOTYPE_ROOT/scripts/prototype-contract.js" --json` before handoff.
 2. Stop on requirements, manifest, branch code, entry path, or verifier blockers.
 3. Read `references/prototype-approval.md` before asking for approval or writing handoff artifacts.
 4. Ask for explicit user approval before setting `status: approved`.
@@ -34,4 +38,4 @@ Record explicit prototype approval and produce the development handoff.
 
 ## Validation
 
-- Rerun `node "$CLAUDE_PLUGIN_ROOT/scripts/prototype-contract.js" --json` and hand off only when `ok` is true.
+- Rerun `node "$HELM_PROTOTYPE_ROOT/scripts/prototype-contract.js" --json` and hand off only when `ok` is true.
