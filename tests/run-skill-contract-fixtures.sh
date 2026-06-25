@@ -148,11 +148,27 @@ function validateScriptReference(pluginName, file, scriptRef) {
   validateNodeScript(file, target, { requireHelp: scriptRef.includes('/skills/') });
 }
 
-function extractClaudePluginRootScriptRefs(body) {
+function extractHelmRootScriptRefs(body) {
   const refs = [];
-  const pattern = /\$CLAUDE_PLUGIN_ROOT\/[^"'\s`)]+\.js/g;
+  const varToPlugin = {
+    HELM_CORE_ROOT: 'helm-core',
+    HELM_REQUIREMENTS_ROOT: 'helm-requirements',
+    HELM_PROTOTYPE_ROOT: 'helm-prototype',
+    HELM_DEVELOPMENT_ROOT: 'helm-development',
+    HELM_VERIFICATION_ROOT: 'helm-verification',
+    HELM_OPERATIONS_ROOT: 'helm-operations'
+  };
+  const pattern = /\$(HELM_[A-Z_]+_ROOT)\/[^"'\s`)]+\.js/g;
   for (const match of body.matchAll(pattern)) {
-    refs.push(match[0].replace('$CLAUDE_PLUGIN_ROOT/', ''));
+    const targetPlugin = varToPlugin[match[1]];
+    if (!targetPlugin) {
+      fail(`unknown Helm root variable: ${match[1]}`);
+      continue;
+    }
+    refs.push({
+      pluginName: targetPlugin,
+      scriptRef: match[0].replace(`$${match[1]}/`, '')
+    });
   }
   return refs;
 }
@@ -260,9 +276,13 @@ function checkSkill(pluginName, file, declaredSkillNames) {
     }
   }
 
-  const scriptRefs = extractClaudePluginRootScriptRefs(body);
-  for (const scriptRef of scriptRefs) {
-    validateScriptReference(pluginName, rel, scriptRef);
+  if (body.includes('$CLAUDE_PLUGIN_ROOT')) {
+    fail(`${rel}: skill must not rely on CLAUDE_PLUGIN_ROOT outside hooks`);
+  }
+
+  const scriptRefs = extractHelmRootScriptRefs(body);
+  for (const { pluginName: targetPlugin, scriptRef } of scriptRefs) {
+    validateScriptReference(targetPlugin, rel, scriptRef);
   }
 }
 

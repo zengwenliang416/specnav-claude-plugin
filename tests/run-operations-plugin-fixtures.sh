@@ -183,14 +183,14 @@ test -f "$OPS/scripts/archive-gate.js"
 for skill in helm-ops-readiness helm-release-plan helm-install-verify helm-update-policy helm-compatibility-matrix helm-branch-finish helm-deploy helm-rollback helm-monitor helm-postmortem helm-update-spec; do
   test -f "$OPS/skills/$skill/SKILL.md"
   grep -q "name: $skill" "$OPS/skills/$skill/SKILL.md"
-  grep -Fq 'node "$CLAUDE_PLUGIN_ROOT/scripts/operations-gate.js" --json' "$OPS/skills/$skill/SKILL.md"
+  grep -Fq 'node "$HELM_OPERATIONS_ROOT/scripts/operations-gate.js" --json' "$OPS/skills/$skill/SKILL.md"
 done
 jq -e '.contracts.operations == "scripts/operations-gate.js"' "$OPS/helm-stage.json" >/dev/null
 jq -e '.contracts.archive == "scripts/archive-gate.js"' "$OPS/helm-stage.json" >/dev/null
 jq -e 'has("planned_contracts") | not' "$OPS/helm-stage.json" >/dev/null
-grep -Fq -- '--marketplace-root "$CLAUDE_PLUGIN_ROOT/../.."' "$OPS/commands/helm-release.md"
-grep -Fq 'node "$CLAUDE_PLUGIN_ROOT/scripts/operations-gate.js" --json' "$OPS/commands/helm-release.md"
-grep -Fq 'node "$CLAUDE_PLUGIN_ROOT/scripts/archive-gate.js" --json' "$OPS/commands/helm-archive.md"
+grep -Fq -- '--marketplace-root "$HELM_MARKETPLACE_ROOT"' "$OPS/commands/helm-release.md"
+grep -Fq 'node "$HELM_OPERATIONS_ROOT/scripts/operations-gate.js" --json' "$OPS/commands/helm-release.md"
+grep -Fq 'node "$HELM_OPERATIONS_ROOT/scripts/archive-gate.js" --json' "$OPS/commands/helm-archive.md"
 
 PROJECT="$TMP_DIR/ops-project"
 write_verified_project "$PROJECT"

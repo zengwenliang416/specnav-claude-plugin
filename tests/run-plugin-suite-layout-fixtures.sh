@@ -78,29 +78,18 @@ for legacy_core_skill in archive bootstrap design explore fix implement propose 
   test ! -e "$ROOT/plugins/helm-core/skills/$legacy_core_skill"
 done
 
-for command_file in \
-  "$ROOT/plugins/helm-requirements/commands/helm-requirements.md" \
-  "$ROOT/plugins/helm-prototype/commands/helm-prototype.md" \
-  "$ROOT/plugins/helm-development/commands/helm-implement.md" \
-  "$ROOT/plugins/helm-verification/commands/helm-verify.md" \
-  "$ROOT/plugins/helm-operations/commands/helm-release.md" \
-  "$ROOT/plugins/helm-operations/commands/helm-archive.md"; do
-  grep -q 'not-implemented:helm-core/plugin-suite' "$command_file"
-done
-
 for command_file in "$ROOT"/plugins/*/commands/*.md; do
-  if grep -qF '../helm-core/scripts/plugin-suite.js' "$command_file"; then
-    assert_first_before \
-      "$command_file" \
-      'not-implemented:helm-core/plugin-suite' \
-      'node "$CLAUDE_PLUGIN_ROOT/../helm-core/scripts/plugin-suite.js"'
+  grep -q 'helm_plugin_root()' "$command_file"
+  if grep -qF '$CLAUDE_PLUGIN_ROOT' "$command_file"; then
+    echo "command must not rely on CLAUDE_PLUGIN_ROOT: $command_file" >&2
+    exit 1
   fi
 done
 
 assert_first_before \
   "$ROOT/plugins/helm-operations/commands/helm-archive.md" \
-  'node "$CLAUDE_PLUGIN_ROOT/../helm-core/scripts/plugin-suite.js"' \
-  'node "$CLAUDE_PLUGIN_ROOT/scripts/archive-gate.js"'
+  'node "$HELM_CORE_ROOT/scripts/plugin-suite.js"' \
+  'node "$HELM_OPERATIONS_ROOT/scripts/archive-gate.js"'
 
 for routing_file in \
   "$ROOT/plugins/helm-core/commands/helm.md" \

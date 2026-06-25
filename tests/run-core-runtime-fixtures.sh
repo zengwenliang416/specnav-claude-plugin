@@ -56,9 +56,9 @@ assert_grep 'helm-bootstrap' "$CORE/skills/helm-route/SKILL.md" "helm router doe
 assert_grep 'helm-requirements' "$CORE/skills/helm-route/SKILL.md" "helm router does not mention helm-requirements"
 assert_grep 'helm-verification' "$CORE/skills/helm-route/SKILL.md" "helm router does not mention helm-verification"
 assert_grep 'helm-operations' "$CORE/skills/helm-route/SKILL.md" "helm router does not mention helm-operations"
-assert_grep_fixed '--marketplace-root "$CLAUDE_PLUGIN_ROOT/../.."' "$CORE/commands/helm.md" "helm command does not document cwd-independent marketplace root"
+assert_grep_fixed '--marketplace-root "$HELM_MARKETPLACE_ROOT"' "$CORE/commands/helm.md" "helm command does not document resolved marketplace root"
 assert_grep_fixed '--plugin helm-core --plugin <target-plugin>' "$CORE/commands/helm.md" "helm command does not document core plus target plugin require"
-assert_grep_fixed '--marketplace-root "$CLAUDE_PLUGIN_ROOT/../.."' "$CORE/skills/helm-route/SKILL.md" "helm router does not document cwd-independent marketplace root"
+assert_grep_fixed '--marketplace-root "$HELM_MARKETPLACE_ROOT"' "$CORE/skills/helm-route/SKILL.md" "helm router does not document resolved marketplace root"
 assert_grep_fixed '--plugin helm-core --plugin <target-plugin>' "$CORE/skills/helm-route/SKILL.md" "helm router does not document core plus target plugin require"
 
 suite_json="$TMP_DIR/plugin-suite-require.json"
@@ -140,6 +140,33 @@ if [ "$disabled_suite_status" -ne 2 ]; then
   exit 1
 fi
 assert_jq '.blockers | index("disabled-plugin:helm-core")' "$disabled_suite_json" "plugin-suite installed-cache disabled did not report disabled plugin"
+
+COMMAND_HOME="$TMP_DIR/command-home"
+COMMAND_CACHE="$COMMAND_HOME/.claude/plugins/cache/helm-marketplace/helm-core/9.9.9"
+mkdir -p "$(dirname "$COMMAND_CACHE")"
+cp -R "$CORE" "$COMMAND_CACHE"
+command_bootstrap_project="$TMP_DIR/command-bootstrap-project"
+cp -R "$NO_STATE_FIXTURE" "$command_bootstrap_project"
+command_bootstrap_script="$TMP_DIR/helm-bootstrap-command.sh"
+awk '
+  /^```bash$/ { in_block = 1; next }
+  /^```$/ && in_block { exit }
+  in_block { print }
+' "$CORE/commands/helm-bootstrap.md" >"$command_bootstrap_script"
+command_bootstrap_json="$TMP_DIR/helm-bootstrap-command.json"
+command_bootstrap_status=0
+(
+  cd "$command_bootstrap_project"
+  unset CLAUDE_PLUGIN_ROOT
+  HOME="$COMMAND_HOME" PROJECT_DIR="$command_bootstrap_project" bash "$command_bootstrap_script" >"$command_bootstrap_json"
+) || command_bootstrap_status=$?
+if [ "$command_bootstrap_status" -ne 0 ]; then
+  echo "helm-bootstrap command failed with CLAUDE_PLUGIN_ROOT unset, exit $command_bootstrap_status" >&2
+  cat "$command_bootstrap_json" >&2
+  exit 1
+fi
+assert_jq '.ok == true' "$command_bootstrap_json" "helm-bootstrap command did not report ok true with installed-cache resolver"
+test -d "$command_bootstrap_project/openspec"
 
 workflow_state_json="$TMP_DIR/workflow-state.json"
 workflow_state_status=0

@@ -702,18 +702,18 @@ grep -Fq '../../helm-prototype/scripts/prototype-contract' "$DEV/scripts/develop
 ! grep -Fq 'plugins/helm-core/scripts/contracts' "$DEV/scripts/development-contract.js"
 ! grep -Fq '../../helm-core/scripts/contracts' "$DEV/scripts/development-contract.js"
 
-grep -Fq 'node "$CLAUDE_PLUGIN_ROOT/../helm-core/scripts/plugin-suite.js" require' "$DEV/commands/helm-implement.md"
-grep -Fq -- '--marketplace-root "$CLAUDE_PLUGIN_ROOT/../.."' "$DEV/commands/helm-implement.md"
+grep -Fq 'node "$HELM_CORE_ROOT/scripts/plugin-suite.js" require' "$DEV/commands/helm-implement.md"
+grep -Fq -- '--marketplace-root "$HELM_MARKETPLACE_ROOT"' "$DEV/commands/helm-implement.md"
 grep -Fq -- '--plugin helm-core --plugin helm-requirements --plugin helm-prototype --plugin helm-development' "$DEV/commands/helm-implement.md"
-grep -Fq 'node "$CLAUDE_PLUGIN_ROOT/scripts/development-contract.js" --mode entry --json' "$DEV/commands/helm-implement.md"
-grep -Fq 'node "$CLAUDE_PLUGIN_ROOT/scripts/development-contract.js" --mode handoff --json' "$DEV/commands/helm-implement.md"
+grep -Fq 'node "$HELM_DEVELOPMENT_ROOT/scripts/development-contract.js" --mode entry --json' "$DEV/commands/helm-implement.md"
+grep -Fq 'node "$HELM_DEVELOPMENT_ROOT/scripts/development-contract.js" --mode handoff --json' "$DEV/commands/helm-implement.md"
 grep -Fiq 'fallback' "$DEV/commands/helm-implement.md"
 
 for skill in helm-development-entry helm-scope-lock helm-vertical-slices; do
-  grep -Fq 'node "$CLAUDE_PLUGIN_ROOT/scripts/development-contract.js" --mode entry --json' "$DEV/skills/$skill/SKILL.md"
+  grep -Fq 'node "$HELM_DEVELOPMENT_ROOT/scripts/development-contract.js" --mode entry --json' "$DEV/skills/$skill/SKILL.md"
   grep -Fiq 'fallback' "$DEV/skills/$skill/SKILL.md"
 done
-grep -Fq 'node "$CLAUDE_PLUGIN_ROOT/scripts/development-contract.js" --mode handoff --json' "$DEV/skills/helm-vertical-slices/SKILL.md"
+grep -Fq 'node "$HELM_DEVELOPMENT_ROOT/scripts/development-contract.js" --mode handoff --json' "$DEV/skills/helm-vertical-slices/SKILL.md"
 
 jq -e '.contracts.development == "scripts/development-contract.js"' "$DEV/helm-stage.json" >/dev/null
 jq -e 'has("planned_contracts") | not' "$DEV/helm-stage.json" >/dev/null

@@ -226,8 +226,8 @@ grep -Fq 'unresolved_gaps' "$REQ/skills/helm-requirements/SKILL.md"
 grep -Fq 'foundation spec' "$REQ/skills/helm-requirements/SKILL.md"
 
 grep -q 'helm-requirements' "$REQ/commands/helm-requirements.md"
-grep -Fq 'node "$CLAUDE_PLUGIN_ROOT/../helm-core/scripts/plugin-suite.js" require' "$REQ/commands/helm-requirements.md"
-grep -Fq -- '--marketplace-root "$CLAUDE_PLUGIN_ROOT/../.."' "$REQ/commands/helm-requirements.md"
+grep -Fq 'node "$HELM_CORE_ROOT/scripts/plugin-suite.js" require' "$REQ/commands/helm-requirements.md"
+grep -Fq -- '--marketplace-root "$HELM_MARKETPLACE_ROOT"' "$REQ/commands/helm-requirements.md"
 
 mkdir -p "$TMP_DIR/external-project"
 set +e

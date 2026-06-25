@@ -579,9 +579,9 @@ test -f "$VERIFY/skills/helm-verify-e2e/SKILL.md"
 test -f "$VERIFY/skills/helm-verify-sensory/SKILL.md"
 jq -e '.contracts.verification == "scripts/verify-domains.js"' "$VERIFY/helm-stage.json" >/dev/null
 jq -e 'has("planned_contracts") | not' "$VERIFY/helm-stage.json" >/dev/null
-grep -Fq -- '--marketplace-root "$CLAUDE_PLUGIN_ROOT/../.."' "$VERIFY/commands/helm-verify.md"
-grep -Fq 'node "$CLAUDE_PLUGIN_ROOT/../helm-development/scripts/development-contract.js" --mode handoff --json' "$VERIFY/commands/helm-verify.md"
-grep -Fq 'node "$CLAUDE_PLUGIN_ROOT/scripts/verify-domains.js" aggregate --json' "$VERIFY/commands/helm-verify.md"
+grep -Fq -- '--marketplace-root "$HELM_MARKETPLACE_ROOT"' "$VERIFY/commands/helm-verify.md"
+grep -Fq 'node "$HELM_DEVELOPMENT_ROOT/scripts/development-contract.js" --mode handoff --json' "$VERIFY/commands/helm-verify.md"
+grep -Fq 'node "$HELM_VERIFICATION_ROOT/scripts/verify-domains.js" aggregate --json' "$VERIFY/commands/helm-verify.md"
 
 PROJECT="$TMP_DIR/verify-project"
 write_base_project "$PROJECT"
