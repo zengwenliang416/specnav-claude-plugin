@@ -3,8 +3,9 @@
 
 const fs = require('fs');
 const path = require('path');
-const lib = require('../../helm-core/scripts/helm-lib');
-const { validateDevelopment } = require('../../helm-development/scripts/development-contract');
+const runtime = require('./plugin-runtime');
+const lib = runtime.requirePluginScript('helm-core', 'scripts/helm-lib');
+const { validateDevelopment } = runtime.requirePluginScript('helm-development', 'scripts/development-contract');
 
 const DOMAINS = ['facticity', 'static', 'unit', 'redteam', 'e2e', 'sensory'];
 const VERDICTS = new Set(['green', 'red', 'blocked']);

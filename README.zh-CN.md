@@ -69,6 +69,7 @@ bash tests/run-skill-resource-fixtures.sh
 bash tests/run-plugin-suite-layout-fixtures.sh
 bash tests/run-plugin-suite-resolver-fixtures.sh
 bash tests/run-core-runtime-fixtures.sh
+bash tests/run-installed-cache-runtime-fixtures.sh
 bash tests/run-smoke.sh
 ```
 

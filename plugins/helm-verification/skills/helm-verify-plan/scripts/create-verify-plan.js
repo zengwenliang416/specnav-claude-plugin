@@ -2,7 +2,8 @@
 'use strict';
 
 const path = require('path');
-const scaffold = require('../../../../helm-core/scripts/scaffold-lib');
+const runtime = require('../../../scripts/plugin-runtime');
+const scaffold = runtime.requirePluginScript('helm-core', 'scripts/scaffold-lib');
 
 const skillRoot = path.resolve(__dirname, '..');
 const assetsRoot = path.join(skillRoot, 'assets');

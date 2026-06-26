@@ -3,8 +3,9 @@
 
 const fs = require('fs');
 const path = require('path');
-const lib = require('../../helm-core/scripts/helm-lib');
-const { validateRequirements } = require('../../helm-requirements/scripts/requirements-contract');
+const runtime = require('./plugin-runtime');
+const lib = runtime.requirePluginScript('helm-core', 'scripts/helm-lib');
+const { validateRequirements } = runtime.requirePluginScript('helm-requirements', 'scripts/requirements-contract');
 
 const MANIFEST_SCHEMA = 'helm.prototype.manifest.v1';
 const VERIFIER_SCHEMA = 'helm.prototype.verifier.v1';

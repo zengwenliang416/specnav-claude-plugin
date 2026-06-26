@@ -4,6 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 const lib = require('./helm-lib');
+const runtime = require('./plugin-runtime');
 
 function detectTestCommand(root) {
   if (process.env.HELM_TEST_COMMAND) return process.env.HELM_TEST_COMMAND;
@@ -64,9 +65,8 @@ function verify(root = lib.projectRoot()) {
 
   if (dir) {
     if (fs.existsSync(path.join(dir, 'verify'))) {
-      const domainsPath = path.resolve(__dirname, '../../helm-verification/scripts/verify-domains');
       try {
-        const domains = require(domainsPath);
+        const domains = runtime.requirePluginScript('helm-verification', 'scripts/verify-domains');
         const aggregate = domains.writeAggregate(root);
         report.status = failed.length === 0 && aggregate.verdict === 'green' ? 'green' : 'red';
         report.aggregate = aggregate;

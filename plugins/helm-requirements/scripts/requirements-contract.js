@@ -3,7 +3,8 @@
 
 const fs = require('fs');
 const path = require('path');
-const lib = require('../../helm-core/scripts/helm-lib');
+const runtime = require('./plugin-runtime');
+const lib = runtime.requirePluginScript('helm-core', 'scripts/helm-lib');
 const foundationSpecs = require('./foundation-specs');
 
 const REQUIRED_ARTIFACTS = [

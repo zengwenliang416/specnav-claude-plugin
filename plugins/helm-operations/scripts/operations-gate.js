@@ -3,7 +3,8 @@
 
 const fs = require('fs');
 const path = require('path');
-const lib = require('../../helm-core/scripts/helm-lib');
+const runtime = require('./plugin-runtime');
+const lib = runtime.requirePluginScript('helm-core', 'scripts/helm-lib');
 
 const TARGETS = new Set(['local-only', 'plugin-marketplace', 'package', 'host-compatibility', 'project-deploy']);
 const RECEIPT_CONFIDENCE = new Set(['A', 'B', 'C']);

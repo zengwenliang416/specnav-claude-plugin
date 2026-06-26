@@ -3,8 +3,9 @@
 
 const fs = require('fs');
 const path = require('path');
-const lib = require('../../helm-core/scripts/helm-lib');
-const { validatePrototype } = require('../../helm-prototype/scripts/prototype-contract');
+const runtime = require('./plugin-runtime');
+const lib = runtime.requirePluginScript('helm-core', 'scripts/helm-lib');
+const { validatePrototype } = runtime.requirePluginScript('helm-prototype', 'scripts/prototype-contract');
 
 const CHANGE_ARTIFACTS = ['scope.json', 'tasks.md'];
 

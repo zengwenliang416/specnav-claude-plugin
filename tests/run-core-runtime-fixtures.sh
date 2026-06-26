@@ -237,7 +237,7 @@ grep -Fq 'missing-openspec' "$TMP_DIR/session-blocked.err"
 
 doctor_json="$TMP_DIR/helm-doctor.json"
 doctor_status=0
-node "$CORE/scripts/helm-doctor.js" --json >"$doctor_json" || doctor_status=$?
+HELM_PLUGIN_LIST_JSON="$(cat "$installed_inventory")" node "$CORE/scripts/helm-doctor.js" --json >"$doctor_json" || doctor_status=$?
 if [ "$doctor_status" -ne 0 ]; then
   echo "helm-doctor exited $doctor_status, expected 0" >&2
   exit 1
@@ -248,7 +248,7 @@ assert_jq '.checks[] | select(.name == "plugin-suite" and .ok == true)' "$doctor
 assert_jq '.checks[] | select(.name == "openspec-cli" and .ok == true)' "$doctor_json" "helm-doctor did not pass openspec-cli check"
 
 project_doctor_json="$TMP_DIR/helm-doctor-project.json"
-PROJECT_DIR="$PROJECT" node "$CORE/scripts/helm-doctor.js" --json >"$project_doctor_json"
+HELM_PLUGIN_LIST_JSON="$(cat "$installed_inventory")" PROJECT_DIR="$PROJECT" node "$CORE/scripts/helm-doctor.js" --json >"$project_doctor_json"
 assert_jq '.ok == true' "$project_doctor_json" "helm-doctor with project did not report ok true"
 assert_jq '.checks[] | select(.name == "context-manifests" and .ok == true)' "$project_doctor_json" "helm-doctor did not pass context-manifests check"
 assert_jq '.checks[] | select(.name == "journal" and .ok == true)' "$project_doctor_json" "helm-doctor did not pass journal check"
