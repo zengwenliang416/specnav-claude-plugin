@@ -54,17 +54,78 @@ function listDirs(dir) {
   }
 }
 
-function activeChange(root) {
-  if (process.env.HELM_CHANGE) return process.env.HELM_CHANGE.trim();
+function invalidChangeId(value) {
+  if (!value || value === '.' || value === '..') return true;
+  return value.includes('/') || value.includes('\\') || value.includes('..') || /\s/.test(value);
+}
+
+function cleanChangeValue(value) {
+  if (typeof value !== 'string') return null;
+  if (value !== value.trim()) return null;
+  const change = value.trim();
+  return invalidChangeId(change) ? null : change;
+}
+
+function readActiveChangeFile(root) {
   const activeFile = path.join(helmDir(root), 'active-change');
-  const explicit = readText(activeFile).trim();
-  if (explicit) return explicit;
-  const changes = listDirs(path.join(openspecDir(root), 'changes'));
-  if (changes.length === 1) return path.basename(changes[0]);
-  if (changes.length > 1) {
-    changes.sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs);
-    return path.basename(changes[0]);
+  try {
+    if (!fs.statSync(activeFile).isFile()) return { present: true, change: null };
+  } catch (error) {
+    return { present: !!(error && error.code !== 'ENOENT'), change: null };
   }
+
+  let content;
+  try {
+    content = fs.readFileSync(activeFile, 'utf8');
+  } catch {
+    return { present: true, change: null };
+  }
+  const withoutSingleFinalNewline = content.replace(/\r?\n$/, '');
+  if (withoutSingleFinalNewline !== content.trim()) return { present: true, change: null };
+  return { present: true, change: cleanChangeValue(withoutSingleFinalNewline) };
+}
+
+function readWorkflowStateActiveChange(root) {
+  const stateFile = path.join(helmDir(root), 'workflow-state.json');
+  try {
+    if (!fs.statSync(stateFile).isFile()) return { present: true, hasValue: true, change: null };
+  } catch (error) {
+    return { present: !!(error && error.code !== 'ENOENT'), hasValue: false, change: null };
+  }
+
+  let workflowState;
+  try {
+    workflowState = JSON.parse(fs.readFileSync(stateFile, 'utf8'));
+  } catch {
+    return { present: true, hasValue: true, change: null };
+  }
+
+  if (!workflowState || typeof workflowState !== 'object' || Array.isArray(workflowState)) {
+    return { present: true, hasValue: true, change: null };
+  }
+  if (!Object.prototype.hasOwnProperty.call(workflowState, 'active_change')) {
+    return { present: true, hasValue: false, change: null };
+  }
+  if (workflowState.active_change === null || workflowState.active_change === undefined) {
+    return { present: true, hasValue: false, change: null };
+  }
+  return { present: true, hasValue: true, change: cleanChangeValue(workflowState.active_change) };
+}
+
+function activeChange(root) {
+  if (Object.prototype.hasOwnProperty.call(process.env, 'HELM_CHANGE')) {
+    return cleanChangeValue(process.env.HELM_CHANGE);
+  }
+
+  const explicit = readActiveChangeFile(root);
+  if (explicit.present) return explicit.change;
+
+  const changes = listDirs(path.join(openspecDir(root), 'changes'));
+  if (changes.length === 1) return cleanChangeValue(path.basename(changes[0]));
+
+  const workflowState = readWorkflowStateActiveChange(root);
+  if (workflowState.hasValue) return workflowState.change;
+
   return null;
 }
 

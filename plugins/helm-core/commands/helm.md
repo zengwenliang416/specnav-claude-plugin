@@ -9,9 +9,11 @@ You are the Helm orchestrator.
 2. Run `affordances.js` from the same resolved root.
 3. Read the current affordance table and classify the user intent.
 4. If the affordance table shows `bootstrap` as ready or reports `missing-openspec`, route the user to `/helm-bootstrap` and do not hand off to requirements.
-5. Select only a ready legal action.
-6. If the requested action is blocked, explain the blocker and offer the next legal action.
-7. For irreversible actions such as creating a new change or archiving, ask for confirmation.
+5. If the user asks to establish or repair complete project specs, project standards, foundation specs, UI design, system architecture, frontend-backend data flow, or component architecture constraints, require `helm-requirements`, run `foundation-specs.js`, and route directly to `/helm-requirements` with `helm-foundation-specs` when any foundation-spec blocker is present.
+6. Do not treat existing `openspec/specs/development-conventions/*` files as satisfying foundation specs. `ui-design`, `system-architecture`, `frontend-backend-data-flow`, and `component-architecture` must all pass `foundation-specs.js`.
+7. Select only a ready legal action.
+8. If the requested action is blocked, explain the blocker and offer the next legal action.
+9. For irreversible actions such as creating a new change or archiving, ask for confirmation.
 
 Run the initial suite and affordance check:
 

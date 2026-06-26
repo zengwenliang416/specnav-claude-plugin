@@ -69,36 +69,8 @@ function readTextFile(file) {
   }
 }
 
-function invalidChangeId(value) {
-  if (!value || value === '.' || value === '..') return true;
-  if (value.includes('/') || value.includes('\\') || value.includes('..') || /\s/.test(value)) return true;
-
-  const changesRoot = path.resolve(path.sep, 'openspec', 'changes');
-  const resolved = path.resolve(changesRoot, value);
-  const relative = path.relative(changesRoot, resolved);
-  return !relative || relative.startsWith('..') || path.isAbsolute(relative) || relative.includes(path.sep);
-}
-
 function strictActiveChange(projectRoot) {
-  const activeFile = path.join(lib.helmDir(projectRoot), 'active-change');
-
-  try {
-    if (!fs.statSync(activeFile).isFile()) return null;
-  } catch (_error) {
-    return null;
-  }
-
-  let content;
-  try {
-    content = fs.readFileSync(activeFile, 'utf8');
-  } catch (_error) {
-    return null;
-  }
-
-  const change = content.replace(/\r?\n$/, '');
-  if (change !== content.trim()) return null;
-  if (!change || invalidChangeId(change)) return null;
-  return change;
+  return lib.activeChange(projectRoot);
 }
 
 function changeDirExists(dir) {

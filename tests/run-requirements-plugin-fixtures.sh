@@ -971,11 +971,46 @@ jq -e '.blockers | index("invalid-foundation-spec-sections:ui-design") == null' 
 run_json "$HAPPY_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/happy-requirements-contract.json" 0
 jq -e '.ok == true' "$TMP_DIR/happy-requirements-contract.json" >/dev/null
 
-MISSING_ACTIVE_CHANGE_PROJECT="$TMP_DIR/missing-active-change-project"
-cp -R "$HAPPY_PROJECT" "$MISSING_ACTIVE_CHANGE_PROJECT"
-rm "$MISSING_ACTIVE_CHANGE_PROJECT/openspec/.helm/active-change"
-run_json "$MISSING_ACTIVE_CHANGE_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/missing-active-change.json" 2
-assert_active_change_only_blocker "$TMP_DIR/missing-active-change.json"
+SINGLE_CHANGE_INFERENCE_PROJECT="$TMP_DIR/single-change-inference-project"
+cp -R "$HAPPY_PROJECT" "$SINGLE_CHANGE_INFERENCE_PROJECT"
+rm "$SINGLE_CHANGE_INFERENCE_PROJECT/openspec/.helm/active-change"
+run_json "$SINGLE_CHANGE_INFERENCE_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/single-change-inference.json" 0
+jq -e '.ok == true' "$TMP_DIR/single-change-inference.json" >/dev/null
+jq -e '.active_change == "add-dashboard"' "$TMP_DIR/single-change-inference.json" >/dev/null
+
+WORKFLOW_STATE_ACTIVE_CHANGE_PROJECT="$TMP_DIR/workflow-state-active-change-project"
+cp -R "$HAPPY_PROJECT" "$WORKFLOW_STATE_ACTIVE_CHANGE_PROJECT"
+rm "$WORKFLOW_STATE_ACTIVE_CHANGE_PROJECT/openspec/.helm/active-change"
+mkdir -p "$WORKFLOW_STATE_ACTIVE_CHANGE_PROJECT/openspec/changes/another-change"
+cat >"$WORKFLOW_STATE_ACTIVE_CHANGE_PROJECT/openspec/.helm/workflow-state.json" <<'JSON'
+{
+  "schema_version": 1,
+  "active_change": "add-dashboard"
+}
+JSON
+run_json "$WORKFLOW_STATE_ACTIVE_CHANGE_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/workflow-state-active-change.json" 0
+jq -e '.ok == true' "$TMP_DIR/workflow-state-active-change.json" >/dev/null
+jq -e '.active_change == "add-dashboard"' "$TMP_DIR/workflow-state-active-change.json" >/dev/null
+
+ENV_ACTIVE_CHANGE_PROJECT="$TMP_DIR/env-active-change-project"
+cp -R "$HAPPY_PROJECT" "$ENV_ACTIVE_CHANGE_PROJECT"
+printf '%s\n' '../bad' >"$ENV_ACTIVE_CHANGE_PROJECT/openspec/.helm/active-change"
+mkdir -p "$ENV_ACTIVE_CHANGE_PROJECT/openspec/changes/another-change"
+set +e
+PROJECT_DIR="$ENV_ACTIVE_CHANGE_PROJECT" HELM_CHANGE="add-dashboard" node "$REQ/scripts/requirements-contract.js" --json >"$TMP_DIR/env-active-change.json"
+STATUS=$?
+set -e
+[[ "$STATUS" == "0" ]]
+jq -e '.ok == true' "$TMP_DIR/env-active-change.json" >/dev/null
+jq -e '.active_change == "add-dashboard"' "$TMP_DIR/env-active-change.json" >/dev/null
+
+AMBIGUOUS_ACTIVE_CHANGE_PROJECT="$TMP_DIR/ambiguous-active-change-project"
+cp -R "$HAPPY_PROJECT" "$AMBIGUOUS_ACTIVE_CHANGE_PROJECT"
+rm "$AMBIGUOUS_ACTIVE_CHANGE_PROJECT/openspec/.helm/active-change"
+rm -f "$AMBIGUOUS_ACTIVE_CHANGE_PROJECT/openspec/.helm/workflow-state.json"
+mkdir -p "$AMBIGUOUS_ACTIVE_CHANGE_PROJECT/openspec/changes/another-change"
+run_json "$AMBIGUOUS_ACTIVE_CHANGE_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/ambiguous-active-change.json" 2
+assert_active_change_only_blocker "$TMP_DIR/ambiguous-active-change.json"
 
 EMPTY_ACTIVE_CHANGE_PROJECT="$TMP_DIR/empty-active-change-project"
 cp -R "$HAPPY_PROJECT" "$EMPTY_ACTIVE_CHANGE_PROJECT"

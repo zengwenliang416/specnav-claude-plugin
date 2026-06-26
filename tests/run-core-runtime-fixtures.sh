@@ -54,8 +54,13 @@ assert_grep 'workflow-state.js' "$CORE/commands/helm-status.md" "helm-status com
 assert_grep 'helm-doctor.js' "$CORE/commands/helm-doctor.md" "helm-doctor command does not reference helm-doctor.js"
 assert_grep 'helm-bootstrap' "$CORE/skills/helm-route/SKILL.md" "helm router does not mention helm-bootstrap"
 assert_grep 'helm-requirements' "$CORE/skills/helm-route/SKILL.md" "helm router does not mention helm-requirements"
+assert_grep 'helm-foundation-specs' "$CORE/skills/helm-route/SKILL.md" "helm router does not mention helm-foundation-specs"
+assert_grep 'foundation-specs.js' "$CORE/skills/helm-route/SKILL.md" "helm router does not mention foundation-specs.js"
+assert_grep 'development-conventions' "$CORE/skills/helm-route/SKILL.md" "helm router does not document development-conventions mismatch"
 assert_grep 'helm-verification' "$CORE/skills/helm-route/SKILL.md" "helm router does not mention helm-verification"
 assert_grep 'helm-operations' "$CORE/skills/helm-route/SKILL.md" "helm router does not mention helm-operations"
+assert_grep 'helm-foundation-specs' "$CORE/commands/helm.md" "helm command does not mention helm-foundation-specs"
+assert_grep 'foundation-specs.js' "$CORE/commands/helm.md" "helm command does not mention foundation-specs.js"
 assert_grep_fixed '--marketplace-root "$HELM_MARKETPLACE_ROOT"' "$CORE/commands/helm.md" "helm command does not document resolved marketplace root"
 assert_grep_fixed '--plugin helm-core --plugin <target-plugin>' "$CORE/commands/helm.md" "helm command does not document core plus target plugin require"
 assert_grep_fixed '--marketplace-root "$HELM_MARKETPLACE_ROOT"' "$CORE/skills/helm-route/SKILL.md" "helm router does not document resolved marketplace root"
@@ -256,5 +261,37 @@ assert_jq '.checks[] | select(.name == "journal" and .ok == true)' "$project_doc
 affordances_json="$TMP_DIR/helm-core-affordances.json"
 PROJECT_DIR="$PROJECT" node "$CORE/scripts/affordances.js" --json >"$affordances_json"
 assert_jq '.active_change == "add-dark-mode"' "$affordances_json" "affordances did not report active_change add-dark-mode"
+
+single_change_project="$TMP_DIR/single-change-project"
+cp -R "$PROJECT_FIXTURE" "$single_change_project"
+rm "$single_change_project/openspec/.helm/active-change"
+rm -f "$single_change_project/openspec/.helm/workflow-state.json"
+single_change_affordances_json="$TMP_DIR/single-change-affordances.json"
+PROJECT_DIR="$single_change_project" node "$CORE/scripts/affordances.js" --json >"$single_change_affordances_json"
+assert_jq '.active_change == "add-dark-mode"' "$single_change_affordances_json" "affordances did not infer the only change"
+
+workflow_state_project="$TMP_DIR/workflow-state-active-project"
+cp -R "$PROJECT_FIXTURE" "$workflow_state_project"
+rm "$workflow_state_project/openspec/.helm/active-change"
+mkdir -p "$workflow_state_project/openspec/changes/another-change"
+cat >"$workflow_state_project/openspec/.helm/workflow-state.json" <<'JSON'
+{
+  "schema_version": 1,
+  "active_change": "add-dark-mode"
+}
+JSON
+workflow_state_affordances_json="$TMP_DIR/workflow-state-affordances.json"
+PROJECT_DIR="$workflow_state_project" node "$CORE/scripts/affordances.js" --json >"$workflow_state_affordances_json"
+assert_jq '.active_change == "add-dark-mode"' "$workflow_state_affordances_json" "affordances did not read workflow-state active_change"
+
+ambiguous_change_project="$TMP_DIR/ambiguous-change-project"
+cp -R "$PROJECT_FIXTURE" "$ambiguous_change_project"
+rm "$ambiguous_change_project/openspec/.helm/active-change"
+rm -f "$ambiguous_change_project/openspec/.helm/workflow-state.json"
+mkdir -p "$ambiguous_change_project/openspec/changes/another-change"
+ambiguous_change_affordances_json="$TMP_DIR/ambiguous-change-affordances.json"
+PROJECT_DIR="$ambiguous_change_project" node "$CORE/scripts/affordances.js" --json >"$ambiguous_change_affordances_json"
+assert_jq '.active_change == null' "$ambiguous_change_affordances_json" "affordances inferred an ambiguous active change"
+assert_jq '.state_source == "no-active-change"' "$ambiguous_change_affordances_json" "affordances did not report no-active-change for ambiguous changes"
 
 echo "helm core runtime fixtures ok"
