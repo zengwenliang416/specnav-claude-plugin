@@ -36,7 +36,22 @@ PROTO="$CACHE/helm-prototype/$VERSION"
 DEV="$CACHE/helm-development/$VERSION"
 VERIFY="$CACHE/helm-verification/$VERSION"
 OPS="$CACHE/helm-operations/$VERSION"
-export CORE REQ PROTO DEV VERIFY OPS
+export CORE REQ PROTO DEV VERIFY OPS VERSION
+
+resolve_runtime_json="$TMP_DIR/resolve-runtime.json"
+node "$CORE/scripts/resolve-runtime.js" resolve --plugin helm-core --plugin helm-requirements --json >"$resolve_runtime_json"
+jq -e '.ok == true' "$resolve_runtime_json" >/dev/null
+jq -e '.marketplace_root == env.HELM_MARKETPLACE_ROOT' "$resolve_runtime_json" >/dev/null
+jq -e '.plugins | length == 2' "$resolve_runtime_json" >/dev/null
+jq -e '.plugins[] | select(.name == "helm-core" and .root == env.CORE and .env == "HELM_CORE_ROOT" and .version == env.VERSION)' "$resolve_runtime_json" >/dev/null
+jq -e '.plugins[] | select(.name == "helm-requirements" and .root == env.REQ and .env == "HELM_REQUIREMENTS_ROOT" and .version == env.VERSION)' "$resolve_runtime_json" >/dev/null
+
+resolve_runtime_env_json="$TMP_DIR/resolve-runtime-env.json"
+node "$CORE/scripts/resolve-runtime.js" env --plugin helm-core --plugin helm-verification --shell --json >"$resolve_runtime_env_json"
+jq -e '.ok == true' "$resolve_runtime_env_json" >/dev/null
+jq -e '.shell | contains("HELM_MARKETPLACE_ROOT=")' "$resolve_runtime_env_json" >/dev/null
+jq -e '.shell | contains("HELM_CORE_ROOT=")' "$resolve_runtime_env_json" >/dev/null
+jq -e '.shell | contains("HELM_VERIFICATION_ROOT=")' "$resolve_runtime_env_json" >/dev/null
 
 (
   unset HELM_MARKETPLACE_ROOT

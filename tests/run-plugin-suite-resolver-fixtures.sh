@@ -18,6 +18,19 @@ run_failure() {
   jq -e '.ok == false' "$output" >/dev/null
 }
 
+run_runtime_failure() {
+  local output="$1"
+  shift
+
+  set +e
+  node "$ROOT/plugins/helm-core/scripts/resolve-runtime.js" "$@" --json >"$output"
+  local exit_code=$?
+  set -e
+
+  [[ "$exit_code" == "2" ]]
+  jq -e '.ok == false' "$output" >/dev/null
+}
+
 node "$ROOT/plugins/helm-core/scripts/plugin-suite.js" list --marketplace-root "$ROOT" --json >/tmp/helm-suite-list.json
 jq -e '.ok == true' /tmp/helm-suite-list.json >/dev/null
 jq -e '.plugins | length == 6' /tmp/helm-suite-list.json >/dev/null
@@ -55,6 +68,18 @@ jq -e '.blockers[] | select(. == "missing-argument:--plugin")' "$tmp_dir/resolve
 
 run_failure "$tmp_dir/require-missing-plugin.json" require --marketplace-root "$ROOT"
 jq -e '.blockers[] | select(. == "missing-argument:--plugin")' "$tmp_dir/require-missing-plugin.json" >/dev/null
+
+runtime_cache="$tmp_dir/runtime-cache"
+mkdir -p "$runtime_cache"
+run_runtime_failure "$tmp_dir/resolve-runtime-invalid-plugin.json" resolve --marketplace-root "$runtime_cache" --plugin "bad/name"
+jq -e '.blockers[] | select(. == "invalid-plugin-name:bad/name")' "$tmp_dir/resolve-runtime-invalid-plugin.json" >/dev/null
+
+run_runtime_failure "$tmp_dir/resolve-runtime-missing-plugin.json" resolve --marketplace-root "$runtime_cache" --plugin helm-missing
+jq -e '.blockers[] | select(. == "missing-installed-plugin:helm-missing")' "$tmp_dir/resolve-runtime-missing-plugin.json" >/dev/null
+
+mkdir -p "$runtime_cache/helm-empty/9.9.9"
+run_runtime_failure "$tmp_dir/resolve-runtime-missing-active.json" resolve --marketplace-root "$runtime_cache" --plugin helm-empty
+jq -e '.blockers[] | select(. == "missing-active-installed-plugin:helm-empty")' "$tmp_dir/resolve-runtime-missing-active.json" >/dev/null
 
 run_failure "$tmp_dir/list-missing-marketplace-root-value.json" list --marketplace-root
 jq -e '.blockers[] | select(. == "missing-argument:--marketplace-root")' "$tmp_dir/list-missing-marketplace-root-value.json" >/dev/null

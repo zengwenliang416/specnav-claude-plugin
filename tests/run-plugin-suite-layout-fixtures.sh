@@ -19,6 +19,22 @@ assert_first_before() {
   fi
 }
 
+assert_no_bash_placeholders() {
+  local file="$1"
+  local bash_blocks="$tmp_dir/$(basename "$file").bash-blocks"
+
+  awk '
+    /^```bash$/ { in_block = 1; next }
+    /^```$/ && in_block { in_block = 0; next }
+    in_block { print }
+  ' "$file" >"$bash_blocks"
+
+  if grep -Eq '<[^[:space:]>][^>]*>' "$bash_blocks"; then
+    echo "bash code block contains placeholder angle brackets: $file" >&2
+    exit 1
+  fi
+}
+
 jq -e '.plugins | length == 6' "$ROOT/.claude-plugin/marketplace.json" >/dev/null
 jq -e '.plugins[].name' "$ROOT/.claude-plugin/marketplace.json" >/tmp/helm-plugin-names.txt
 jq -e 'all(.plugins[].source; startswith("./plugins/"))' "$ROOT/.claude-plugin/marketplace.json" >/dev/null
@@ -80,6 +96,7 @@ done
 
 for command_file in "$ROOT"/plugins/*/commands/*.md; do
   grep -q 'helm_plugin_root()' "$command_file"
+  assert_no_bash_placeholders "$command_file"
   if grep -qF '$CLAUDE_PLUGIN_ROOT' "$command_file"; then
     echo "command must not rely on CLAUDE_PLUGIN_ROOT: $command_file" >&2
     exit 1

@@ -15,12 +15,11 @@ Control the top-level Helm lifecycle and keep work inside the installed multi-pl
 
 ## Workflow
 
-1. Require core with `node "$HELM_CORE_ROOT/scripts/plugin-suite.js" require --marketplace-root "$HELM_MARKETPLACE_ROOT" --plugin helm-core --json`.
-2. Run `node "$HELM_CORE_ROOT/scripts/affordances.js" --markdown` and treat it as the legal action table.
-3. If `bootstrap` is ready or the blockers include `missing-openspec`, route to `/helm-bootstrap` and do not enter requirements yet.
-4. Match the request to requirements, prototype, development, verification, or operations.
-5. Before routing, require the target with `node "$HELM_CORE_ROOT/scripts/plugin-suite.js" require --marketplace-root "$HELM_MARKETPLACE_ROOT" --plugin helm-core --plugin <target-plugin> --json`.
-6. If the request is blocked, report the blocker and route to the owning Helm skill instead of using fallback behavior.
+1. Run `node "$HELM_CORE_ROOT/scripts/helm-route.js" --intent "$INTENT" --json`.
+2. Treat the JSON fields `target_plugin`, `command`, `skill`, `required_plugins`, `blockers`, `confirmation_required`, and `no_fallback` as authoritative.
+3. If `blockers` is non-empty, report the exact blocker list and stop.
+4. If `confirmation_required` is true, ask before handoff.
+5. Route through the reported stage command and owning skill. Do not use a core fallback implementation when `no_fallback` is true.
 
 ## Required Outputs
 
@@ -31,9 +30,9 @@ Control the top-level Helm lifecycle and keep work inside the installed multi-pl
 
 - OpenSpec is missing and `/helm-bootstrap` has been reported as the next command.
 - The core plugin or target plugin cannot be resolved.
-- The affordances table blocks the requested action.
+- The router blocks the requested action.
 - The user asks to skip a required stage gate.
 
 ## Validation
 
-- The suite resolver must pass for `--plugin helm-core --plugin <target-plugin>` before handoff.
+- `helm-route.js` must return `ok: true` before handoff.

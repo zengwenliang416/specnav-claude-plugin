@@ -16,15 +16,16 @@ Discover change requirements after foundation spec validation passes.
 ## Workflow
 
 1. Run `node "$HELM_REQUIREMENTS_ROOT/scripts/foundation-specs.js" --json` first.
-2. If blocked, route to `helm-foundation-specs` with exact blockers.
-3. Read all four foundation spec files before asking product questions.
-4. Read `references/interview-philosophy.md` before asking product questions.
-5. Read `references/requirements-artifacts.md` before creating or repairing requirements artifacts.
-6. If required change artifacts are missing, run `node "$HELM_REQUIREMENTS_ROOT/skills/helm-requirements/scripts/create-requirements-artifacts.js" --json` to scaffold templates from `assets/change/`.
-7. Ask one focused question at a time with a recommended answer and tradeoff.
-8. Do not ask information already answered by foundation spec, code evidence, OpenSpec artifacts, or previous answers.
-9. Close each decision branch before opening the next: record the answer, update maps, rerun contracts, and resolve blockers.
-10. Write unknowns in `unresolved_gaps` instead of inventing answers.
+2. If foundation specs are missing, run `node "$HELM_REQUIREMENTS_ROOT/scripts/repository-discovery.js" --write --json` and use discovery output only as evidence and pending-question input.
+3. If blocked, route to `helm-foundation-specs` with exact blockers; discovery does not satisfy `foundation-specs.js` or `requirements-contract.js`.
+4. Read all four foundation spec files before asking product questions.
+5. Read `references/interview-philosophy.md` before asking product questions.
+6. Read `references/requirements-artifacts.md` before creating or repairing requirements artifacts.
+7. If required change artifacts are missing, run `node "$HELM_REQUIREMENTS_ROOT/skills/helm-requirements/scripts/create-requirements-artifacts.js" --json` to scaffold templates from `assets/change/`.
+8. Ask one focused question at a time with a recommended answer and tradeoff.
+9. Do not ask information already answered by foundation spec, discovery evidence, OpenSpec artifacts, or previous answers.
+10. Close each decision branch before opening the next: record the answer, update maps, rerun contracts, and resolve blockers.
+11. Write unknowns in `unresolved_gaps` instead of inventing answers.
 
 ## Required Outputs
 

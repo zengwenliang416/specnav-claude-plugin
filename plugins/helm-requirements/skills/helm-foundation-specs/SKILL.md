@@ -16,12 +16,14 @@ Create or repair the four project-level foundation specs required before require
 ## Workflow
 
 1. Run `node "$HELM_REQUIREMENTS_ROOT/scripts/foundation-specs.js" --json` first.
-2. Repair only reported blockers for missing sections, frontmatter values, token references, theme parity, component contract shape, YAML parse errors, or `frontmatter_errors`.
-3. Required specs are ui-design, system-architecture, frontend-backend-data-flow, and component-architecture.
-4. Read `references/foundation-spec-contract.md` before creating or repairing foundation specs.
-5. If required specs are missing, run `node "$HELM_REQUIREMENTS_ROOT/skills/helm-foundation-specs/scripts/create-foundation-specs.js" --json` to create skeletons from `assets/`.
-6. If UI design is missing, guide the user to create the supplied Geist-style YAML token contract and Markdown guide.
-7. Preserve existing decisions outside reported blockers.
+2. If required specs are missing, run `node "$HELM_REQUIREMENTS_ROOT/scripts/repository-discovery.js" --write --json` first and use `openspec/.helm/context/repository-discovery.json` only as evidence and pending-question input.
+3. Discovery findings do not replace the foundation gate; rerun `foundation-specs.js --json` after every foundation edit and proceed only when it passes.
+4. Repair only reported blockers for missing sections, frontmatter values, token references, theme parity, component contract shape, YAML parse errors, or `frontmatter_errors`.
+5. Required specs are ui-design, system-architecture, frontend-backend-data-flow, and component-architecture.
+6. Read `references/foundation-spec-contract.md` before creating or repairing foundation specs.
+7. If required specs are missing, run `node "$HELM_REQUIREMENTS_ROOT/skills/helm-foundation-specs/scripts/create-foundation-specs.js" --json` to create skeletons from `assets/`.
+8. If UI design is missing, guide the user to create the supplied Geist-style YAML token contract and Markdown guide.
+9. Preserve existing decisions outside reported blockers.
 
 ## Required Outputs
 

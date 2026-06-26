@@ -4,7 +4,7 @@ This document describes the current Claude Code implementation of Helm. The long
 
 ## 1. Current Shape
 
-Helm is currently a Claude Code marketplace repository containing six installable plugins. Current implementation version: `0.3.3`.
+Helm is currently a Claude Code marketplace repository containing six installable plugins. Current implementation version: `0.3.4`.
 
 The accepted target is now the current implementation shape: one marketplace root, one core runtime plugin, and one plugin for each major lifecycle stage.
 
@@ -852,6 +852,19 @@ Target entry points:
 - `/helm-verify`: orchestration for the six verification skills.
 - `/helm-release`: release, deployment, rollback, monitoring, and operational handoff.
 - `/helm-doctor`: plugin, hook, OpenSpec, and state-machine health check.
+
+User-facing route contract:
+
+| User intent | Internal gate | Target command | Repair skill when blocked |
+| --- | --- | --- | --- |
+| initialize Helm/OpenSpec | `missing-openspec` / bootstrap affordance | `/helm-bootstrap` | `helm-bootstrap` |
+| inspect current state | workflow state and affordances | `/helm-status` | `helm-doctor` |
+| establish project specs | repository discovery + foundation validator | `/helm-requirements` | `helm-repository-discovery`, then `helm-foundation-specs` |
+| define feature requirements | foundation specs + active change | `/helm-requirements` | `helm-requirements` |
+| create reviewable prototype | requirements contract | `/helm-prototype` | `helm-prototype` |
+| implement production change | prototype handoff + scope contract | `/helm-implement` | `helm-development-entry`, `helm-scope-lock` |
+| run six-domain verification | development handoff | `/helm-verify` | owning `helm-verify-*` domain skill |
+| release or archive | green verification + operations readiness | `/helm-release` or `/helm-archive` | `helm-ops-readiness`, `helm-release-plan` |
 
 Skills provide direct recovery paths:
 
@@ -2015,7 +2028,7 @@ Required scenarios:
 Install:
 
 ```bash
-claude plugin marketplace add /Volumes/zwl/AI/ai-coding/helm-claude-plugin --scope user
+claude plugin marketplace add "$PWD" --scope user
 claude plugin install helm-core@helm-marketplace --scope user
 claude plugin install helm-requirements@helm-marketplace --scope user
 claude plugin install helm-prototype@helm-marketplace --scope user
@@ -2033,7 +2046,7 @@ claude plugin enable helm-operations@helm-marketplace --scope user
 Validate:
 
 ```bash
-claude plugin validate /Volumes/zwl/AI/ai-coding/helm-claude-plugin
+claude plugin validate "$PWD"
 ```
 
 Update:
@@ -2147,6 +2160,14 @@ Completed in `0.3.3`:
 1. Add `/helm-bootstrap` and `helm-bootstrap` as the explicit OpenSpec initialization entrypoint for `missing-openspec`.
 2. Update SessionStart, route, and workflow guidance to name `/helm-bootstrap` as the next legal action.
 3. Allow bootstrap and read-only suite/status commands through the missing-OpenSpec guard while keeping production writes blocked.
+
+Completed in `0.3.4`:
+
+1. Resolve cross-plugin scripts from the installed cache rather than assuming source checkout sibling paths.
+2. Align requirements active-change detection with core state resolution, including `HELM_CHANGE`, `.helm/active-change`, single change inference, and `workflow-state.json`.
+3. Route complete project spec requests to requirements foundation spec repair instead of generic choice prompts.
+4. Keep `development-conventions/*` from being treated as the four required foundation specs.
+5. Add repository discovery and spec negotiation as the first requirements-stage step before foundation spec repair.
 
 Next:
 

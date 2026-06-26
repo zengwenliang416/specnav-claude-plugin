@@ -15,18 +15,27 @@ Route user intent to the right Helm plugin while preserving dependency checks.
 
 ## Workflow
 
-1. Run `node "$HELM_CORE_ROOT/scripts/plugin-suite.js" require --marketplace-root "$HELM_MARKETPLACE_ROOT" --plugin helm-core --json`.
-2. Run `node "$HELM_CORE_ROOT/scripts/affordances.js" --markdown`.
-3. If `bootstrap` is ready or the blockers include `missing-openspec`, route to `helm-core` and `/helm-bootstrap`.
-4. If the user asks to establish or repair complete project specs, project standards, foundation specs, UI design, system architecture, frontend-backend data flow, or component architecture constraints, require `helm-requirements`, run `node "$HELM_REQUIREMENTS_ROOT/scripts/foundation-specs.js" --json`, and route directly to `helm-requirements` with `/helm-requirements` plus the `helm-foundation-specs` skill when the contract reports missing or invalid foundation specs.
-5. Existing `openspec/specs/development-conventions/*` files do not satisfy foundation specs by themselves. The route is still `helm-foundation-specs` until `ui-design`, `system-architecture`, `frontend-backend-data-flow`, and `component-architecture` all pass `foundation-specs.js`.
-6. Do not ask the user to choose a generic route when foundation-spec blockers are exact and the request is to build complete project specs.
-7. Route DEFINE or REQUIREMENTS to `helm-requirements` and `/helm-requirements`.
-8. Route PROTOTYPE to `helm-prototype` and `/helm-prototype`.
-9. Route BUILD or FIX to `helm-development` and `/helm-implement`.
-10. Route CHECK or VERIFICATION to `helm-verification` and `/helm-verify`.
-11. Route RELEASE or ARCHIVE to `helm-operations` and `/helm-release` or `/helm-archive`.
-12. Run the suite check with `--marketplace-root "$HELM_MARKETPLACE_ROOT"` and `--plugin helm-core --plugin <target-plugin>` before handoff.
+1. Run `node "$HELM_CORE_ROOT/scripts/helm-route.js" --intent "$INTENT" --json`.
+2. Treat the router JSON as authoritative: `target_plugin`, `command`, `skill`, `required_plugins`, `blockers`, `confirmation_required`, and `no_fallback`.
+3. If `blockers` is non-empty, report the exact blockers and stop.
+4. If `confirmation_required` is true, ask before handoff.
+5. If `no_fallback` is true, do not use a monolithic core lifecycle fallback.
+
+The router itself runs `plugin-suite.js`, `affordances.js`, and, for foundation routes, `foundation-specs.js`.
+
+Routing order:
+
+1. Missing OpenSpec or ready bootstrap action -> `helm-core`, `/helm-bootstrap`, `helm-bootstrap`.
+2. Repository discovery -> foundation -> requirements. Project standards, foundation specs, complete specs, UI design, system architecture, frontend-backend data flow, component architecture, architecture constraints, and development conventions route to `helm-requirements`, `/helm-requirements`, and `helm-foundation-specs`; the JSON also reports the discovery step before foundation work.
+3. DEFINE or REQUIREMENTS -> `helm-requirements`, `/helm-requirements`, `helm-requirements`.
+4. PROTOTYPE -> `helm-prototype`, `/helm-prototype`, `helm-prototype`.
+5. BUILD -> `helm-development`, `/helm-implement`, `helm-development-entry`.
+6. FIX -> `helm-development`, `/helm-implement`, `helm-fix`.
+7. CHECK or VERIFICATION -> `helm-verification`, `/helm-verify`, `helm-verify-plan`.
+8. RELEASE -> `helm-operations`, `/helm-release`, `helm-release-plan`.
+9. ARCHIVE -> `helm-operations`, `/helm-archive`, `helm-branch-finish`.
+
+Existing `openspec/specs/development-conventions/*` files do not satisfy foundation specs by themselves. The route remains `helm-foundation-specs` until `ui-design`, `system-architecture`, `frontend-backend-data-flow`, and `component-architecture` all pass `foundation-specs.js`.
 
 ## Required Outputs
 

@@ -5,7 +5,8 @@
   "author": {
     "name": "Wenliang Zeng"
   },
-  "homepage": "https://github.com/zengwenliang416/helm",
+  "homepage": "https://github.com/zengwenliang416/helm-claude-plugin",
+  "repository": "https://github.com/zengwenliang416/helm-claude-plugin",
   "license": "MIT",
   "keywords": ["claude-code", "openspec", "release", "operations"],
   "skills": "./skills/"

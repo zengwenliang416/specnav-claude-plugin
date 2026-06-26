@@ -48,10 +48,12 @@ assert_jq() {
 }
 
 assert_grep 'helm-core/scripts/helm-session-start.js\|CLAUDE_PLUGIN_ROOT/scripts/helm-session-start.js' "$CORE/hooks/hooks.json" "session-start hook does not reference the helm core runtime"
-assert_grep 'plugin-suite.js' "$CORE/commands/helm.md" "helm command does not reference plugin-suite.js"
+assert_grep 'helm-route.js' "$CORE/commands/helm.md" "helm command does not reference helm-route.js"
+assert_grep 'resolve-runtime.js' "$CORE/commands/helm.md" "helm command does not reference resolve-runtime.js"
 assert_grep 'helm-bootstrap.js' "$CORE/commands/helm-bootstrap.md" "helm-bootstrap command does not reference helm-bootstrap.js"
 assert_grep 'workflow-state.js' "$CORE/commands/helm-status.md" "helm-status command does not reference workflow-state.js"
 assert_grep 'helm-doctor.js' "$CORE/commands/helm-doctor.md" "helm-doctor command does not reference helm-doctor.js"
+assert_grep 'helm-route.js' "$CORE/skills/helm-route/SKILL.md" "helm router skill does not reference helm-route.js"
 assert_grep 'helm-bootstrap' "$CORE/skills/helm-route/SKILL.md" "helm router does not mention helm-bootstrap"
 assert_grep 'helm-requirements' "$CORE/skills/helm-route/SKILL.md" "helm router does not mention helm-requirements"
 assert_grep 'helm-foundation-specs' "$CORE/skills/helm-route/SKILL.md" "helm router does not mention helm-foundation-specs"
@@ -61,10 +63,8 @@ assert_grep 'helm-verification' "$CORE/skills/helm-route/SKILL.md" "helm router 
 assert_grep 'helm-operations' "$CORE/skills/helm-route/SKILL.md" "helm router does not mention helm-operations"
 assert_grep 'helm-foundation-specs' "$CORE/commands/helm.md" "helm command does not mention helm-foundation-specs"
 assert_grep 'foundation-specs.js' "$CORE/commands/helm.md" "helm command does not mention foundation-specs.js"
-assert_grep_fixed '--marketplace-root "$HELM_MARKETPLACE_ROOT"' "$CORE/commands/helm.md" "helm command does not document resolved marketplace root"
-assert_grep_fixed '--plugin helm-core --plugin <target-plugin>' "$CORE/commands/helm.md" "helm command does not document core plus target plugin require"
-assert_grep_fixed '--marketplace-root "$HELM_MARKETPLACE_ROOT"' "$CORE/skills/helm-route/SKILL.md" "helm router does not document resolved marketplace root"
-assert_grep_fixed '--plugin helm-core --plugin <target-plugin>' "$CORE/skills/helm-route/SKILL.md" "helm router does not document core plus target plugin require"
+assert_grep 'target_plugin' "$CORE/commands/helm.md" "helm command does not document router target plugin"
+assert_grep 'required_plugins' "$CORE/skills/helm-route/SKILL.md" "helm router does not document required plugins"
 
 suite_json="$TMP_DIR/plugin-suite-require.json"
 suite_status=0
@@ -196,6 +196,49 @@ fi
 assert_jq '.status == "blocked"' "$workflow_missing_json" "workflow-state did not block missing openspec"
 assert_jq '.blockers | index("missing-openspec")' "$workflow_missing_json" "workflow-state did not report missing-openspec"
 assert_jq '.actions[] | select(.id == "bootstrap" and .state == "ready")' "$workflow_missing_json" "workflow-state did not expose bootstrap repair action"
+
+route_bootstrap_json="$TMP_DIR/helm-route-bootstrap.json"
+route_bootstrap_status=0
+PROJECT_DIR="$NO_STATE" HELM_MARKETPLACE_ROOT="$ROOT" node "$CORE/scripts/helm-route.js" --intent "continue implementation" --json >"$route_bootstrap_json" || route_bootstrap_status=$?
+if [ "$route_bootstrap_status" -ne 0 ]; then
+  echo "helm-route missing openspec exited $route_bootstrap_status, expected 0" >&2
+  cat "$route_bootstrap_json" >&2
+  exit 1
+fi
+assert_jq '.ok == true' "$route_bootstrap_json" "helm-route missing openspec did not report ok true"
+assert_jq '.target_plugin == "helm-core"' "$route_bootstrap_json" "helm-route missing openspec did not target helm-core"
+assert_jq '.command == "/helm-bootstrap"' "$route_bootstrap_json" "helm-route missing openspec did not route to helm-bootstrap"
+assert_jq '.skill == "helm-bootstrap"' "$route_bootstrap_json" "helm-route missing openspec did not select helm-bootstrap skill"
+assert_jq '.affordance_state == "missing-openspec"' "$route_bootstrap_json" "helm-route missing openspec did not expose missing-openspec state"
+assert_jq '.no_fallback == true' "$route_bootstrap_json" "helm-route did not mark no_fallback true"
+
+route_foundation_json="$TMP_DIR/helm-route-foundation.json"
+route_foundation_status=0
+PROJECT_DIR="$PROJECT" HELM_MARKETPLACE_ROOT="$ROOT" node "$CORE/scripts/helm-route.js" --intent "create complete project standards and foundation specs" --json >"$route_foundation_json" || route_foundation_status=$?
+if [ "$route_foundation_status" -ne 2 ]; then
+  echo "helm-route foundation exited $route_foundation_status, expected 2" >&2
+  cat "$route_foundation_json" >&2
+  exit 1
+fi
+assert_jq '.target_plugin == "helm-requirements"' "$route_foundation_json" "helm-route foundation did not target helm-requirements"
+assert_jq '.command == "/helm-requirements"' "$route_foundation_json" "helm-route foundation did not route to helm-requirements"
+assert_jq '.skill == "helm-foundation-specs"' "$route_foundation_json" "helm-route foundation did not select helm-foundation-specs"
+assert_jq '.skills | index("helm-repository-discovery")' "$route_foundation_json" "helm-route foundation did not include repository discovery step"
+assert_jq '.blockers | index("missing-foundation-spec:ui-design")' "$route_foundation_json" "helm-route foundation did not report ui-design blocker"
+assert_jq '.blockers | index("missing-foundation-spec:system-architecture")' "$route_foundation_json" "helm-route foundation did not report system architecture blocker"
+
+route_verify_json="$TMP_DIR/helm-route-verify.json"
+route_verify_status=0
+PROJECT_DIR="$PROJECT" HELM_MARKETPLACE_ROOT="$ROOT" node "$CORE/scripts/helm-route.js" --intent "verify implementation" --json >"$route_verify_json" || route_verify_status=$?
+if [ "$route_verify_status" -ne 0 ]; then
+  echo "helm-route verification exited $route_verify_status, expected 0" >&2
+  cat "$route_verify_json" >&2
+  exit 1
+fi
+assert_jq '.target_plugin == "helm-verification"' "$route_verify_json" "helm-route verification did not target helm-verification"
+assert_jq '.command == "/helm-verify"' "$route_verify_json" "helm-route verification did not route to helm-verify"
+assert_jq '.skill == "helm-verify-plan"' "$route_verify_json" "helm-route verification did not select helm-verify-plan"
+assert_jq '.required_plugins | index("helm-verification")' "$route_verify_json" "helm-route verification did not require helm-verification"
 
 bootstrap_project="$TMP_DIR/bootstrap-project"
 cp -R "$NO_STATE_FIXTURE" "$bootstrap_project"

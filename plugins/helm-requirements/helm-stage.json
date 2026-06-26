@@ -11,13 +11,16 @@
   ],
   "skills": [
     "helm-foundation-specs",
+    "helm-repository-discovery",
     "helm-requirements"
   ],
   "contracts": {
     "foundation": "scripts/foundation-specs.js",
+    "discovery": "scripts/repository-discovery-contract.js",
     "requirements": "scripts/requirements-contract.js"
   },
   "state_outputs": [
+    "openspec/.helm/context/repository-discovery.json",
     "openspec/specs/ui-design/design.md",
     "openspec/specs/system-architecture/design.md",
     "openspec/specs/frontend-backend-data-flow/design.md",

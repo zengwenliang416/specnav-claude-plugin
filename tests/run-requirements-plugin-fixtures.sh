@@ -21,6 +21,21 @@ run_json() {
   [[ "$status" == "$expected_status" ]]
 }
 
+run_contract_file() {
+  local project="$1"
+  local script="$2"
+  local file="$3"
+  local output="$4"
+  local expected_status="$5"
+  local status
+
+  set +e
+  PROJECT_DIR="$project" node "$script" --file "$file" --json >"$output"
+  status=$?
+  set -e
+  [[ "$status" == "$expected_status" ]]
+}
+
 assert_active_change_only_blocker() {
   local output="$1"
 
@@ -28,6 +43,77 @@ assert_active_change_only_blocker() {
   jq -e '.blockers | sort == ["active-change"]' "$output" >/dev/null
   jq -e '.artifacts | length == 0' "$output" >/dev/null
   jq -e '.blockers | map(select(startswith("missing-requirements-artifact:"))) | length == 0' "$output" >/dev/null
+}
+
+write_discovery_project() {
+  local project="$1"
+
+  mkdir -p \
+    "$project/src/app/api/users" \
+    "$project/src/pages" \
+    "$project/src/components/node_modules/ignored-package" \
+    "$project/src/hooks" \
+    "$project/src/services" \
+    "$project/src/utils" \
+    "$project/tests" \
+    "$project/.github/workflows" \
+    "$project/dist"
+
+  cat >"$project/package.json" <<'JSON'
+{
+  "name": "discovery-fixture",
+  "scripts": {
+    "build": "next build",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "next": "15.0.0",
+    "react": "19.0.0",
+    "vite": "6.0.0"
+  },
+  "devDependencies": {
+    "typescript": "5.0.0",
+    "vitest": "3.0.0"
+  }
+}
+JSON
+
+  cat >"$project/tsconfig.json" <<'JSON'
+{
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "moduleResolution": "bundler"
+  }
+}
+JSON
+
+  cat >"$project/next.config.js" <<'JS'
+module.exports = {};
+JS
+
+  cat >"$project/vite.config.ts" <<'TS'
+export default {};
+TS
+
+  printf '%s\n' 'export default function Page() { return null; }' >"$project/src/app/page.tsx"
+  printf '%s\n' 'export async function GET() { return Response.json({ ok: true }); }' >"$project/src/app/api/users/route.ts"
+  printf '%s\n' 'export default function LegacyPage() { return null; }' >"$project/src/pages/index.tsx"
+  printf '%s\n' 'export function Button() { return null; }' >"$project/src/components/Button.tsx"
+  printf '%s\n' 'export function useUser() { return null; }' >"$project/src/hooks/useUser.ts"
+  printf '%s\n' 'export function listUsers() { return []; }' >"$project/src/services/users.ts"
+  printf '%s\n' 'export function identity(value) { return value; }' >"$project/src/utils/identity.ts"
+  printf '%s\n' 'ignored' >"$project/src/components/node_modules/ignored-package/index.js"
+  printf '%s\n' 'ignored' >"$project/dist/bundle.js"
+  printf '%s\n' 'test("fixture", () => {});' >"$project/tests/app.test.ts"
+  cat >"$project/.github/workflows/ci.yml" <<'YAML'
+name: CI
+on: [push]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: npm test
+YAML
 }
 
 write_happy_project() {
@@ -239,22 +325,83 @@ JSON
 
 test -f "$REQ/scripts/foundation-specs.js"
 test -f "$REQ/scripts/requirements-contract.js"
+test -f "$REQ/scripts/repository-discovery.js"
+test -f "$REQ/scripts/repository-discovery-contract.js"
 test -f "$REQ/skills/helm-foundation-specs/SKILL.md"
+test -f "$REQ/skills/helm-repository-discovery/SKILL.md"
 test -f "$REQ/skills/helm-requirements/SKILL.md"
+test -f "$REQ/skills/helm-repository-discovery/references/repository-discovery.md"
+test -f "$REQ/skills/helm-repository-discovery/references/spec-negotiation.md"
+test -f "$REQ/skills/helm-repository-discovery/references/discovery-schema.md"
+test -f "$REQ/skills/helm-repository-discovery/assets/discovery/repository-discovery.json"
+test -f "$REQ/skills/helm-repository-discovery/assets/discovery/spec-negotiation.md"
+test -f "$REQ/skills/helm-repository-discovery/assets/discovery/foundation-update-map.json"
 
 grep -Fiq 'token references' "$REQ/skills/helm-foundation-specs/SKILL.md"
 grep -Fiq 'theme parity' "$REQ/skills/helm-foundation-specs/SKILL.md"
 grep -Fiq 'frontmatter values' "$REQ/skills/helm-foundation-specs/SKILL.md"
 grep -Fq 'frontmatter_errors' "$REQ/skills/helm-foundation-specs/SKILL.md"
+grep -Fq 'repository-discovery.js' "$REQ/skills/helm-foundation-specs/SKILL.md"
 grep -Fq 'recommended answer' "$REQ/skills/helm-requirements/SKILL.md"
 grep -Fq 'tradeoff' "$REQ/skills/helm-requirements/SKILL.md"
 grep -Fq 'decision branch' "$REQ/skills/helm-requirements/SKILL.md"
 grep -Fq 'unresolved_gaps' "$REQ/skills/helm-requirements/SKILL.md"
 grep -Fq 'foundation spec' "$REQ/skills/helm-requirements/SKILL.md"
+grep -Fq 'repository-discovery.js' "$REQ/skills/helm-requirements/SKILL.md"
+grep -Fq 'repository-discovery-contract.js' "$REQ/skills/helm-repository-discovery/SKILL.md"
+jq -e '.schema == "helm.repositoryDiscovery.v1"' "$REQ/skills/helm-repository-discovery/assets/discovery/repository-discovery.json" >/dev/null
+jq -e '.targets."system-architecture".discovery_types | index("next-framework") != null' "$REQ/skills/helm-repository-discovery/assets/discovery/foundation-update-map.json" >/dev/null
+jq -e '.skills | index("helm-repository-discovery") != null' "$REQ/helm-stage.json" >/dev/null
+jq -e '.contracts.discovery == "scripts/repository-discovery-contract.js"' "$REQ/helm-stage.json" >/dev/null
 
 grep -q 'helm-requirements' "$REQ/commands/helm-requirements.md"
 grep -Fq 'node "$HELM_CORE_ROOT/scripts/plugin-suite.js" require' "$REQ/commands/helm-requirements.md"
 grep -Fq -- '--marketplace-root "$HELM_MARKETPLACE_ROOT"' "$REQ/commands/helm-requirements.md"
+
+DISCOVERY_PROJECT="$TMP_DIR/discovery-project"
+write_discovery_project "$DISCOVERY_PROJECT"
+run_json "$DISCOVERY_PROJECT" "$REQ/scripts/repository-discovery.js" "$TMP_DIR/repository-discovery.json" 0
+jq -e '.schema == "helm.repositoryDiscovery.v1"' "$TMP_DIR/repository-discovery.json" >/dev/null
+jq -e --arg project "$DISCOVERY_PROJECT" '.project_root == $project' "$TMP_DIR/repository-discovery.json" >/dev/null
+jq -e '.evidence[] | select(.path == "package.json")' "$TMP_DIR/repository-discovery.json" >/dev/null
+jq -e '.evidence | map(select(.path | startswith("dist/") or contains("node_modules"))) | length == 0' "$TMP_DIR/repository-discovery.json" >/dev/null
+jq -e '.findings | length > 0' "$TMP_DIR/repository-discovery.json" >/dev/null
+jq -e 'all(.findings[]; (.confidence >= 0 and .confidence <= 1) and (.evidence_refs | length > 0))' "$TMP_DIR/repository-discovery.json" >/dev/null
+jq -e '.conflicts[] | select(.question or .open_item)' "$TMP_DIR/repository-discovery.json" >/dev/null
+test ! -e "$DISCOVERY_PROJECT/openspec/.helm/context/repository-discovery.json"
+
+set +e
+PROJECT_DIR="$DISCOVERY_PROJECT" node "$REQ/scripts/repository-discovery.js" --write --json >"$TMP_DIR/repository-discovery-write.json"
+STATUS=$?
+set -e
+[[ "$STATUS" == "0" ]]
+test -f "$DISCOVERY_PROJECT/openspec/.helm/context/repository-discovery.json"
+run_json "$DISCOVERY_PROJECT" "$REQ/scripts/repository-discovery-contract.js" "$TMP_DIR/repository-discovery-contract.json" 0
+jq -e '.ok == true' "$TMP_DIR/repository-discovery-contract.json" >/dev/null
+
+jq '.findings[0].confidence = 1.5' "$DISCOVERY_PROJECT/openspec/.helm/context/repository-discovery.json" >"$TMP_DIR/discovery-invalid-confidence.json"
+run_contract_file "$DISCOVERY_PROJECT" "$REQ/scripts/repository-discovery-contract.js" "$TMP_DIR/discovery-invalid-confidence.json" "$TMP_DIR/discovery-invalid-confidence-result.json" 2
+jq -e '.blockers[] | select(startswith("invalid-confidence:"))' "$TMP_DIR/discovery-invalid-confidence-result.json" >/dev/null
+
+jq '.findings[0].evidence_refs = ["ev-missing"]' "$DISCOVERY_PROJECT/openspec/.helm/context/repository-discovery.json" >"$TMP_DIR/discovery-missing-evidence-ref.json"
+run_contract_file "$DISCOVERY_PROJECT" "$REQ/scripts/repository-discovery-contract.js" "$TMP_DIR/discovery-missing-evidence-ref.json" "$TMP_DIR/discovery-missing-evidence-ref-result.json" 2
+jq -e '.blockers[] | select(startswith("missing-evidence-ref:"))' "$TMP_DIR/discovery-missing-evidence-ref-result.json" >/dev/null
+
+jq '.evidence[0].path = "../outside"' "$DISCOVERY_PROJECT/openspec/.helm/context/repository-discovery.json" >"$TMP_DIR/discovery-path-escape.json"
+run_contract_file "$DISCOVERY_PROJECT" "$REQ/scripts/repository-discovery-contract.js" "$TMP_DIR/discovery-path-escape.json" "$TMP_DIR/discovery-path-escape-result.json" 2
+jq -e '.blockers[] | select(startswith("invalid-evidence-path:"))' "$TMP_DIR/discovery-path-escape-result.json" >/dev/null
+
+jq '.findings[0].foundation_target.spec = "unknown-foundation"' "$DISCOVERY_PROJECT/openspec/.helm/context/repository-discovery.json" >"$TMP_DIR/discovery-unknown-foundation.json"
+run_contract_file "$DISCOVERY_PROJECT" "$REQ/scripts/repository-discovery-contract.js" "$TMP_DIR/discovery-unknown-foundation.json" "$TMP_DIR/discovery-unknown-foundation-result.json" 2
+jq -e '.blockers[] | select(startswith("unknown-foundation-spec:"))' "$TMP_DIR/discovery-unknown-foundation-result.json" >/dev/null
+
+jq 'del(.conflicts[0].question) | del(.conflicts[0].open_item)' "$DISCOVERY_PROJECT/openspec/.helm/context/repository-discovery.json" >"$TMP_DIR/discovery-conflict-missing-question.json"
+run_contract_file "$DISCOVERY_PROJECT" "$REQ/scripts/repository-discovery-contract.js" "$TMP_DIR/discovery-conflict-missing-question.json" "$TMP_DIR/discovery-conflict-missing-question-result.json" 2
+jq -e '.blockers[] | select(startswith("missing-conflict-question:"))' "$TMP_DIR/discovery-conflict-missing-question-result.json" >/dev/null
+
+jq 'del(.open_items[0].question)' "$DISCOVERY_PROJECT/openspec/.helm/context/repository-discovery.json" >"$TMP_DIR/discovery-open-item-missing-question.json"
+run_contract_file "$DISCOVERY_PROJECT" "$REQ/scripts/repository-discovery-contract.js" "$TMP_DIR/discovery-open-item-missing-question.json" "$TMP_DIR/discovery-open-item-missing-question-result.json" 2
+jq -e '.blockers[] | select(startswith("missing-question:"))' "$TMP_DIR/discovery-open-item-missing-question-result.json" >/dev/null
 
 mkdir -p "$TMP_DIR/external-project"
 set +e
@@ -285,6 +432,17 @@ STATUS=$?
 set -e
 [[ "$STATUS" == "2" ]]
 jq -e '.ok == false' "$TMP_DIR/requirements-contract.json" >/dev/null
+
+FOUNDATION_MISSING_DISCOVERY_PROJECT="$TMP_DIR/foundation-missing-discovery-project"
+write_discovery_project "$FOUNDATION_MISSING_DISCOVERY_PROJECT"
+set +e
+PROJECT_DIR="$FOUNDATION_MISSING_DISCOVERY_PROJECT" node "$REQ/scripts/repository-discovery.js" --write --json >"$TMP_DIR/foundation-missing-discovery.json"
+STATUS=$?
+set -e
+[[ "$STATUS" == "0" ]]
+run_json "$FOUNDATION_MISSING_DISCOVERY_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/foundation-missing-requirements-contract.json" 2
+jq -e '.ok == false' "$TMP_DIR/foundation-missing-requirements-contract.json" >/dev/null
+jq -e '.blockers[] | select(startswith("missing-foundation-spec:"))' "$TMP_DIR/foundation-missing-requirements-contract.json" >/dev/null
 
 HAPPY_PROJECT="$TMP_DIR/happy-project"
 write_happy_project "$HAPPY_PROJECT"

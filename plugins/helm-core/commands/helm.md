@@ -5,17 +5,9 @@ argument-hint: "[intent or change name]"
 
 You are the Helm orchestrator.
 
-1. Resolve the active installed `helm-core` plugin root from the Claude plugin cache and run `plugin-suite.js`.
-2. Run `affordances.js` from the same resolved root.
-3. Read the current affordance table and classify the user intent.
-4. If the affordance table shows `bootstrap` as ready or reports `missing-openspec`, route the user to `/helm-bootstrap` and do not hand off to requirements.
-5. If the user asks to establish or repair complete project specs, project standards, foundation specs, UI design, system architecture, frontend-backend data flow, or component architecture constraints, require `helm-requirements`, run `foundation-specs.js`, and route directly to `/helm-requirements` with `helm-foundation-specs` when any foundation-spec blocker is present.
-6. Do not treat existing `openspec/specs/development-conventions/*` files as satisfying foundation specs. `ui-design`, `system-architecture`, `frontend-backend-data-flow`, and `component-architecture` must all pass `foundation-specs.js`.
-7. Select only a ready legal action.
-8. If the requested action is blocked, explain the blocker and offer the next legal action.
-9. For irreversible actions such as creating a new change or archiving, ask for confirmation.
+`helm-route.js` is the authoritative router. Use the JSON it emits for target plugin, command, skill, required plugins, blockers, confirmation, and no-fallback policy.
 
-Run the initial suite and affordance check:
+Run the route check:
 
 ```bash
 set -euo pipefail
@@ -46,12 +38,12 @@ NODE
 }
 
 HELM_CORE_ROOT="$(helm_plugin_root helm-core)"
-HELM_MARKETPLACE_ROOT="$(dirname "$(dirname "$HELM_CORE_ROOT")")"
-node "$HELM_CORE_ROOT/scripts/plugin-suite.js" require --marketplace-root "$HELM_MARKETPLACE_ROOT" --plugin helm-core --json
-node "$HELM_CORE_ROOT/scripts/affordances.js" --markdown
+runtime_env="$(node "$HELM_CORE_ROOT/scripts/resolve-runtime.js" env --plugin helm-core --shell)"
+eval "$runtime_env"
+node "$HELM_CORE_ROOT/scripts/helm-route.js" --intent "${ARGUMENTS:-}" --json
 ```
 
-If the suite check exits non-zero, report the returned blocker and stop. Do not fall back to a monolithic core workflow.
+If the router exits non-zero, report the emitted blockers and stop. Do not fall back to a monolithic core workflow.
 
 Stage work must route through the stage plugin commands, not core lifecycle skills:
 
@@ -61,40 +53,6 @@ Stage work must route through the stage plugin commands, not core lifecycle skil
 - verification/check -> require `helm-verification`, then use `/helm-verify`
 - operations/release/archive -> require `helm-operations`, then use `/helm-release` or `/helm-archive`
 
-Before each handoff, state the target plugin and run:
+Before each handoff, state the router JSON fields `target_plugin`, `command`, `skill`, `required_plugins`, `blockers`, `confirmation_required`, and `no_fallback`. If a required plugin is missing, report the exact blocker and stop. Do not fall back to core stage implementation.
 
-```bash
-set -euo pipefail
-
-helm_plugin_root() {
-  node - "$1" <<'NODE'
-const fs = require('fs');
-const os = require('os');
-const path = require('path');
-const plugin = process.argv[2];
-const base = path.join(os.homedir(), '.claude', 'plugins', 'cache', 'helm-marketplace', plugin);
-function block(reason) {
-  console.error(`${reason}:${plugin}`);
-  process.exit(2);
-}
-if (!/^[a-z0-9-]+$/.test(plugin)) block('invalid-plugin-name');
-if (!fs.existsSync(base)) block('missing-installed-plugin');
-const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
-const candidates = fs.readdirSync(base, { withFileTypes: true })
-  .filter((entry) => entry.isDirectory())
-  .map((entry) => ({ version: entry.name, root: path.join(base, entry.name) }))
-  .filter((candidate) => fs.existsSync(path.join(candidate.root, '.claude-plugin', 'plugin.json'))
-    && !fs.existsSync(path.join(candidate.root, '.orphaned_at')))
-  .sort((a, b) => collator.compare(b.version, a.version));
-if (!candidates.length) block('missing-active-installed-plugin');
-process.stdout.write(candidates[0].root);
-NODE
-}
-
-HELM_CORE_ROOT="$(helm_plugin_root helm-core)"
-HELM_MARKETPLACE_ROOT="$(dirname "$(dirname "$HELM_CORE_ROOT")")"
-node "$HELM_CORE_ROOT/scripts/plugin-suite.js" require --marketplace-root "$HELM_MARKETPLACE_ROOT" --plugin helm-core --plugin <target-plugin> --json
-node "$HELM_CORE_ROOT/scripts/affordances.js" --markdown
-```
-
-If a required plugin is missing, report the `missing-plugin:<name>` blocker and stop. Do not fall back to core stage implementation.
+Foundation routing is ordered as discovery -> foundation -> requirements. Project standards, foundation specs, complete specs, UI design, system architecture, frontend-backend data flow, and component architecture route to `helm-requirements` with `helm-foundation-specs`; `foundation-specs.js` remains the contract, and `openspec/specs/development-conventions/*` does not satisfy it.
