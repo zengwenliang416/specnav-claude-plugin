@@ -1,33 +1,44 @@
 # Changelog
 
+## 0.4.0
+
+- Rename the repository, marketplace, plugins, commands, skills, runtime
+  variables, schemas, and generated state to the SpecNav product surface.
+- Move project-local runtime state from the legacy hidden state directory and
+  marker file to `openspec/.specnav/` and `.specnav.json`.
+- Rename the public GitHub target to
+  `https://github.com/zengwenliang416/specnav-claude-plugin`.
+- Update README, review docs, fixtures, and public hygiene checks for the
+  SpecNav product surface.
+
 ## 0.3.4
 
-- Resolve installed Helm plugin roots inside slash commands instead of relying on hook-only `CLAUDE_PLUGIN_ROOT`.
-- Update Helm skills to use explicit `HELM_*_ROOT` runtime variables and stop if installed plugin roots cannot be resolved.
-- Add a regression fixture that executes `/helm-bootstrap` with `CLAUDE_PLUGIN_ROOT` unset and verifies OpenSpec initialization succeeds.
+- Resolve installed SpecNav plugin roots inside slash commands instead of relying on hook-only `CLAUDE_PLUGIN_ROOT`.
+- Update SpecNav skills to use explicit `SPECNAV_*_ROOT` runtime variables and stop if installed plugin roots cannot be resolved.
+- Add a regression fixture that executes `/specnav-bootstrap` with `CLAUDE_PLUGIN_ROOT` unset and verifies OpenSpec initialization succeeds.
 
 ## 0.3.3
 
-- Add `/helm-bootstrap` and `helm-bootstrap` as the explicit OpenSpec initialization entrypoint when Helm reports `missing-openspec`.
-- Update SessionStart, router, and workflow guidance to name `/helm-bootstrap` as the next legal action.
+- Add `/specnav-bootstrap` and `specnav-bootstrap` as the explicit OpenSpec initialization entrypoint when SpecNav reports `missing-openspec`.
+- Update SessionStart, router, and workflow guidance to name `/specnav-bootstrap` as the next legal action.
 - Allow bootstrap and read-only suite/status commands through the missing-OpenSpec guard while keeping production writes blocked.
 
 ## 0.3.2
 
-- Support installed-cache suite discovery through `claude plugin list --json` when Claude has installed the six Helm plugins without a marketplace root manifest.
-- Update `/helm-doctor` so installed-cache mode validates the six required plugins by installed/enabled state instead of requiring `.claude-plugin/marketplace.json`.
+- Support installed-cache suite discovery through `claude plugin list --json` when Claude has installed the six SpecNav plugins without a marketplace root manifest.
+- Update `/specnav-doctor` so installed-cache mode validates the six required plugins by installed/enabled state instead of requiring `.claude-plugin/marketplace.json`.
 - Add core runtime fixtures for installed-cache discovery and disabled-plugin blocking.
 
 ## 0.3.1
 
 - Enable verification guidance for explicit Claude plugin enablement after install.
 - Enforce `scope.json` `allowed_roots` / `denied_roots` in the PreToolUse guard and block production writes when `scope.json` is missing or invalid.
-- Extend `/helm-doctor` to verify installed Claude plugins are present and enabled through `claude plugin list --json`.
+- Extend `/specnav-doctor` to verify installed Claude plugins are present and enabled through `claude plugin list --json`.
 - Refresh design and README install/update instructions for the six-plugin marketplace shape.
 
 ## 0.3.0
 
-- Convert Helm into a six-plugin Claude Code marketplace suite with `helm-*` scoped public skills.
+- Convert SpecNav into a six-plugin Claude Code marketplace suite with `specnav-*` scoped public skills.
 - Rewrite all skill frontmatter to the strict Agent Skills subset: `name` and `description` only.
 - Add `tests/run-skill-contract-fixtures.sh` to enforce skill names, descriptions, stage manifests, and unfinished text checks.
 - Add skill-local `references/`, `assets/`, and scaffold scripts across requirements, prototype, development, verification, and operations, plus `tests/run-skill-resource-fixtures.sh`.
@@ -39,17 +50,17 @@
 
 ## 0.2.1
 
-- Avoid creating `openspec/.helm/events.jsonl` in repositories that have not been bootstrapped.
+- Avoid creating `openspec/.specnav/events.jsonl` in repositories that have not been bootstrapped.
 - Clean up guard helper code after hook payload normalization.
 
 ## 0.2.0
 
 - Normalize Claude Code hook payloads for `Write`, `Edit`, `MultiEdit`, `NotebookEdit`, and `Bash`.
 - Enforce all extracted paths from multi-path payloads.
-- Add explicit override records under `openspec/.helm/overrides/`.
+- Add explicit override records under `openspec/.specnav/overrides/`.
 - Add `scope.json` as the machine-readable file-scope contract with Markdown fallback.
 - Prefer `openspec status --change <id> --json` for affordance state when available.
-- Add fallback mode via `HELM_DISABLE_OPENSPEC=1`.
+- Add fallback mode via `SPECNAV_DISABLE_OPENSPEC=1`.
 - Add hook, override, OpenSpec, stale verify, and sign-off fixture tests.
 
 ## 0.1.0

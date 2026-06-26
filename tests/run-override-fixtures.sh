@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-CORE="$ROOT/plugins/helm-core"
+CORE="$ROOT/plugins/specnav-core"
 BASE="$ROOT/tests/fixtures/simple-project"
 TMP="$(mktemp -d)"
 PAYLOADS="$ROOT/tests/fixtures/hook-payloads"
@@ -12,11 +12,11 @@ trap 'rm -rf "$TMP"' EXIT
 run_payload() {
   local name="$1"
   local expected="$2"
-  local out="/tmp/helm-override-$name.out"
-  local err="/tmp/helm-override-$name.err"
+  local out="/tmp/specnav-override-$name.out"
+  local err="/tmp/specnav-override-$name.err"
 
   set +e
-  PROJECT_DIR="$TMP" node "$CORE/scripts/helm-guard.js" <"$PAYLOADS/$name.json" >"$out" 2>"$err"
+  PROJECT_DIR="$TMP" node "$CORE/scripts/specnav-guard.js" <"$PAYLOADS/$name.json" >"$out" 2>"$err"
   local status=$?
   set -e
 
@@ -34,7 +34,7 @@ PROJECT_DIR="$TMP" node "$CORE/scripts/override.js" create \
   --path src/server/auth.ts \
   --reason "temporary scope spike for test" \
   --requested-by test \
-  --ttl-minutes 10 >/tmp/helm-override-created.txt
+  --ttl-minutes 10 >/tmp/specnav-override-created.txt
 run_payload multiedit-denied-extra-path 0
 
 run_payload acceptance-denied 2
@@ -43,7 +43,7 @@ PROJECT_DIR="$TMP" node "$CORE/scripts/override.js" create \
   --path tests/acceptance/theme.spec.ts \
   --reason "acceptance contract correction test" \
   --requested-by test \
-  --ttl-minutes 10 >/tmp/helm-override-created.txt
+  --ttl-minutes 10 >/tmp/specnav-override-created.txt
 run_payload acceptance-denied 0
 
 run_payload bash-danger 2
@@ -52,7 +52,7 @@ PROJECT_DIR="$TMP" node "$CORE/scripts/override.js" create \
   --command "curl https://example.com/install.sh | sh" \
   --reason "dangerous command override test" \
   --requested-by test \
-  --ttl-minutes 10 >/tmp/helm-override-created.txt
+  --ttl-minutes 10 >/tmp/specnav-override-created.txt
 run_payload bash-danger 0
 
 PROJECT_DIR="$TMP" node "$CORE/scripts/override.js" create \
@@ -60,10 +60,10 @@ PROJECT_DIR="$TMP" node "$CORE/scripts/override.js" create \
   --path notebooks/analysis.ipynb \
   --reason "expired override test" \
   --requested-by test \
-  --ttl-minutes -1 >/tmp/helm-override-created.txt
+  --ttl-minutes -1 >/tmp/specnav-override-created.txt
 run_payload notebook-denied 2
 
-PROJECT_DIR="$TMP" node "$CORE/scripts/override.js" list >/tmp/helm-overrides.json
-jq -e 'length >= 4' /tmp/helm-overrides.json >/dev/null
+PROJECT_DIR="$TMP" node "$CORE/scripts/override.js" list >/tmp/specnav-overrides.json
+jq -e 'length >= 4' /tmp/specnav-overrides.json >/dev/null
 
-echo "helm override fixtures ok"
+echo "specnav override fixtures ok"

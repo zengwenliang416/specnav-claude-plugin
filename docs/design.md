@@ -1,23 +1,23 @@
-# Helm Claude Code Plugin Design
+# SpecNav Claude Code Plugin Design
 
-This document describes the current Claude Code implementation of Helm. The long-form strategy lives in `helm-implementation-plan`; this file is the engineering contract for the plugin in this repository.
+This document describes the current Claude Code implementation of SpecNav. The long-form strategy lives in `specnav-implementation-plan`; this file is the engineering contract for the plugin in this repository.
 
 ## 1. Current Shape
 
-Helm is currently a Claude Code marketplace repository containing six installable plugins. Current implementation version: `0.3.4`.
+SpecNav is currently a Claude Code marketplace repository containing six installable plugins. Current implementation version: `0.4.0`.
 
 The accepted target is now the current implementation shape: one marketplace root, one core runtime plugin, and one plugin for each major lifecycle stage.
 
 ```text
-helm-claude-plugin/
+specnav-claude-plugin/
 ├── .claude-plugin/marketplace.json
 ├── plugins/
-│   ├── helm-core/
-│   ├── helm-requirements/
-│   ├── helm-prototype/
-│   ├── helm-development/
-│   ├── helm-verification/
-│   └── helm-operations/
+│   ├── specnav-core/
+│   ├── specnav-requirements/
+│   ├── specnav-prototype/
+│   ├── specnav-development/
+│   ├── specnav-verification/
+│   └── specnav-operations/
 └── tests/
 ```
 
@@ -25,18 +25,18 @@ The current tree implements the suite boundaries as separate plugins:
 
 | Concern | Plugin |
 | --- | --- |
-| core runtime, routing, hooks, state | `plugins/helm-core/` |
-| requirements and foundation specs | `plugins/helm-requirements/` |
-| prototype artifacts and handoff | `plugins/helm-prototype/` |
-| production implementation gates | `plugins/helm-development/` |
-| six-domain verification | `plugins/helm-verification/` |
-| release, deploy, archive | `plugins/helm-operations/` |
+| core runtime, routing, hooks, state | `plugins/specnav-core/` |
+| requirements and foundation specs | `plugins/specnav-requirements/` |
+| prototype artifacts and handoff | `plugins/specnav-prototype/` |
+| production implementation gates | `plugins/specnav-development/` |
+| six-domain verification | `plugins/specnav-verification/` |
+| release, deploy, archive | `plugins/specnav-operations/` |
 
 The remaining implementation work is tightening runtime enforcement, doctor evidence, clean-session behavior evals, and release validation against this multi-plugin shape.
 
 ## 2. Target Direction
 
-Helm is not only a verification plugin. The accepted target is a full Claude Code engineering lifecycle plugin on top of OpenSpec:
+SpecNav is not only a verification plugin. The accepted target is a full Claude Code engineering lifecycle plugin on top of OpenSpec:
 
 ```text
 requirements -> prototype -> development -> verification -> operations
@@ -50,55 +50,55 @@ Reference lessons from the cloned repos:
 - `reference-repos/aegis`: doctor/install verification, release gates, compatibility docs, and explicit method-pack health are part of the product.
 - `reference-repos/trellis`: state machines, task artifacts, context manifests, and project journals keep agent work recoverable across sessions.
 
-Helm therefore becomes a plugin suite rather than one installable plugin.
+SpecNav therefore becomes a plugin suite rather than one installable plugin.
 
 ### 2.1 Plugin Suite Architecture
 
 The repository root is the marketplace root:
 
 ```text
-helm-claude-plugin/
+specnav-claude-plugin/
   .claude-plugin/marketplace.json
   plugins/
-    helm-core/
-    helm-requirements/
-    helm-prototype/
-    helm-development/
-    helm-verification/
-    helm-operations/
+    specnav-core/
+    specnav-requirements/
+    specnav-prototype/
+    specnav-development/
+    specnav-verification/
+    specnav-operations/
 ```
 
 Plugin boundaries:
 
 | Plugin | Owns | Required for |
 | --- | --- | --- |
-| `helm-core` | bootstrap, router, status, doctor, hooks, suite resolution, state machine, shared event/journal helpers | every Helm workflow |
-| `helm-requirements` | foundation specs, requirements questioning, acceptance criteria, spec maps, component impact maps | requirements stage |
-| `helm-prototype` | isolated prototype code, prototype verification, prototype decision, prototype handoff | prototype stage |
-| `helm-development` | scope lock, vertical slices, task ledger, prototype promotion, review loop, development handoff | implementation stage |
-| `helm-verification` | verification plan, six domain skills, evidence index, traceability, receipt, aggregate report | verification stage |
-| `helm-operations` | readiness, release plan, install/update policy, compatibility, branch finish, deploy, rollback, monitor, postmortem, archive gate | operations and archive |
+| `specnav-core` | bootstrap, router, status, doctor, hooks, suite resolution, state machine, shared event/journal helpers | every SpecNav workflow |
+| `specnav-requirements` | foundation specs, requirements questioning, acceptance criteria, spec maps, component impact maps | requirements stage |
+| `specnav-prototype` | isolated prototype code, prototype verification, prototype decision, prototype handoff | prototype stage |
+| `specnav-development` | scope lock, vertical slices, task ledger, prototype promotion, review loop, development handoff | implementation stage |
+| `specnav-verification` | verification plan, six domain skills, evidence index, traceability, receipt, aggregate report | verification stage |
+| `specnav-operations` | readiness, release plan, install/update policy, compatibility, branch finish, deploy, rollback, monitor, postmortem, archive gate | operations and archive |
 
-`helm-core` is mandatory. Stage plugins must fail with `missing-plugin:<name>` when their required dependencies are not installed. Stage plugins may own their own contracts, but cross-plugin orchestration and state reporting go through `helm-core`.
+`specnav-core` is mandatory. Stage plugins must fail with `missing-plugin:<name>` when their required dependencies are not installed. Stage plugins may own their own contracts, but cross-plugin orchestration and state reporting go through `specnav-core`.
 
 ## 3. Global Failure Policy
 
-Helm has no fallback policy for required workflow state.
+SpecNav has no fallback policy for required workflow state.
 
-If a required dependency, hook, OpenSpec command, artifact, state file, context manifest, or verification tool is missing or fails, Helm must report the exact blocker and block the dependent action. It must not silently infer state from secondary files, continue with stale evidence, or downgrade a required gate to a warning.
+If a required dependency, hook, OpenSpec command, artifact, state file, context manifest, or verification tool is missing or fails, SpecNav must report the exact blocker and block the dependent action. It must not silently infer state from secondary files, continue with stale evidence, or downgrade a required gate to a warning.
 
 Allowed exceptions are explicit non-production actions:
 
 - read-only status and doctor checks;
-- OpenSpec/Helm initialization actions;
+- OpenSpec/SpecNav initialization actions;
 - edits under `openspec/**` that create or repair required workflow artifacts;
 - documentation edits that do not touch production code.
 
-This policy applies only to Helm-managed projects. A project is Helm-managed once it opts in: either an `openspec/` directory exists or a project-root `.helm.json` marker is present (written by `/helm-bootstrap`). In a project that never opted into Helm (no `openspec/` and no `.helm.json`), the guard and session-start hook stay inert and block nothing. This keeps a globally-installed Helm from interfering with unrelated projects while still enforcing the no-fallback policy wherever Helm is active. See §15.
+This policy applies only to SpecNav-managed projects. A project is SpecNav-managed once it opts in: either an `openspec/` directory exists or a project-root `.specnav.json` marker is present (written by `/specnav-bootstrap`). In a project that never opted into SpecNav (no `openspec/` and no `.specnav.json`), the guard and session-start hook stay inert and block nothing. This keeps a globally-installed SpecNav from interfering with unrelated projects while still enforcing the no-fallback policy wherever SpecNav is active. See §15.
 
 ## 4. Requirements Stage Foundation Specs
 
-Requirements discovery is gated by project-level specs. Helm must not begin feature grilling until the required foundation specs exist and pass structural checks.
+Requirements discovery is gated by project-level specs. SpecNav must not begin feature grilling until the required foundation specs exist and pass structural checks.
 
 Required foundation specs:
 
@@ -109,7 +109,7 @@ Required foundation specs:
 | Frontend-Backend Data Flow Spec | `openspec/specs/frontend-backend-data-flow/design.md` | cross-layer user flows, request/response contracts, state transitions, errors, retries |
 | Component Architecture & Reuse Spec | `openspec/specs/component-architecture/design.md` | cohesion, coupling, component taxonomy, shared extraction rules, public APIs, tests |
 
-If any required spec is missing or invalid, Helm must block requirements grilling and guide the user to create or repair that specific spec. It must not infer missing constraints from code, previous chat context, or adjacent documents.
+If any required spec is missing or invalid, SpecNav must block requirements grilling and guide the user to create or repair that specific spec. It must not infer missing constraints from code, previous chat context, or adjacent documents.
 
 Change-level requirement artifacts may reference foundation specs and propose deltas, but must not invent hidden UI rules, architecture boundaries, data-flow payloads, component abstractions, validation behavior, or database effects inside a change artifact.
 
@@ -142,9 +142,9 @@ Required Markdown sections:
 - `## Voice & Content`
 - `## Do's and Don'ts`
 
-If the project uses light and dark theme documents, both documents must use the same token keys and component contract shape. Helm must validate YAML parseability, required sections, token references, and light/dark key parity before requirements work continues.
+If the project uses light and dark theme documents, both documents must use the same token keys and component contract shape. SpecNav must validate YAML parseability, required sections, token references, and light/dark key parity before requirements work continues.
 
-If the UI design spec is missing, Helm asks whether the user already has a design-system document. If yes, the user supplies it in this exact structure. If no, Helm guides creation section by section in the same format.
+If the UI design spec is missing, SpecNav asks whether the user already has a design-system document. If yes, the user supplies it in this exact structure. If no, SpecNav guides creation section by section in the same format.
 
 ### 4.2 System Architecture & Database Spec
 
@@ -211,7 +211,7 @@ Required sections:
 - `## Refactor Triggers`
 - `## Component Do's and Don'ts`
 
-Components must be highly cohesive and loosely coupled. When two or more implementation sites share the same stable responsibility, behavior, interaction pattern, rendering structure, state pattern, validation display, API orchestration, or formatting/transformation logic, Helm must extract a shared component, hook, utility, or service instead of duplicating logic.
+Components must be highly cohesive and loosely coupled. When two or more implementation sites share the same stable responsibility, behavior, interaction pattern, rendering structure, state pattern, validation display, API orchestration, or formatting/transformation logic, SpecNav must extract a shared component, hook, utility, or service instead of duplicating logic.
 
 Extraction is required when:
 
@@ -227,7 +227,7 @@ A shared abstraction must not be created when there is only one usage site, the 
 
 ### 4.5 Requirements Grilling Protocol
 
-After the four foundation specs pass, Helm uses spec-gated grilling:
+After the four foundation specs pass, SpecNav uses spec-gated grilling:
 
 - inspect the foundation specs before asking the user;
 - ask one focused question at a time;
@@ -248,7 +248,7 @@ openspec/changes/<change>/
 
 `spec-map.json` records which UI rules, architecture modules, API contracts, database entities, permissions, operational constraints, and data flows are touched by the change. `component-impact-map.json` records new components, reused components, extraction triggers, forbidden dependencies, hooks/utilities/services to extract, and required component tests.
 
-If either map contains unresolved gaps, Helm blocks development and guides the user to update the relevant foundation spec first.
+If either map contains unresolved gaps, SpecNav blocks development and guides the user to update the relevant foundation spec first.
 
 ## 5. Prototype Stage
 
@@ -272,7 +272,7 @@ Development may implement approved prototypes, but must not invent UI structure,
 
 ### 5.1 Entry Gates
 
-Entering `/helm-prototype` requires:
+Entering `/specnav-prototype` requires:
 
 - all four foundation specs exist and pass structural validation;
 - `requirements.md` exists;
@@ -281,7 +281,7 @@ Entering `/helm-prototype` requires:
 - `component-impact-map.json` exists and has no unresolved gaps;
 - any required project-level spec updates from requirements are complete.
 
-If prototype work needs design context, Helm must locate the relevant design system, UI kit, existing components, screenshots, brand assets, routes, state models, API examples, or domain docs before writing prototype code. If required context cannot be found, prototype work is blocked and Helm asks for the missing material. There is no fallback to generic design.
+If prototype work needs design context, SpecNav must locate the relevant design system, UI kit, existing components, screenshots, brand assets, routes, state models, API examples, or domain docs before writing prototype code. If required context cannot be found, prototype work is blocked and SpecNav asks for the missing material. There is no fallback to generic design.
 
 ### 5.2 Question Classification
 
@@ -352,7 +352,7 @@ Only the branch-specific directories required by the prototype question must exi
 
 ### 5.4 Variants and Tweaks
 
-When UI, interaction, API shape, or component boundary has more than one plausible answer, Helm must explore alternatives before approval.
+When UI, interaction, API shape, or component boundary has more than one plausible answer, SpecNav must explore alternatives before approval.
 
 Default UI variants:
 
@@ -360,7 +360,7 @@ Default UI variants:
 - `balanced`: improves information architecture or interaction within existing constraints;
 - `exploratory`: tries a stronger visual or interaction direction and names the risks.
 
-For component/API boundaries, Helm may use a design-it-twice pattern: produce several materially different public interfaces or seams, then compare them by leverage, locality, seam placement, dependency strategy, and testability.
+For component/API boundaries, SpecNav may use a design-it-twice pattern: produce several materially different public interfaces or seams, then compare them by leverage, locality, seam placement, dependency strategy, and testability.
 
 Tweaks are allowed inside prototype code for review, but final approval must freeze the chosen values into `decision.json`. Tweaks do not replace a user decision.
 
@@ -376,17 +376,17 @@ Prototype code must expose stable review anchors:
 For HTML prototypes, use project-local attributes such as:
 
 ```html
-data-helm-screen="checkout-confirmation"
-data-helm-component="payment-summary"
-data-helm-state="error"
-data-helm-variant="balanced"
+data-specnav-screen="checkout-confirmation"
+data-specnav-component="payment-summary"
+data-specnav-state="error"
+data-specnav-variant="balanced"
 ```
 
 `screen-map.json` maps these labels back to requirements, acceptance criteria, components, data flows, and eventual implementation files.
 
 ### 5.6 Prototype Verification
 
-Before prototype approval, Helm must verify:
+Before prototype approval, SpecNav must verify:
 
 - required prototype code exists;
 - the entry file or command works;
@@ -471,7 +471,7 @@ Development can start only when all required upstream artifacts are present and 
 - `prototype/handoff.md` exists;
 - `prototype/decision.json.status` is `approved`, or `not_required` with a concrete reason.
 
-If implementation needs a new product, architecture, data-flow, or component-boundary decision, Helm must stop development and route back to the relevant requirements, prototype, or foundation-spec stage. There is no fallback path that lets development invent that decision.
+If implementation needs a new product, architecture, data-flow, or component-boundary decision, SpecNav must stop development and route back to the relevant requirements, prototype, or foundation-spec stage. There is no fallback path that lets development invent that decision.
 
 ### 6.2 Development Artifacts
 
@@ -671,7 +671,7 @@ Prototype code is a visual and behavioral reference. It does not become producti
 }
 ```
 
-Helm migrates decisions, not temporary code. If production constraints conflict with the prototype, development stops and routes back to the prototype or foundation spec that owns the decision.
+SpecNav migrates decisions, not temporary code. If production constraints conflict with the prototype, development stops and routes back to the prototype or foundation spec that owns the decision.
 
 ### 6.7 Implementation Loop
 
@@ -689,7 +689,7 @@ Status handling:
 - `NEEDS_CONTEXT` updates the task brief or context and re-dispatches;
 - `BLOCKED` determines whether the task is too large, the plan is wrong, the scope is missing, or the spec is missing.
 
-Helm must not force a blocked task through implementation.
+SpecNav must not force a blocked task through implementation.
 
 ### 6.8 Review Loop
 
@@ -837,34 +837,34 @@ Development can hand off to verification only when:
 
 ## 7. User Entry Points
 
-- `/helm` routes intent through the active affordance table.
-- `/helm-bootstrap` initializes OpenSpec when Helm reports `missing-openspec`.
-- `/helm-status` shows active change, risk tier, verify status, ready actions, and blockers.
-- `/helm-verify` runs deterministic verification and writes reports.
-- `/helm-archive` checks the archive gate.
+- `/specnav` routes intent through the active affordance table.
+- `/specnav-bootstrap` initializes OpenSpec when SpecNav reports `missing-openspec`.
+- `/specnav-status` shows active change, risk tier, verify status, ready actions, and blockers.
+- `/specnav-verify` runs deterministic verification and writes reports.
+- `/specnav-archive` checks the archive gate.
 
 Target entry points:
 
-- `/helm-requirements`: requirement discovery, PRD/spec framing, acceptance criteria.
-- `/helm-bootstrap`: non-interactive OpenSpec initialization and Helm runtime state bootstrap.
-- `/helm-prototype`: UI/API/interaction prototype work before production implementation.
-- `/helm-implement`: development execution after requirements, prototype decisions, design, and tasks are ready.
-- `/helm-verify`: orchestration for the six verification skills.
-- `/helm-release`: release, deployment, rollback, monitoring, and operational handoff.
-- `/helm-doctor`: plugin, hook, OpenSpec, and state-machine health check.
+- `/specnav-requirements`: requirement discovery, PRD/spec framing, acceptance criteria.
+- `/specnav-bootstrap`: non-interactive OpenSpec initialization and SpecNav runtime state bootstrap.
+- `/specnav-prototype`: UI/API/interaction prototype work before production implementation.
+- `/specnav-implement`: development execution after requirements, prototype decisions, design, and tasks are ready.
+- `/specnav-verify`: orchestration for the six verification skills.
+- `/specnav-release`: release, deployment, rollback, monitoring, and operational handoff.
+- `/specnav-doctor`: plugin, hook, OpenSpec, and state-machine health check.
 
 User-facing route contract:
 
 | User intent | Internal gate | Target command | Repair skill when blocked |
 | --- | --- | --- | --- |
-| initialize Helm/OpenSpec | `missing-openspec` / bootstrap affordance | `/helm-bootstrap` | `helm-bootstrap` |
-| inspect current state | workflow state and affordances | `/helm-status` | `helm-doctor` |
-| establish project specs | repository discovery + foundation validator | `/helm-requirements` | `helm-repository-discovery`, then `helm-foundation-specs` |
-| define feature requirements | foundation specs + active change | `/helm-requirements` | `helm-requirements` |
-| create reviewable prototype | requirements contract | `/helm-prototype` | `helm-prototype` |
-| implement production change | prototype handoff + scope contract | `/helm-implement` | `helm-development-entry`, `helm-scope-lock` |
-| run six-domain verification | development handoff | `/helm-verify` | owning `helm-verify-*` domain skill |
-| release or archive | green verification + operations readiness | `/helm-release` or `/helm-archive` | `helm-ops-readiness`, `helm-release-plan` |
+| initialize SpecNav/OpenSpec | `missing-openspec` / bootstrap affordance | `/specnav-bootstrap` | `specnav-bootstrap` |
+| inspect current state | workflow state and affordances | `/specnav-status` | `specnav-doctor` |
+| establish project specs | repository discovery + foundation validator | `/specnav-requirements` | `specnav-repository-discovery`, then `specnav-foundation-specs` |
+| define feature requirements | foundation specs + active change | `/specnav-requirements` | `specnav-requirements` |
+| create reviewable prototype | requirements contract | `/specnav-prototype` | `specnav-prototype` |
+| implement production change | prototype handoff + scope contract | `/specnav-implement` | `specnav-development-entry`, `specnav-scope-lock` |
+| run six-domain verification | development handoff | `/specnav-verify` | owning `specnav-verify-*` domain skill |
+| release or archive | green verification + operations readiness | `/specnav-release` or `/specnav-archive` | `specnav-ops-readiness`, `specnav-release-plan` |
 
 Skills provide direct recovery paths:
 
@@ -878,13 +878,13 @@ Skills provide direct recovery paths:
 - `fix`
 - `archive`
 - `status`
-- `helm-router`
+- `specnav-router`
 
-> Note: The skill names below are the original target taxonomy. The implemented suite consolidates them — see `docs/skill-suite-redesign.md` for the authoritative current skill set (helm-prefixed, fewer skills). The list below is retained for design rationale, not as the literal on-disk inventory.
+> Note: The skill names below are the original target taxonomy. The implemented suite consolidates them — see `docs/skill-suite-redesign.md` for the authoritative current skill set (specnav-prefixed, fewer skills). The list below is retained for design rationale, not as the literal on-disk inventory.
 
 Target skill groups:
 
-- bootstrap/router: `using-helm`, `helm-router`, `bootstrap`, `doctor`, `status`;
+- bootstrap/router: `using-specnav`, `specnav-router`, `bootstrap`, `doctor`, `status`;
 - requirements: `requirements`, `explore`, `propose`, `spec`;
 - prototype: `prototype`, `prototype-context`, `prototype-ui`, `prototype-logic`, `prototype-api`, `prototype-data-flow`, `prototype-component`, `prototype-variants`, `prototype-review`, `prototype-verify`, `prototype-handoff`;
 - development: `before-dev`, `production-design`, `scope-lock`, `vertical-slice-tasking`, `task-brief`, `implement`, `prototype-promoter`, `component-extractor`, `task-spec-review`, `task-quality-review`, `dev-drift-check`, `local-validation`, `verify-handoff`, `fix`, `debug`, `break-loop`;
@@ -898,7 +898,7 @@ Agents are optional judgment workers:
 
 ## 8. Runtime State
 
-Helm writes project-local state:
+SpecNav writes project-local state:
 
 ```text
 openspec/
@@ -907,7 +907,7 @@ openspec/
     system-architecture/design.md
     frontend-backend-data-flow/design.md
     component-architecture/design.md
-  .helm/
+  .specnav/
     active-change
     affordances.json
     events.jsonl
@@ -1060,7 +1060,7 @@ openspec/
 
 ### `scripts/affordances.js`
 
-Builds the transition table from OpenSpec/Helm files.
+Builds the transition table from OpenSpec/SpecNav files.
 
 Useful calls:
 
@@ -1118,7 +1118,7 @@ Blocks archive if:
 - verify report is stale;
 - high-risk sign-off is missing.
 
-### `scripts/helm-guard.js`
+### `scripts/specnav-guard.js`
 
 Runs on `PreToolUse`. It denies:
 
@@ -1130,9 +1130,9 @@ Runs on `PreToolUse`. It denies:
 
 It also warns (escalating review) on edits whose path matches `scope.json` `requires_review_on`, until a `review` override is recorded. Bash-driven delete/rename are not parsed at this layer (see §6.3).
 
-Missing workflow state must block production writes in a Helm-managed project. The guard may allow read-only actions, status/doctor commands, initialization, and OpenSpec/Helm artifact repair, but it must not allow production edits from inferred state. A project is Helm-managed when `openspec/` exists or a project-root `.helm.json` marker is present; in a project that never opted into Helm (neither present), the guard stays inert and allows all actions. See §3 and §15.
+Missing workflow state must block production writes in a SpecNav-managed project. The guard may allow read-only actions, status/doctor commands, initialization, and OpenSpec/SpecNav artifact repair, but it must not allow production edits from inferred state. A project is SpecNav-managed when `openspec/` exists or a project-root `.specnav.json` marker is present; in a project that never opted into SpecNav (neither present), the guard stays inert and allows all actions. See §3 and §15.
 
-### `scripts/helm-post-tool.js`
+### `scripts/specnav-post-tool.js`
 
 Runs after writes and marks an existing verify report stale. If stale marking fails, the hook must report the failure and leave the next state blocked by doctor/status. It must not let stale verification appear fresh.
 
@@ -1148,8 +1148,8 @@ The hook policy mirrors the main design:
 | outside file scope | deny |
 | operation disallowed by `allowed_operations` (file tools) | deny |
 | path matches `requires_review_on` | warn; escalate review until `review` override |
-| missing `openspec/` in a Helm-managed project (`.helm.json` present) | deny production writes; allow init/status/doctor/OpenSpec repair |
-| missing `openspec/` with no `.helm.json` (never opted into Helm) | stay inert; allow all actions |
+| missing `openspec/` in a SpecNav-managed project (`.specnav.json` present) | deny production writes; allow init/status/doctor/OpenSpec repair |
+| missing `openspec/` with no `.specnav.json` (never opted into SpecNav) | stay inert; allow all actions |
 | OpenSpec CLI unavailable when required | block dependent action |
 | missing/incomplete workflow state | deny production writes |
 | missing context manifest for subagent action | block subagent dispatch |
@@ -1223,7 +1223,7 @@ Verification can start only when:
 - `risk-tier.json` exists or can be generated deterministically;
 - changed files can be mapped to requirements, specs, tasks, and prototype decisions.
 
-If any gate fails, `/helm-verify` reports the missing artifact and routes back to the owning stage. It must not fabricate evidence, skip a required domain, or downgrade the failure to a warning.
+If any gate fails, `/specnav-verify` reports the missing artifact and routes back to the owning stage. It must not fabricate evidence, skip a required domain, or downgrade the failure to a warning.
 
 ### 12.2 Verification Artifacts
 
@@ -1352,7 +1352,7 @@ Rules:
 - every cross-layer change must map to the data-flow spec;
 - `unmapped_changes` makes `verify-facticity` red.
 
-This is the Trellis-style changed-line discipline adapted to Helm: changed files must trace to the request, and verification must detect unexpected blast radius before release.
+This is the Trellis-style changed-line discipline adapted to SpecNav: changed files must trace to the request, and verification must detect unexpected blast radius before release.
 
 ### 12.5 Evidence Receipt and Blocker Classification
 
@@ -1423,7 +1423,7 @@ Plugin behavior must be tested separately from deterministic script fixtures.
     },
     {
       "id": "verify-runs-six-domains",
-      "prompt": "/helm-verify",
+      "prompt": "/specnav-verify",
       "expected": [
         "load active change",
         "generate verify plan",
@@ -1438,9 +1438,9 @@ Plugin behavior must be tested separately from deterministic script fixtures.
 Behavior evals require clean-session transcripts. They validate:
 
 - bootstrap and router fire without per-session opt-in;
-- `/helm-status` reports the active state from files;
-- `/helm-implement` does not bypass requirements, prototype, scope, or task gates;
-- `/helm-verify` writes plan, six domain reports, evidence index, receipt, and aggregate report;
+- `/specnav-status` reports the active state from files;
+- `/specnav-implement` does not bypass requirements, prototype, scope, or task gates;
+- `/specnav-verify` writes plan, six domain reports, evidence index, receipt, and aggregate report;
 - blocked tools are classified honestly.
 
 Script tests stay under normal test suites. Skill behavior evals live under `verify/behavior-evals/` and must record transcripts or machine-readable run logs.
@@ -1505,7 +1505,7 @@ Rules:
 
 ### 12.9 Root-Cause Check for Verification Failures
 
-When verification fails, Helm must classify the failure before routing fixes.
+When verification fails, SpecNav must classify the failure before routing fixes.
 
 `verify/root-cause-checks.jsonl` records:
 
@@ -1586,7 +1586,7 @@ Verification failures route back to the stage that owns the defect:
 - sensory UX failure -> prototype or UI design spec;
 - sensory code-quality failure -> development, component architecture spec, or refactor task.
 
-After any fix, Helm marks `verify-report.stale` and reruns the affected domain plus any downstream domains that depended on the changed behavior.
+After any fix, SpecNav marks `verify-report.stale` and reruns the affected domain plus any downstream domains that depended on the changed behavior.
 
 ### 12.13 Aggregate Report
 
@@ -1635,7 +1635,7 @@ Verification can hand off to operations only when:
 - high-risk changes have required sign-off;
 - `aggregate-report.md` is readable by humans and lists residual risk.
 
-If these conditions are not met, `/helm-release`, `/helm-archive`, and operations handoff are blocked.
+If these conditions are not met, `/specnav-release`, `/specnav-archive`, and operations handoff are blocked.
 
 ## 13. Operations Stage
 
@@ -1644,7 +1644,7 @@ Operations is where a verified change becomes a releasable, deployable, monitora
 The reference repositories point to three hard requirements for this stage:
 
 - Aegis-style install and update discipline: verify the plugin from the method-pack/plugin root, use JSON doctor output, record host-scoped update metadata, and update all hosts only when explicitly requested.
-- Superpowers-style branch finishing: verify tests before completion options, detect git/worktree state with read-only commands, preserve PR worktrees, and clean up only worktrees Helm can prove it created.
+- Superpowers-style branch finishing: verify tests before completion options, detect git/worktree state with read-only commands, preserve PR worktrees, and clean up only worktrees SpecNav can prove it created.
 - Trellis-style lifecycle hooks and archive discipline: archive is a state transition with explicit artifacts, not deletion or a conversational ending.
 
 ### 13.1 Operations Entry Gate
@@ -1660,7 +1660,7 @@ Operations can start only when:
 - current git branch, worktree, staged changes, and untracked files are known;
 - release target is selected: `local-only`, `plugin-marketplace`, `package`, `host-compatibility`, or `project-deploy`.
 
-If any item is missing, `/helm-release`, `/helm-deploy`, `/helm-archive`, and branch finish are blocked. No fallback path may silently downgrade operations to a note.
+If any item is missing, `/specnav-release`, `/specnav-deploy`, `/specnav-archive`, and branch finish are blocked. No fallback path may silently downgrade operations to a note.
 
 ### 13.2 Operations Artifact Contract
 
@@ -1691,7 +1691,7 @@ openspec/changes/<change>/operations/
 
 ```json
 {
-  "schema": "helm.ops.readiness.v1",
+  "schema": "specnav.ops.readiness.v1",
   "change": "add-login-flow",
   "release_target": "plugin-marketplace",
   "verification": {
@@ -1701,7 +1701,7 @@ openspec/changes/<change>/operations/
     "residual_risk": []
   },
   "git": {
-    "branch": "helm/add-login-flow",
+    "branch": "specnav/add-login-flow",
     "worktree_mode": "normal",
     "dirty": false,
     "untracked_reviewed": true
@@ -1737,26 +1737,26 @@ The target controls which operations skills are required. A missing required art
 
 ### 13.4 Install Verification Contract
 
-`install-verification.json` records plugin install health. Helm must verify from the plugin/method-pack root, not from the target project directory.
+`install-verification.json` records plugin install health. SpecNav must verify from the plugin/method-pack root, not from the target project directory.
 
-Claude Code plugin repositories may contain more than one plugin. Helm therefore distinguishes:
+Claude Code plugin repositories may contain more than one plugin. SpecNav therefore distinguishes:
 
 - `marketplace_root`: the repository root containing `.claude-plugin/marketplace.json`;
 - `plugin_root`: the individual plugin source directory referenced by `marketplace.json.plugins[].source`.
 
-Single-plugin repositories may have `plugins[0].source == "./"` and `marketplace_root == plugin_root`. Multi-plugin repositories may place Helm under `plugins/helm/` while sibling plugins live in the same marketplace. Doctor, install verification, update policy, compatibility checks, and release packaging must resolve the Helm `plugin_root` from marketplace metadata and must not assume the repository root is the plugin root.
+Single-plugin repositories may have `plugins[0].source == "./"` and `marketplace_root == plugin_root`. Multi-plugin repositories may place SpecNav under `plugins/specnav/` while sibling plugins live in the same marketplace. Doctor, install verification, update policy, compatibility checks, and release packaging must resolve the SpecNav `plugin_root` from marketplace metadata and must not assume the repository root is the plugin root.
 
 Required fields:
 
 ```json
 {
-  "schema": "helm.ops.installVerification.v1",
+  "schema": "specnav.ops.installVerification.v1",
   "marketplace_root": "/path/to/plugin-marketplace",
-  "plugin_root": "/path/to/helm-plugin",
-  "plugin_name": "helm",
-  "plugin_source": "plugins/helm",
+  "plugin_root": "/path/to/specnav-plugin",
+  "plugin_name": "specnav",
+  "plugin_source": "plugins/specnav",
   "target_project": "/path/to/project",
-  "command": "cd <helm-plugin-root> && <doctor-command> --write-config --json",
+  "command": "cd <specnav-plugin-root> && <doctor-command> --write-config --json",
   "ok": true,
   "workspaceSupport": "available",
   "configStatus": "configured",
@@ -1766,11 +1766,11 @@ Required fields:
 }
 ```
 
-For Helm's own doctor output, the success contract must be equally explicit: `ok: true`, discoverable skills/commands/hooks, OpenSpec available, state machine valid, and required context manifests present.
+For SpecNav's own doctor output, the success contract must be equally explicit: `ok: true`, discoverable skills/commands/hooks, OpenSpec available, state machine valid, and required context manifests present.
 
 ### 13.5 Update Policy Contract
 
-`update-policy.json` records how installed Helm surfaces are updated:
+`update-policy.json` records how installed SpecNav surfaces are updated:
 
 - default update is host-scoped;
 - multi-host update requires an explicit all-host request;
@@ -1782,7 +1782,7 @@ Example:
 
 ```json
 {
-  "schema": "helm.ops.updatePolicy.v1",
+  "schema": "specnav.ops.updatePolicy.v1",
   "registry_version": 1,
   "default_scope": "current-host",
   "all_hosts_requires_explicit_request": true,
@@ -1790,7 +1790,7 @@ Example:
     {
       "id": "claude-code:default",
       "host": "claude-code",
-      "pluginRoot": "/path/to/helm-plugin",
+      "pluginRoot": "/path/to/specnav-plugin",
       "discoveryRoot": "/path/to/claude/plugins",
       "discoveryShape": "plugin-managed",
       "trackedRef": "main",
@@ -1810,7 +1810,7 @@ Example:
 - whether the workspace is normal repo, linked worktree, or detached HEAD;
 - cleanup decision and provenance.
 
-Cleanup is allowed only when Helm can prove the worktree was Helm-created, for example by a matching record under `openspec/.helm/worktrees/` or another explicit Helm-owned provenance artifact. Harness-owned, externally managed, detached, or unknown worktrees must be preserved.
+Cleanup is allowed only when SpecNav can prove the worktree was SpecNav-created, for example by a matching record under `openspec/.specnav/worktrees/` or another explicit SpecNav-owned provenance artifact. Harness-owned, externally managed, detached, or unknown worktrees must be preserved.
 
 ### 13.7 Deploy, Rollback, and Monitor
 
@@ -1853,7 +1853,7 @@ Host-facing plugin changes require `compatibility-matrix.md`:
 - known limitations;
 - reload requirement.
 
-Helm must not claim fresh host support without fresh host smoke evidence.
+SpecNav must not claim fresh host support without fresh host smoke evidence.
 
 ### 13.9 Postmortem and Learning Writeback
 
@@ -1900,12 +1900,12 @@ The lifecycle stages require the following runtime governance capabilities.
 
 ### 14.1 Bootstrap and Router
 
-Helm needs a `using-helm` bootstrap equivalent to `using-superpowers` and `using-aegis`.
+SpecNav needs a `using-specnav` bootstrap equivalent to `using-superpowers` and `using-aegis`.
 
 Responsibilities:
 
 - load at session start;
-- remind the model to check Helm/OpenSpec state before acting;
+- remind the model to check SpecNav/OpenSpec state before acting;
 - route user intent through lifecycle state instead of free-form implementation;
 - enforce that production work cannot bypass requirements, prototype/design, tasks, verification, and operations gates.
 
@@ -1928,7 +1928,7 @@ Each state declares:
 
 ### 14.3 Project Memory and Journal
 
-`events.jsonl` is not enough for long sessions. Helm needs a human-readable journal under `openspec/.helm/journal/`.
+`events.jsonl` is not enough for long sessions. SpecNav needs a human-readable journal under `openspec/.specnav/journal/`.
 
 Journal entries record:
 
@@ -1953,13 +1953,13 @@ It records:
 
 ### 14.5 Doctor and Health Check
 
-`/helm-doctor` verifies the actual install and runtime surface:
+`/specnav-doctor` verifies the actual install and runtime surface:
 
 - plugin manifest and marketplace metadata;
 - skills, commands, agents, and hooks are discoverable;
 - SessionStart, UserPromptSubmit where supported, PreToolUse, and PostToolUse hooks are wired;
 - OpenSpec CLI exists and can validate the target repo;
-- `openspec/` and required `.helm` state exist;
+- `openspec/` and required `.specnav` state exist;
 - state machine and active change are internally consistent;
 - context manifests and verify artifacts are valid JSON/JSONL/Markdown as required.
 
@@ -1992,7 +1992,7 @@ It requires:
 
 ### 14.8 Git, Worktree, and Branch Finish
 
-Helm needs a branch finish workflow separate from OpenSpec archive:
+SpecNav needs a branch finish workflow separate from OpenSpec archive:
 
 - detect current branch/worktree state;
 - decide commit, PR, keep branch, or discard branch;
@@ -2013,13 +2013,13 @@ The plugin needs release engineering as part of the product:
 
 ### 14.10 Behavior Evals and Clean-session Acceptance
 
-Script tests are not enough. Helm needs behavior acceptance tests in clean sessions.
+Script tests are not enough. SpecNav needs behavior acceptance tests in clean sessions.
 
 Required scenarios:
 
 - missing `openspec/` blocks production edits and routes to init;
 - "implement this feature" enters requirements/design before code;
-- `/helm-verify` runs or blocks all required verification domains;
+- `/specnav-verify` runs or blocks all required verification domains;
 - archive is blocked by stale or red verification;
 - doctor reports missing hooks/skills/OpenSpec without fallback.
 
@@ -2029,18 +2029,18 @@ Install:
 
 ```bash
 claude plugin marketplace add "$PWD" --scope user
-claude plugin install helm-core@helm-marketplace --scope user
-claude plugin install helm-requirements@helm-marketplace --scope user
-claude plugin install helm-prototype@helm-marketplace --scope user
-claude plugin install helm-development@helm-marketplace --scope user
-claude plugin install helm-verification@helm-marketplace --scope user
-claude plugin install helm-operations@helm-marketplace --scope user
-claude plugin enable helm-core@helm-marketplace --scope user
-claude plugin enable helm-requirements@helm-marketplace --scope user
-claude plugin enable helm-prototype@helm-marketplace --scope user
-claude plugin enable helm-development@helm-marketplace --scope user
-claude plugin enable helm-verification@helm-marketplace --scope user
-claude plugin enable helm-operations@helm-marketplace --scope user
+claude plugin install specnav-core@specnav-marketplace --scope user
+claude plugin install specnav-requirements@specnav-marketplace --scope user
+claude plugin install specnav-prototype@specnav-marketplace --scope user
+claude plugin install specnav-development@specnav-marketplace --scope user
+claude plugin install specnav-verification@specnav-marketplace --scope user
+claude plugin install specnav-operations@specnav-marketplace --scope user
+claude plugin enable specnav-core@specnav-marketplace --scope user
+claude plugin enable specnav-requirements@specnav-marketplace --scope user
+claude plugin enable specnav-prototype@specnav-marketplace --scope user
+claude plugin enable specnav-development@specnav-marketplace --scope user
+claude plugin enable specnav-verification@specnav-marketplace --scope user
+claude plugin enable specnav-operations@specnav-marketplace --scope user
 ```
 
 Validate:
@@ -2052,24 +2052,24 @@ claude plugin validate "$PWD"
 Update:
 
 ```bash
-claude plugin update helm-core@helm-marketplace --scope user
-claude plugin update helm-requirements@helm-marketplace --scope user
-claude plugin update helm-prototype@helm-marketplace --scope user
-claude plugin update helm-development@helm-marketplace --scope user
-claude plugin update helm-verification@helm-marketplace --scope user
-claude plugin update helm-operations@helm-marketplace --scope user
+claude plugin update specnav-core@specnav-marketplace --scope user
+claude plugin update specnav-requirements@specnav-marketplace --scope user
+claude plugin update specnav-prototype@specnav-marketplace --scope user
+claude plugin update specnav-development@specnav-marketplace --scope user
+claude plugin update specnav-verification@specnav-marketplace --scope user
+claude plugin update specnav-operations@specnav-marketplace --scope user
 ```
 
 Start a new Claude Code session after changing commands, skills, hooks, or agents.
 
 ### Global install and project opt-in
 
-Helm installs at user scope, so its hooks run in every project. Helm governs a project only once that project opts in:
+SpecNav installs at user scope, so its hooks run in every project. SpecNav governs a project only once that project opts in:
 
-- `/helm-bootstrap` initializes `openspec/` and writes a project-root `.helm.json` marker.
-- A project is Helm-managed when `openspec/` exists or `.helm.json` is present.
-- In a project that never opted in (neither present), the session-start hook reports `status: inactive` and the guard allows all actions, so a globally-installed Helm never blocks unrelated projects.
-- If a Helm-managed project loses its `openspec/` directory, the `.helm.json` marker keeps Helm active: the guard blocks production writes and session-start routes to `/helm-bootstrap` for repair (see §3, §9, §10).
+- `/specnav-bootstrap` initializes `openspec/` and writes a project-root `.specnav.json` marker.
+- A project is SpecNav-managed when `openspec/` exists or `.specnav.json` is present.
+- In a project that never opted in (neither present), the session-start hook reports `status: inactive` and the guard allows all actions, so a globally-installed SpecNav never blocks unrelated projects.
+- If a SpecNav-managed project loses its `openspec/` directory, the `.specnav.json` marker keeps SpecNav active: the guard blocks production writes and session-start routes to `/specnav-bootstrap` for repair (see §3, §9, §10).
 
 ## 16. Test Strategy
 
@@ -2121,7 +2121,7 @@ It checks:
 Completed in `0.2.0`:
 
 - hook fixture tests and normalized payload extraction;
-- explicit override records under `openspec/.helm/overrides/`;
+- explicit override records under `openspec/.specnav/overrides/`;
 - machine-readable `scope.json`;
 - OpenSpec CLI state parsing;
 - stale verify and high-risk sign-off archive policy tests.
@@ -2134,9 +2134,9 @@ Completed in `0.3.0`:
 4. Add development stage scope, vertical-slice tasking, review loop, ledger, and drift contracts.
 5. Add verification stage plan, traceability matrix, evidence receipt, blocker classification, six-domain evidence contracts, behavior eval transcript gates, failure routing, stale rerun, and aggregate report gates.
 6. Add operations stage readiness, release target, install verification, update policy, branch finish, deploy/rollback/monitor, postmortem, update-spec, and archive contracts.
-7. Add `/helm-doctor`, OpenSpec CLI health checks, project runtime checks, and `doctor-report.json`-compatible JSON output.
+7. Add `/specnav-doctor`, OpenSpec CLI health checks, project runtime checks, and `doctor-report.json`-compatible JSON output.
 8. Add lifecycle `workflow-state.json` and artifact contract validation.
-9. Add `using-helm` SessionStart bootstrap and state injection.
+9. Add `using-specnav` SessionStart bootstrap and state injection.
 10. Add project journal and context manifest contracts.
 11. Split verification into the six dedicated skills and aggregate report.
 12. Add debug/break-loop workflows.
@@ -2144,7 +2144,7 @@ Completed in `0.3.0`:
 
 Completed in `0.3.1`:
 
-1. Require explicit Claude plugin enablement after install and verify enabled state in `/helm-doctor`.
+1. Require explicit Claude plugin enablement after install and verify enabled state in `/specnav-doctor`.
 2. Enforce `scope.json` `allowed_roots` / `denied_roots` in `PreToolUse` and block production writes when `scope.json` is missing or invalid.
 3. Remove the old `design.md` file-scope fallback from guard enforcement.
 4. Refresh install/update docs for the six-plugin marketplace.
@@ -2152,22 +2152,28 @@ Completed in `0.3.1`:
 Completed in `0.3.2`:
 
 1. Add installed-cache suite discovery through `claude plugin list --json` for real Claude installations where the marketplace root manifest is not copied into the plugin cache.
-2. Update `/helm-doctor` so installed-cache mode validates all six required plugins by installed/enabled state.
+2. Update `/specnav-doctor` so installed-cache mode validates all six required plugins by installed/enabled state.
 3. Add fixture coverage for installed-cache discovery and disabled-plugin blocking.
 
 Completed in `0.3.3`:
 
-1. Add `/helm-bootstrap` and `helm-bootstrap` as the explicit OpenSpec initialization entrypoint for `missing-openspec`.
-2. Update SessionStart, route, and workflow guidance to name `/helm-bootstrap` as the next legal action.
+1. Add `/specnav-bootstrap` and `specnav-bootstrap` as the explicit OpenSpec initialization entrypoint for `missing-openspec`.
+2. Update SessionStart, route, and workflow guidance to name `/specnav-bootstrap` as the next legal action.
 3. Allow bootstrap and read-only suite/status commands through the missing-OpenSpec guard while keeping production writes blocked.
 
 Completed in `0.3.4`:
 
 1. Resolve cross-plugin scripts from the installed cache rather than assuming source checkout sibling paths.
-2. Align requirements active-change detection with core state resolution, including `HELM_CHANGE`, `.helm/active-change`, single change inference, and `workflow-state.json`.
+2. Align requirements active-change detection with core state resolution, including `SPECNAV_CHANGE`, `.specnav/active-change`, single change inference, and `workflow-state.json`.
 3. Route complete project spec requests to requirements foundation spec repair instead of generic choice prompts.
 4. Keep `development-conventions/*` from being treated as the four required foundation specs.
 5. Add repository discovery and spec negotiation as the first requirements-stage step before foundation spec repair.
+
+Completed in `0.4.0`:
+
+1. Rename the repository, marketplace, plugins, commands, skills, runtime variables, schemas, and generated state to the SpecNav product surface.
+2. Move project-local runtime state to `openspec/.specnav/` plus project-root `.specnav.json`.
+3. Update docs, review artifacts, install commands, and fixture coverage for `specnav-claude-plugin`, `specnav-marketplace`, and `specnav-*` public identifiers.
 
 Next:
 
@@ -2181,8 +2187,8 @@ The plugin is pilot-ready when:
 
 - `claude plugin validate` passes;
 - `bash tests/run-smoke.sh` passes;
-- `/helm-doctor` reports plugin, hooks, OpenSpec, skills, commands, agents, and state as healthy;
-- `/helm-status` works in a fresh Claude Code session through session-start bootstrap;
+- `/specnav-doctor` reports plugin, hooks, OpenSpec, skills, commands, agents, and state as healthy;
+- `/specnav-status` works in a fresh Claude Code session through session-start bootstrap;
 - missing `openspec/` blocks production writes and allows init/repair only;
 - missing or invalid foundation specs block requirements grilling and route to spec creation/repair;
 - missing, invalid, or unrunnable prototype code blocks development transition;
@@ -2193,7 +2199,7 @@ The plugin is pilot-ready when:
 - development handoff blocks when `drift-check.jsonl` contains blocking drift;
 - production edit without tasks is blocked;
 - outside-scope edit is blocked;
-- `/helm-verify` blocks without `development/handoff-to-verify.md`;
+- `/specnav-verify` blocks without `development/handoff-to-verify.md`;
 - each verification domain writes its own evidence and report;
 - blocked verification domain makes aggregate report red;
 - aggregate report green requires all six domains green and evidence-index coverage;
@@ -2209,16 +2215,16 @@ The plugin is pilot-ready when:
 - plugin release blocks without install verification, update policy, compatibility matrix, changelog, and release notes when those surfaces changed;
 - deploy blocks without rollback and monitor plans;
 - all-host update blocks unless the user explicitly requested all hosts;
-- branch cleanup only touches Helm-owned worktrees with recorded provenance;
+- branch cleanup only touches SpecNav-owned worktrees with recorded provenance;
 - archive blocks when required postmortem or update-spec writeback is missing;
 - archive gate passes after green verify, operations completion, and required sign-off.
 
 ## 19. Open Questions
 
-- Should `/helm` create OpenSpec changes directly or call OpenSpec commands only?
+- Should `/specnav` create OpenSpec changes directly or call OpenSpec commands only?
 - Should high-risk tier escalation happen during `PreToolUse` or only at archive?
 - Should sign-off default to local `signoff.yaml` or PR review metadata?
 - Which SAST adapter should be first?
-- Should context manifests be generated by OpenSpec state, Helm scripts, or a combined schema?
-- Should behavior eval transcripts stay file-backed, or should Helm add an automated clean-session transcript capture harness?
+- Should context manifests be generated by OpenSpec state, SpecNav scripts, or a combined schema?
+- Should behavior eval transcripts stay file-backed, or should SpecNav add an automated clean-session transcript capture harness?
 - Which release target should be implemented first: plugin marketplace, local package, or host compatibility smoke?

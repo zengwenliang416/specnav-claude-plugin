@@ -1,0 +1,13 @@
+{
+  "name": "specnav-core",
+  "version": "0.4.0",
+  "description": "Core runtime for the SpecNav OpenSpec lifecycle plugin suite.",
+  "author": {
+    "name": "Wenliang Zeng"
+  },
+  "homepage": "https://github.com/zengwenliang416/specnav-claude-plugin",
+  "repository": "https://github.com/zengwenliang416/specnav-claude-plugin",
+  "license": "MIT",
+  "keywords": ["claude-code", "openspec", "workflow", "guardrails", "verification"],
+  "skills": "./skills/"
+}

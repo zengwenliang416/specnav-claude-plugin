@@ -1,6 +1,6 @@
-# Helm Skill Resource Matrix
+# SpecNav Skill Resource Matrix
 
-This document is the Phase 0 resource plan for Helm skills.
+This document is the Phase 0 resource plan for SpecNav skills.
 
 It decides which skills should stay as `SKILL.md` only, which skills need
 progressively loaded `references/`, which skills need reusable output
@@ -14,7 +14,7 @@ fragile artifact structures from memory.
 
 Current repository state:
 
-- 32 public Helm skills exist under `plugins/*/skills/*/SKILL.md`.
+- 32 public SpecNav skills exist under `plugins/*/skills/*/SKILL.md`.
 - No skill-local `references/`, `assets/`, or `scripts/` directories exist yet.
 - Plugin-level deterministic gates already exist under `plugins/<plugin>/scripts/`.
 - Existing plugin-level scripts should remain the source of truth for validation
@@ -56,12 +56,12 @@ lean unless repeated diagnosis examples become necessary.
 
 | Skill | References | Assets | Skill Scripts | Priority | Decision |
 | --- | --- | --- | --- | --- | --- |
-| `helm-workflow` | Maybe later | No | No | P3 | Keep as router over `affordances.js` and suite resolver. Add a reference only if route examples grow. |
-| `helm-status` | No | No | No | P3 | `workflow-state.js` and `affordances.js` are enough. |
-| `helm-doctor` | Maybe later | No | No | P3 | Plugin-level `helm-doctor.js` owns diagnostics. A reference may later document blocker taxonomy. |
-| `helm-debug` | Yes | No | No | P2 | Add `references/debug-taxonomy.md` if failure classes become recurring. No assets. |
-| `helm-recovery` | Yes | No | No | P2 | Add `references/recovery-playbook.md` for loop classes and repair routing. No assets. |
-| `helm-route` | No | No | No | P3 | Pure route helper. Keep minimal. |
+| `specnav-workflow` | Maybe later | No | No | P3 | Keep as router over `affordances.js` and suite resolver. Add a reference only if route examples grow. |
+| `specnav-status` | No | No | No | P3 | `workflow-state.js` and `affordances.js` are enough. |
+| `specnav-doctor` | Maybe later | No | No | P3 | Plugin-level `specnav-doctor.js` owns diagnostics. A reference may later document blocker taxonomy. |
+| `specnav-debug` | Yes | No | No | P2 | Add `references/debug-taxonomy.md` if failure classes become recurring. No assets. |
+| `specnav-recovery` | Yes | No | No | P2 | Add `references/recovery-playbook.md` for loop classes and repair routing. No assets. |
+| `specnav-route` | No | No | No | P3 | Pure route helper. Keep minimal. |
 
 ## 4. Requirements Skills
 
@@ -70,10 +70,10 @@ and change-level requirement artifacts, so it needs both references and assets.
 
 | Skill | References | Assets | Skill Scripts | Priority | Decision |
 | --- | --- | --- | --- | --- | --- |
-| `helm-foundation-specs` | Yes | Yes | Yes | P0 | Must provide the four required foundation spec templates and a scaffold script that materializes missing specs without guessing decisions. |
-| `helm-requirements` | Yes | Yes | Yes | P0 | Must provide interview philosophy, artifact schemas, and change-level templates for requirements, acceptance, spec map, and component impact map. |
+| `specnav-foundation-specs` | Yes | Yes | Yes | P0 | Must provide the four required foundation spec templates and a scaffold script that materializes missing specs without guessing decisions. |
+| `specnav-requirements` | Yes | Yes | Yes | P0 | Must provide interview philosophy, artifact schemas, and change-level templates for requirements, acceptance, spec map, and component impact map. |
 
-Required `helm-foundation-specs` resources:
+Required `specnav-foundation-specs` resources:
 
 - `references/foundation-spec-contract.md`
 - `assets/ui-design/design.md`
@@ -82,7 +82,7 @@ Required `helm-foundation-specs` resources:
 - `assets/component-architecture/design.md`
 - `scripts/create-foundation-specs.js`
 
-Required `helm-requirements` resources:
+Required `specnav-requirements` resources:
 
 - `references/interview-philosophy.md`
 - `references/requirements-artifacts.md`
@@ -103,11 +103,11 @@ prototype cannot be reviewed from prose alone.
 
 | Skill | References | Assets | Skill Scripts | Priority | Decision |
 | --- | --- | --- | --- | --- | --- |
-| `helm-prototype` | Yes | Yes | Yes | P1 | Must provide branch taxonomy, artifact schemas, and runnable starters for UI HTML and non-UI harnesses. |
-| `helm-prototype-verify` | Yes | Yes | No | P1 | Needs verification checklist and report template. Runtime execution stays agent-driven and contract-checked. |
-| `helm-prototype-handoff` | Yes | Yes | No | P1 | Needs approval decision and handoff templates. No separate script until handoff generation becomes repetitive. |
+| `specnav-prototype` | Yes | Yes | Yes | P1 | Must provide branch taxonomy, artifact schemas, and runnable starters for UI HTML and non-UI harnesses. |
+| `specnav-prototype-verify` | Yes | Yes | No | P1 | Needs verification checklist and report template. Runtime execution stays agent-driven and contract-checked. |
+| `specnav-prototype-handoff` | Yes | Yes | No | P1 | Needs approval decision and handoff templates. No separate script until handoff generation becomes repetitive. |
 
-Required `helm-prototype` resources:
+Required `specnav-prototype` resources:
 
 - `references/prototype-branches.md`
 - `references/prototype-artifacts.md`
@@ -127,11 +127,11 @@ Required `helm-prototype` resources:
 
 Required review and handoff resources:
 
-- `helm-prototype-verify/references/prototype-verification.md`
-- `helm-prototype-verify/assets/verifier-report.json`
-- `helm-prototype-handoff/references/prototype-approval.md`
-- `helm-prototype-handoff/assets/handoff.md`
-- `helm-prototype-handoff/assets/decision.json`
+- `specnav-prototype-verify/references/prototype-verification.md`
+- `specnav-prototype-verify/assets/verifier-report.json`
+- `specnav-prototype-handoff/references/prototype-approval.md`
+- `specnav-prototype-handoff/assets/handoff.md`
+- `specnav-prototype-handoff/assets/decision.json`
 
 ## 6. Development Skills
 
@@ -141,38 +141,38 @@ repeatable.
 
 | Skill | References | Assets | Skill Scripts | Priority | Decision |
 | --- | --- | --- | --- | --- | --- |
-| `helm-development-entry` | Yes | Yes | Yes | P1 | Needs basis and before-dev templates plus a scaffold script for entry artifacts. |
-| `helm-scope-lock` | Yes | Yes | Yes | P1 | Needs strict scope schema, examples, and a script to create or repair `scope.json`. |
-| `helm-vertical-slices` | Yes | Yes | Yes | P1 | Needs task packet, ledger, validation, review, and handoff templates. |
+| `specnav-development-entry` | Yes | Yes | Yes | P1 | Needs basis and before-dev templates plus a scaffold script for entry artifacts. |
+| `specnav-scope-lock` | Yes | Yes | Yes | P1 | Needs strict scope schema, examples, and a script to create or repair `scope.json`. |
+| `specnav-vertical-slices` | Yes | Yes | Yes | P1 | Needs task packet, ledger, validation, review, and handoff templates. |
 
 Required development resources:
 
-- `helm-development-entry/references/development-entry.md`
-- `helm-development-entry/assets/basis.md`
-- `helm-development-entry/assets/before-dev-check.json`
-- `helm-development-entry/assets/prototype-promotion-map.json`
-- `helm-development-entry/assets/complexity-budget.json`
-- `helm-development-entry/assets/task-graph.json`
-- `helm-development-entry/assets/task-context.jsonl`
-- `helm-development-entry/assets/code-owner-map.json`
-- `helm-development-entry/assets/extraction-map.json`
-- `helm-development-entry/scripts/create-development-entry.js`
-- `helm-scope-lock/references/scope-lock.md`
-- `helm-scope-lock/assets/scope.json`
-- `helm-scope-lock/scripts/create-scope-lock.js`
-- `helm-vertical-slices/references/development-task-packets.md`
-- `helm-vertical-slices/references/development-review.md`
-- `helm-vertical-slices/assets/tasks.md`
-- `helm-vertical-slices/assets/task/brief.md`
-- `helm-vertical-slices/assets/task/context.json`
-- `helm-vertical-slices/assets/task/report.md`
-- `helm-vertical-slices/assets/task/spec-review.md`
-- `helm-vertical-slices/assets/task/quality-review.md`
-- `helm-vertical-slices/assets/development/task-ledger.jsonl`
-- `helm-vertical-slices/assets/development/drift-check.jsonl`
-- `helm-vertical-slices/assets/development/validation-log.jsonl`
-- `helm-vertical-slices/assets/development/handoff-to-verify.md`
-- `helm-vertical-slices/scripts/create-vertical-slice.js`
+- `specnav-development-entry/references/development-entry.md`
+- `specnav-development-entry/assets/basis.md`
+- `specnav-development-entry/assets/before-dev-check.json`
+- `specnav-development-entry/assets/prototype-promotion-map.json`
+- `specnav-development-entry/assets/complexity-budget.json`
+- `specnav-development-entry/assets/task-graph.json`
+- `specnav-development-entry/assets/task-context.jsonl`
+- `specnav-development-entry/assets/code-owner-map.json`
+- `specnav-development-entry/assets/extraction-map.json`
+- `specnav-development-entry/scripts/create-development-entry.js`
+- `specnav-scope-lock/references/scope-lock.md`
+- `specnav-scope-lock/assets/scope.json`
+- `specnav-scope-lock/scripts/create-scope-lock.js`
+- `specnav-vertical-slices/references/development-task-packets.md`
+- `specnav-vertical-slices/references/development-review.md`
+- `specnav-vertical-slices/assets/tasks.md`
+- `specnav-vertical-slices/assets/task/brief.md`
+- `specnav-vertical-slices/assets/task/context.json`
+- `specnav-vertical-slices/assets/task/report.md`
+- `specnav-vertical-slices/assets/task/spec-review.md`
+- `specnav-vertical-slices/assets/task/quality-review.md`
+- `specnav-vertical-slices/assets/development/task-ledger.jsonl`
+- `specnav-vertical-slices/assets/development/drift-check.jsonl`
+- `specnav-vertical-slices/assets/development/validation-log.jsonl`
+- `specnav-vertical-slices/assets/development/handoff-to-verify.md`
+- `specnav-vertical-slices/scripts/create-vertical-slice.js`
 
 Development resources must enforce component cohesion and coupling rules from
 the component architecture spec. A task that creates duplicated component logic,
@@ -183,54 +183,54 @@ blocked or routed to review.
 
 The six verification skills are independent because each domain has a different
 audit philosophy, evidence type, and failure mode. They should share a common
-report schema through `helm-verify-plan` resources while keeping domain rubrics
+report schema through `specnav-verify-plan` resources while keeping domain rubrics
 separate.
 
 | Skill | References | Assets | Skill Scripts | Priority | Decision |
 | --- | --- | --- | --- | --- | --- |
-| `helm-verify-plan` | Yes | Yes | Yes | P1 | Must scaffold plan, traceability, evidence index, blocker classification, root-cause checks, and receipt shell. |
-| `helm-verify-facticity` | Yes | Yes | No | P1 | Needs claim audit rubric and report templates. |
-| `helm-verify-static` | Yes | Yes | No | P1 | Needs static command taxonomy and report templates. |
-| `helm-verify-unit` | Yes | Yes | No | P1 | Needs behavior coverage and test-quality rubric. |
-| `helm-verify-redteam` | Yes | Yes | No | P1 | Needs adversarial probe rubric and threat model template. |
-| `helm-verify-e2e` | Yes | Yes | No | P1 | Needs flow mapping and run log templates. |
-| `helm-verify-sensory` | Yes | Yes | No | P1 | Needs human review, UX, accessibility, cohesion, coupling, and maintainability rubric. |
+| `specnav-verify-plan` | Yes | Yes | Yes | P1 | Must scaffold plan, traceability, evidence index, blocker classification, root-cause checks, and receipt shell. |
+| `specnav-verify-facticity` | Yes | Yes | No | P1 | Needs claim audit rubric and report templates. |
+| `specnav-verify-static` | Yes | Yes | No | P1 | Needs static command taxonomy and report templates. |
+| `specnav-verify-unit` | Yes | Yes | No | P1 | Needs behavior coverage and test-quality rubric. |
+| `specnav-verify-redteam` | Yes | Yes | No | P1 | Needs adversarial probe rubric and threat model template. |
+| `specnav-verify-e2e` | Yes | Yes | No | P1 | Needs flow mapping and run log templates. |
+| `specnav-verify-sensory` | Yes | Yes | No | P1 | Needs human review, UX, accessibility, cohesion, coupling, and maintainability rubric. |
 
 Required verification resources:
 
-- `helm-verify-plan/references/verification-model.md`
-- `helm-verify-plan/references/domain-report-schema.md`
-- `helm-verify-plan/assets/plan.md`
-- `helm-verify-plan/assets/plan.json`
-- `helm-verify-plan/assets/evidence-index.jsonl`
-- `helm-verify-plan/assets/traceability-matrix.json`
-- `helm-verify-plan/assets/blocker-classification.jsonl`
-- `helm-verify-plan/assets/root-cause-checks.jsonl`
-- `helm-verify-plan/assets/receipt.md`
-- `helm-verify-plan/assets/receipt.json`
-- `helm-verify-plan/assets/behavior-evals/scenarios.json`
-- `helm-verify-plan/assets/behavior-evals/report.md`
-- `helm-verify-plan/assets/behavior-evals/report.json`
-- `helm-verify-plan/assets/behavior-evals/transcripts/verify-runs-six-domains.md`
-- `helm-verify-plan/scripts/create-verify-plan.js`
-- `helm-verify-facticity/references/facticity-rubric.md`
-- `helm-verify-facticity/assets/report.md`
-- `helm-verify-facticity/assets/report.json`
-- `helm-verify-static/references/static-rubric.md`
-- `helm-verify-static/assets/report.md`
-- `helm-verify-static/assets/report.json`
-- `helm-verify-unit/references/unit-rubric.md`
-- `helm-verify-unit/assets/report.md`
-- `helm-verify-unit/assets/report.json`
-- `helm-verify-redteam/references/redteam-rubric.md`
-- `helm-verify-redteam/assets/report.md`
-- `helm-verify-redteam/assets/report.json`
-- `helm-verify-e2e/references/e2e-rubric.md`
-- `helm-verify-e2e/assets/report.md`
-- `helm-verify-e2e/assets/report.json`
-- `helm-verify-sensory/references/sensory-rubric.md`
-- `helm-verify-sensory/assets/report.md`
-- `helm-verify-sensory/assets/report.json`
+- `specnav-verify-plan/references/verification-model.md`
+- `specnav-verify-plan/references/domain-report-schema.md`
+- `specnav-verify-plan/assets/plan.md`
+- `specnav-verify-plan/assets/plan.json`
+- `specnav-verify-plan/assets/evidence-index.jsonl`
+- `specnav-verify-plan/assets/traceability-matrix.json`
+- `specnav-verify-plan/assets/blocker-classification.jsonl`
+- `specnav-verify-plan/assets/root-cause-checks.jsonl`
+- `specnav-verify-plan/assets/receipt.md`
+- `specnav-verify-plan/assets/receipt.json`
+- `specnav-verify-plan/assets/behavior-evals/scenarios.json`
+- `specnav-verify-plan/assets/behavior-evals/report.md`
+- `specnav-verify-plan/assets/behavior-evals/report.json`
+- `specnav-verify-plan/assets/behavior-evals/transcripts/verify-runs-six-domains.md`
+- `specnav-verify-plan/scripts/create-verify-plan.js`
+- `specnav-verify-facticity/references/facticity-rubric.md`
+- `specnav-verify-facticity/assets/report.md`
+- `specnav-verify-facticity/assets/report.json`
+- `specnav-verify-static/references/static-rubric.md`
+- `specnav-verify-static/assets/report.md`
+- `specnav-verify-static/assets/report.json`
+- `specnav-verify-unit/references/unit-rubric.md`
+- `specnav-verify-unit/assets/report.md`
+- `specnav-verify-unit/assets/report.json`
+- `specnav-verify-redteam/references/redteam-rubric.md`
+- `specnav-verify-redteam/assets/report.md`
+- `specnav-verify-redteam/assets/report.json`
+- `specnav-verify-e2e/references/e2e-rubric.md`
+- `specnav-verify-e2e/assets/report.md`
+- `specnav-verify-e2e/assets/report.json`
+- `specnav-verify-sensory/references/sensory-rubric.md`
+- `specnav-verify-sensory/assets/report.md`
+- `specnav-verify-sensory/assets/report.json`
 
 ## 8. Operations Skills
 
@@ -239,48 +239,48 @@ artifacts. Most need assets; only a few justify scripts.
 
 | Skill | References | Assets | Skill Scripts | Priority | Decision |
 | --- | --- | --- | --- | --- | --- |
-| `helm-ops-readiness` | Yes | Yes | Yes | P2 | Aggregate readiness is path-sensitive and should have a scaffold script. |
-| `helm-release-plan` | Yes | Yes | Yes | P2 | Release target selection needs templates and a script for initial artifacts. |
-| `helm-install-verify` | Yes | Yes | No | P2 | Needs host evidence schema and template. Existing gates should validate. |
-| `helm-update-policy` | Yes | Yes | No | P2 | Needs update policy schema and template. |
-| `helm-compatibility-matrix` | Yes | Yes | No | P2 | Needs host support matrix template. |
-| `helm-branch-finish` | Yes | Yes | No | P2 | Needs branch/worktree provenance template. |
-| `helm-deploy` | Yes | Yes | No | P2 | Needs deploy plan template. |
-| `helm-rollback` | Yes | Yes | No | P2 | Needs rollback plan template. |
-| `helm-monitor` | Yes | Yes | No | P2 | Needs monitor plan template. |
-| `helm-postmortem` | Yes | Yes | No | P2 | Needs postmortem template. |
-| `helm-update-spec` | Yes | Yes | No | P2 | Needs writeback decision schema. |
+| `specnav-ops-readiness` | Yes | Yes | Yes | P2 | Aggregate readiness is path-sensitive and should have a scaffold script. |
+| `specnav-release-plan` | Yes | Yes | Yes | P2 | Release target selection needs templates and a script for initial artifacts. |
+| `specnav-install-verify` | Yes | Yes | No | P2 | Needs host evidence schema and template. Existing gates should validate. |
+| `specnav-update-policy` | Yes | Yes | No | P2 | Needs update policy schema and template. |
+| `specnav-compatibility-matrix` | Yes | Yes | No | P2 | Needs host support matrix template. |
+| `specnav-branch-finish` | Yes | Yes | No | P2 | Needs branch/worktree provenance template. |
+| `specnav-deploy` | Yes | Yes | No | P2 | Needs deploy plan template. |
+| `specnav-rollback` | Yes | Yes | No | P2 | Needs rollback plan template. |
+| `specnav-monitor` | Yes | Yes | No | P2 | Needs monitor plan template. |
+| `specnav-postmortem` | Yes | Yes | No | P2 | Needs postmortem template. |
+| `specnav-update-spec` | Yes | Yes | No | P2 | Needs writeback decision schema. |
 
 Required operations resources:
 
-- `helm-ops-readiness/references/operations-readiness.md`
-- `helm-ops-readiness/assets/readiness.md`
-- `helm-ops-readiness/assets/readiness.json`
-- `helm-ops-readiness/scripts/create-readiness.js`
-- `helm-release-plan/references/release-targets.md`
-- `helm-release-plan/assets/release-plan.md`
-- `helm-release-plan/assets/release-checklist.json`
-- `helm-release-plan/assets/changelog.md`
-- `helm-release-plan/assets/release-notes.md`
-- `helm-release-plan/scripts/create-release-plan.js`
-- `helm-install-verify/references/install-verification.md`
-- `helm-install-verify/assets/install-verification.json`
-- `helm-update-policy/references/update-policy.md`
-- `helm-update-policy/assets/update-policy.json`
-- `helm-compatibility-matrix/references/compatibility-matrix.md`
-- `helm-compatibility-matrix/assets/compatibility-matrix.md`
-- `helm-branch-finish/references/branch-finish.md`
-- `helm-branch-finish/assets/branch-finish.md`
-- `helm-deploy/references/deploy-plan.md`
-- `helm-deploy/assets/deploy-plan.md`
-- `helm-rollback/references/rollback-plan.md`
-- `helm-rollback/assets/rollback-plan.md`
-- `helm-monitor/references/monitor-plan.md`
-- `helm-monitor/assets/monitor-plan.md`
-- `helm-postmortem/references/postmortem.md`
-- `helm-postmortem/assets/postmortem.md`
-- `helm-update-spec/references/update-spec.md`
-- `helm-update-spec/assets/update-spec.json`
+- `specnav-ops-readiness/references/operations-readiness.md`
+- `specnav-ops-readiness/assets/readiness.md`
+- `specnav-ops-readiness/assets/readiness.json`
+- `specnav-ops-readiness/scripts/create-readiness.js`
+- `specnav-release-plan/references/release-targets.md`
+- `specnav-release-plan/assets/release-plan.md`
+- `specnav-release-plan/assets/release-checklist.json`
+- `specnav-release-plan/assets/changelog.md`
+- `specnav-release-plan/assets/release-notes.md`
+- `specnav-release-plan/scripts/create-release-plan.js`
+- `specnav-install-verify/references/install-verification.md`
+- `specnav-install-verify/assets/install-verification.json`
+- `specnav-update-policy/references/update-policy.md`
+- `specnav-update-policy/assets/update-policy.json`
+- `specnav-compatibility-matrix/references/compatibility-matrix.md`
+- `specnav-compatibility-matrix/assets/compatibility-matrix.md`
+- `specnav-branch-finish/references/branch-finish.md`
+- `specnav-branch-finish/assets/branch-finish.md`
+- `specnav-deploy/references/deploy-plan.md`
+- `specnav-deploy/assets/deploy-plan.md`
+- `specnav-rollback/references/rollback-plan.md`
+- `specnav-rollback/assets/rollback-plan.md`
+- `specnav-monitor/references/monitor-plan.md`
+- `specnav-monitor/assets/monitor-plan.md`
+- `specnav-postmortem/references/postmortem.md`
+- `specnav-postmortem/assets/postmortem.md`
+- `specnav-update-spec/references/update-spec.md`
+- `specnav-update-spec/assets/update-spec.json`
 
 ## 9. Implementation Phases
 
@@ -290,7 +290,7 @@ Implement foundation and requirements resources first.
 
 Acceptance:
 
-- `helm-foundation-specs` and `helm-requirements` link every new resource from
+- `specnav-foundation-specs` and `specnav-requirements` link every new resource from
   `SKILL.md`.
 - Scaffold scripts support `--help` and `--json`.
 - Scripts refuse to run without OpenSpec and active-change state when required.
@@ -303,7 +303,7 @@ Implement runnable prototype starters and review/handoff templates.
 
 Acceptance:
 
-- `helm-prototype` can scaffold a reviewable artifact under
+- `specnav-prototype` can scaffold a reviewable artifact under
   `openspec/changes/<active-change>/prototype/`.
 - UI prototypes have visible, runnable code instead of prose-only mockups.
 - The prototype contract remains the final gate.
@@ -326,7 +326,7 @@ Implement six-domain verification resources.
 
 Acceptance:
 
-- `helm-verify-plan` scaffolds shared verification artifacts.
+- `specnav-verify-plan` scaffolds shared verification artifacts.
 - Each domain has a dedicated rubric and report template.
 - `verify-domains.js validate --json` remains the required domain contract.
 

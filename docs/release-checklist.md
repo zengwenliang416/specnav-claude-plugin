@@ -1,6 +1,6 @@
 # Release Checklist
 
-Use this checklist before tagging or publishing the Helm plugin suite.
+Use this checklist before tagging or publishing the SpecNav plugin suite.
 
 ## Metadata
 
@@ -46,6 +46,6 @@ done
 
 - Confirm the installed cache has the expected version.
 - Start a fresh Claude Code session.
-- Run `/helm-doctor` in a target project.
-- Run `/helm` and confirm it reports the next legal action instead of using
+- Run `/specnav-doctor` in a target project.
+- Run `/specnav` and confirm it reports the next legal action instead of using
   fallback behavior.

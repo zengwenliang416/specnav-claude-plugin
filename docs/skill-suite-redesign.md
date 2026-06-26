@@ -1,30 +1,30 @@
-# Helm Skill Suite Redesign
+# SpecNav Skill Suite Redesign
 
-This document redesigns Helm's skill layer after reviewing:
+This document redesigns SpecNav's skill layer after reviewing:
 
 - `reference-repos/agentskills` at `5d4c1fd`
 - `reference-repos/anthropic-skills` at `5754626`
-- the current Helm plugin suite under `plugins/`
+- the current SpecNav plugin suite under `plugins/`
 
-The goal is to make Helm's Claude Code plugin suite conform to the Agent Skills
-format while preserving Helm's stricter product rules: OpenSpec-first, no
+The goal is to make SpecNav's Claude Code plugin suite conform to the Agent Skills
+format while preserving SpecNav's stricter product rules: OpenSpec-first, no
 fallbacks for required state, and full lifecycle coverage from requirements to
 operations.
 
 ## 1. Design Decision
 
-Helm remains a multi-plugin Claude Code marketplace repository:
+SpecNav remains a multi-plugin Claude Code marketplace repository:
 
 ```text
-helm-claude-plugin/
+specnav-claude-plugin/
   .claude-plugin/marketplace.json
   plugins/
-    helm-core/
-    helm-requirements/
-    helm-prototype/
-    helm-development/
-    helm-verification/
-    helm-operations/
+    specnav-core/
+    specnav-requirements/
+    specnav-prototype/
+    specnav-development/
+    specnav-verification/
+    specnav-operations/
 ```
 
 The change is not the product boundary. The change is the skill boundary.
@@ -39,7 +39,7 @@ ask for, what to write, when to stop, and how to validate.
 
 ## 2. Official Skill Contract
 
-Helm uses the strict cross-client subset of Agent Skills.
+SpecNav uses the strict cross-client subset of Agent Skills.
 
 Every skill directory must contain:
 
@@ -55,12 +55,12 @@ Every `SKILL.md` must start with YAML frontmatter:
 
 ```yaml
 ---
-name: helm-example
+name: specnav-example
 description: Use this skill when ...
 ---
 ```
 
-Helm's strict subset:
+SpecNav's strict subset:
 
 - `name` is required.
 - `description` is required.
@@ -69,11 +69,11 @@ Helm's strict subset:
   no consecutive hyphens, and no more than 64 characters.
 - `description` must be non-empty, no more than 1024 characters, and must explain
   both what the skill does and when to use it.
-- Helm skills must not use `allowed-tools`, `metadata`, or `compatibility`
+- SpecNav skills must not use `allowed-tools`, `metadata`, or `compatibility`
   frontmatter. Those fields exist in the broader Agent Skills spec, but Codex's
   local `skill-creator` guidance says only `name` and `description` are read for
   triggering. Tool requirements belong in the body, plugin manifest, or scripts.
-- Helm skills may use a `license` field only if the distribution policy later
+- SpecNav skills may use a `license` field only if the distribution policy later
   requires it. Default is no `license` in skill frontmatter.
 
 The body is loaded only after triggering. Therefore:
@@ -88,14 +88,14 @@ The body is loaded only after triggering. Therefore:
 - Avoid skill-local `README.md`, `CHANGELOG.md`, or other documentation files that
   are not directly used during execution.
 
-## 3. Current Helm Gaps
+## 3. Current SpecNav Gaps
 
 Current audit:
 
-- 32 Helm skills exist under `plugins/*/skills/*/SKILL.md`.
-- 29 skills use `allowed-tools`, which violates Helm's strict subset.
+- 32 SpecNav skills exist under `plugins/*/skills/*/SKILL.md`.
+- 29 skills use `allowed-tools`, which violates SpecNav's strict subset.
 - Several core skills are placeholders:
-  - `using-helm`
+  - `using-specnav`
   - `debug`
   - `break-loop`
 - `status` and `doctor` still mention not-implemented blocker paths.
@@ -111,7 +111,7 @@ quality.
 
 ## 4. Naming Policy
 
-All public Helm skills should be prefixed with `helm-`.
+All public SpecNav skills should be prefixed with `specnav-`.
 
 Reason:
 
@@ -123,23 +123,23 @@ Target examples:
 
 | Current | Target |
 | --- | --- |
-| `status` | `helm-status` |
-| `doctor` | `helm-doctor` |
-| `debug` | `helm-debug` |
-| `break-loop` | `helm-recovery` |
-| `requirements` | `helm-requirements` |
-| `foundation-spec` | `helm-foundation-specs` |
-| `prototype` | `helm-prototype` |
-| `before-dev` | `helm-development-entry` |
-| `verify-static` | `helm-verify-static` |
-| `release-plan` | `helm-release-plan` |
+| `status` | `specnav-status` |
+| `doctor` | `specnav-doctor` |
+| `debug` | `specnav-debug` |
+| `break-loop` | `specnav-recovery` |
+| `requirements` | `specnav-requirements` |
+| `foundation-spec` | `specnav-foundation-specs` |
+| `prototype` | `specnav-prototype` |
+| `before-dev` | `specnav-development-entry` |
+| `verify-static` | `specnav-verify-static` |
+| `release-plan` | `specnav-release-plan` |
 
-`using-helm` should become `helm-workflow` or be kept only as a compatibility
-alias during migration. The primary trigger should be `helm-workflow`.
+`using-specnav` should become `specnav-workflow` or be kept only as a compatibility
+alias during migration. The primary trigger should be `specnav-workflow`.
 
 ## 5. Skill Granularity Policy
 
-A Helm skill is justified only when it has all three:
+A SpecNav skill is justified only when it has all three:
 
 1. A distinct user intent that can trigger independently.
 2. A distinct artifact contract or validation gate.
@@ -153,7 +153,7 @@ one user action.
 
 ## 6. Target Skill Map
 
-### 6.1 helm-core
+### 6.1 specnav-core
 
 Core owns bootstrap, suite resolution, global status, diagnostics, recovery, and
 legal action routing.
@@ -162,20 +162,20 @@ Target skills:
 
 | Skill | Purpose |
 | --- | --- |
-| `helm-workflow` | Primary Helm entrypoint and lifecycle router. Use when the user asks to use Helm, continue Helm, inspect next action, or move through requirements/prototype/development/verification/operations. |
-| `helm-status` | Read active OpenSpec and Helm state, report legal actions, blockers, active change, risk tier, and installed plugin state. |
-| `helm-doctor` | Diagnose plugin installation, hook exposure, OpenSpec presence, suite dependency state, and contract script health. |
-| `helm-debug` | Investigate failed Helm commands, hooks, contracts, stale state, and plugin resolution errors with current evidence. |
-| `helm-recovery` | Break loops or blocked state after repeated failures by classifying the blocker, preserving evidence, and routing to the owning stage. |
+| `specnav-workflow` | Primary SpecNav entrypoint and lifecycle router. Use when the user asks to use SpecNav, continue SpecNav, inspect next action, or move through requirements/prototype/development/verification/operations. |
+| `specnav-status` | Read active OpenSpec and SpecNav state, report legal actions, blockers, active change, risk tier, and installed plugin state. |
+| `specnav-doctor` | Diagnose plugin installation, hook exposure, OpenSpec presence, suite dependency state, and contract script health. |
+| `specnav-debug` | Investigate failed SpecNav commands, hooks, contracts, stale state, and plugin resolution errors with current evidence. |
+| `specnav-recovery` | Break loops or blocked state after repeated failures by classifying the blocker, preserving evidence, and routing to the owning stage. |
 
 Core hooks:
 
 - `SessionStart` must check whether OpenSpec exists.
-- If OpenSpec is missing, Helm reports the blocker and allows only initialization
+- If OpenSpec is missing, SpecNav reports the blocker and allows only initialization
   or explicit OpenSpec repair actions.
 - There is no fallback path that lets lifecycle work proceed without OpenSpec.
 
-### 6.2 helm-requirements
+### 6.2 specnav-requirements
 
 Requirements owns project-level specs and change-level requirements discovery.
 
@@ -183,8 +183,8 @@ Target skills:
 
 | Skill | Purpose |
 | --- | --- |
-| `helm-foundation-specs` | Create or repair the four required project specs before requirements discussion. |
-| `helm-requirements` | Conduct spec-gated requirements grilling and write change-level requirements, acceptance, spec map, and component impact map. |
+| `specnav-foundation-specs` | Create or repair the four required project specs before requirements discussion. |
+| `specnav-requirements` | Conduct spec-gated requirements grilling and write change-level requirements, acceptance, spec map, and component impact map. |
 
 Required foundation specs:
 
@@ -193,7 +193,7 @@ Required foundation specs:
 - `openspec/specs/frontend-backend-data-flow/design.md`
 - `openspec/specs/component-architecture/design.md`
 
-The `helm-requirements` description must be explicit that it should trigger when
+The `specnav-requirements` description must be explicit that it should trigger when
 the user asks to define a feature, clarify requirements, plan a change, start a
 new OpenSpec change, or continue product discovery.
 
@@ -208,7 +208,7 @@ The body must contain the requirements interview philosophy:
 
 Detailed section templates belong in `references/requirements-artifacts.md`.
 
-### 6.3 helm-prototype
+### 6.3 specnav-prototype
 
 Prototype owns runnable review artifacts before production code.
 
@@ -216,17 +216,17 @@ Target skills:
 
 | Skill | Purpose |
 | --- | --- |
-| `helm-prototype` | Classify the prototype question, create isolated runnable prototype code, and write manifest/review maps. |
-| `helm-prototype-review` | Verify prototype code, collect user approval, and write decision plus development handoff. |
+| `specnav-prototype` | Classify the prototype question, create isolated runnable prototype code, and write manifest/review maps. |
+| `specnav-prototype-review` | Verify prototype code, collect user approval, and write decision plus development handoff. |
 
 The current `prototype-verify` and `prototype-handoff` are too tightly coupled to
-one internal sequence. They should merge into `helm-prototype-review`, with
+one internal sequence. They should merge into `specnav-prototype-review`, with
 verification and approval as substeps.
 
 Prototype branch references belong in `references/prototype-branches.md`.
 Artifact schemas belong in `references/prototype-artifacts.md`.
 
-### 6.4 helm-development
+### 6.4 specnav-development
 
 Development owns scoped production implementation from approved artifacts.
 
@@ -234,18 +234,18 @@ Target skills:
 
 | Skill | Purpose |
 | --- | --- |
-| `helm-development-entry` | Validate development entry gates, write basis, and create/enforce scope lock. |
-| `helm-vertical-slices` | Plan, dispatch, review, and close vertical-slice implementation tasks. |
-| `helm-development-review` | Run focused spec review, quality review, drift checks, and verification handoff. |
+| `specnav-development-entry` | Validate development entry gates, write basis, and create/enforce scope lock. |
+| `specnav-vertical-slices` | Plan, dispatch, review, and close vertical-slice implementation tasks. |
+| `specnav-development-review` | Run focused spec review, quality review, drift checks, and verification handoff. |
 
 The current `before-dev` and `scope-lock` are one coherent entry gate and should
 merge. The current `vertical-slice-tasking` is doing too much and should hand
-post-task review semantics to `helm-development-review`.
+post-task review semantics to `specnav-development-review`.
 
 Detailed task packet templates belong in `references/development-task-packets.md`.
 Scope rules belong in `references/scope-lock.md`.
 
-### 6.5 helm-verification
+### 6.5 specnav-verification
 
 Verification keeps dedicated skills for the six required testing domains because
 each domain has a distinct audit philosophy, artifact contract, and failure mode.
@@ -254,13 +254,13 @@ Target skills:
 
 | Skill | Purpose |
 | --- | --- |
-| `helm-verify-plan` | Create verification plan, evidence index, traceability matrix, root-cause checks, and receipt shell. |
-| `helm-verify-facticity` | Audit specs, reports, and implementation claims against current repository evidence. |
-| `helm-verify-static` | Run static analysis, OpenSpec validation, schema checks, dependency checks, lint/type checks, and banned-pattern scans. |
-| `helm-verify-unit` | Validate focused unit/regression coverage and test quality for changed behavior. |
-| `helm-verify-redteam` | Run destructive, adversarial, permission, injection, boundary, and resilience probes. |
-| `helm-verify-e2e` | Validate complete user/business flows across frontend, backend, state, API, database, and integration boundaries. |
-| `helm-verify-sensory` | Run independent human-in-the-loop UX, accessibility, maintainability, cohesion/coupling, and code readability audit. |
+| `specnav-verify-plan` | Create verification plan, evidence index, traceability matrix, root-cause checks, and receipt shell. |
+| `specnav-verify-facticity` | Audit specs, reports, and implementation claims against current repository evidence. |
+| `specnav-verify-static` | Run static analysis, OpenSpec validation, schema checks, dependency checks, lint/type checks, and banned-pattern scans. |
+| `specnav-verify-unit` | Validate focused unit/regression coverage and test quality for changed behavior. |
+| `specnav-verify-redteam` | Run destructive, adversarial, permission, injection, boundary, and resilience probes. |
+| `specnav-verify-e2e` | Validate complete user/business flows across frontend, backend, state, API, database, and integration boundaries. |
+| `specnav-verify-sensory` | Run independent human-in-the-loop UX, accessibility, maintainability, cohesion/coupling, and code readability audit. |
 
 These skills must preserve the user's six-stage testing model exactly:
 
@@ -271,7 +271,7 @@ facticity -> static -> unit -> redteam -> e2e -> sensory
 Each verification skill body should use the same structure:
 
 ```text
-# Helm Verify <Domain>
+# SpecNav Verify <Domain>
 ## Purpose
 ## Inputs
 ## Workflow
@@ -283,7 +283,7 @@ Each verification skill body should use the same structure:
 Domain rubrics belong in `references/verification-rubrics.md` if they become too
 long.
 
-### 6.6 helm-operations
+### 6.6 specnav-operations
 
 Operations owns release, installation, compatibility, deployment, rollback,
 monitoring, postmortem, writeback, and archive readiness.
@@ -292,17 +292,17 @@ Target skills:
 
 | Skill | Purpose |
 | --- | --- |
-| `helm-ops-readiness` | Aggregate verification, release target, git state, untracked files, required docs, and operations blockers. |
-| `helm-release-plan` | Select and document the release target and checklist. |
-| `helm-install-verify` | Verify installed plugin surfaces and host exposure from direct evidence. |
-| `helm-update-policy` | Record how installed plugin surfaces are updated and re-verified. |
-| `helm-compatibility-matrix` | Document supported hosts, support level, verification evidence, limitations, and reload requirements. |
-| `helm-branch-finish` | Record git branch/worktree state and safe cleanup decision. |
-| `helm-deploy` | Prepare deployment mechanics for `project-deploy` targets. |
-| `helm-rollback` | Prepare rollback mechanics and verification for deploy-risk targets. |
-| `helm-monitor` | Prepare post-release monitoring signals, owners, windows, and escalation. |
-| `helm-postmortem` | Record required learning after failures, incidents, or repeated blockers. |
-| `helm-update-spec` | Write operational learning back to OpenSpec or explicitly defer it. |
+| `specnav-ops-readiness` | Aggregate verification, release target, git state, untracked files, required docs, and operations blockers. |
+| `specnav-release-plan` | Select and document the release target and checklist. |
+| `specnav-install-verify` | Verify installed plugin surfaces and host exposure from direct evidence. |
+| `specnav-update-policy` | Record how installed plugin surfaces are updated and re-verified. |
+| `specnav-compatibility-matrix` | Document supported hosts, support level, verification evidence, limitations, and reload requirements. |
+| `specnav-branch-finish` | Record git branch/worktree state and safe cleanup decision. |
+| `specnav-deploy` | Prepare deployment mechanics for `project-deploy` targets. |
+| `specnav-rollback` | Prepare rollback mechanics and verification for deploy-risk targets. |
+| `specnav-monitor` | Prepare post-release monitoring signals, owners, windows, and escalation. |
+| `specnav-postmortem` | Record required learning after failures, incidents, or repeated blockers. |
+| `specnav-update-spec` | Write operational learning back to OpenSpec or explicitly defer it. |
 
 These can remain separate because they correspond to distinct operational intents
 and artifacts. Their descriptions must be much stronger and clearly say when
@@ -313,10 +313,10 @@ general reasoning capability.
 
 ## 7. Standard SKILL.md Shape
 
-Every Helm skill should follow this body shape unless a simpler one is enough:
+Every SpecNav skill should follow this body shape unless a simpler one is enough:
 
 ```markdown
-# Helm <Capability>
+# SpecNav <Capability>
 
 ## Purpose
 
@@ -346,10 +346,10 @@ Commands or contract scripts that must pass before handoff.
 
 ## Gotchas
 
-Only non-obvious corrections that Helm agents are likely to get wrong.
+Only non-obvious corrections that SpecNav agents are likely to get wrong.
 ```
 
-Not every skill needs every section, but every production Helm skill needs:
+Not every skill needs every section, but every production SpecNav skill needs:
 
 - a source-of-truth first step;
 - explicit stop conditions;
@@ -358,7 +358,7 @@ Not every skill needs every section, but every production Helm skill needs:
 
 ## 8. Script Policy
 
-Helm scripts are deterministic helpers, not hidden requirements.
+SpecNav scripts are deterministic helpers, not hidden requirements.
 
 Script rules:
 
@@ -373,7 +373,7 @@ Script rules:
 
 Scripts should do fragile mechanical work:
 
-- validate OpenSpec and Helm artifact structure;
+- validate OpenSpec and SpecNav artifact structure;
 - resolve installed plugin suite dependencies;
 - classify blockers;
 - aggregate state;
@@ -399,22 +399,22 @@ The per-skill resource decisions for `references/`, `assets`, and skill-local
 Recommended references:
 
 ```text
-plugins/helm-requirements/skills/helm-requirements/references/
+plugins/specnav-requirements/skills/specnav-requirements/references/
   interview-philosophy.md
   requirements-artifacts.md
 
-plugins/helm-prototype/skills/helm-prototype/references/
+plugins/specnav-prototype/skills/specnav-prototype/references/
   prototype-branches.md
   prototype-artifacts.md
 
-plugins/helm-development/skills/helm-vertical-slices/references/
+plugins/specnav-development/skills/specnav-vertical-slices/references/
   development-task-packets.md
   scope-lock.md
 
-plugins/helm-verification/skills/helm-verify-plan/references/
+plugins/specnav-verification/skills/specnav-verify-plan/references/
   verification-rubrics.md
 
-plugins/helm-operations/skills/helm-ops-readiness/references/
+plugins/specnav-operations/skills/specnav-ops-readiness/references/
   operations-artifacts.md
 ```
 
@@ -441,14 +441,14 @@ description: >
   It [does the capability]. Do not use it for [near miss] unless [condition].
 ```
 
-Good Helm description properties:
+Good SpecNav description properties:
 
 - mentions user intent;
 - mentions stage and artifact scope;
 - includes common aliases such as "continue", "next step", "define feature",
   "prototype", "implement", "verify", "release", "archive";
 - names the owned artifacts or gates when that helps precision;
-- states near-miss boundaries when another Helm skill owns the work;
+- states near-miss boundaries when another SpecNav skill owns the work;
 - stays under 1024 characters.
 
 Description evals should include:
@@ -456,9 +456,9 @@ Description evals should include:
 - direct requests;
 - casual Chinese and English prompts;
 - "continue" prompts with context;
-- near misses that should route to another Helm skill;
+- near misses that should route to another SpecNav skill;
 - generic terms like "status", "deploy", or "debug" that should not trigger a
-  non-Helm skill accidentally.
+  non-SpecNav skill accidentally.
 
 ## 11. Validation Plan
 
@@ -470,11 +470,11 @@ tests/run-skill-contract-fixtures.sh
 
 It must validate:
 
-- every declared skill in each `helm-stage.json` exists;
+- every declared skill in each `specnav-stage.json` exists;
 - every skill folder has `SKILL.md`;
-- frontmatter contains exactly `name` and `description` for Helm strict subset;
+- frontmatter contains exactly `name` and `description` for SpecNav strict subset;
 - `name` matches the folder;
-- `name` is lowercase kebab-case and starts with `helm-`;
+- `name` is lowercase kebab-case and starts with `specnav-`;
 - descriptions are non-empty, <= 1024 chars, and contain explicit trigger
   language;
 - no `allowed-tools`, `metadata`, `compatibility`, placeholder, TODO, or
@@ -488,19 +488,19 @@ Add trigger description fixtures:
 
 ```text
 tests/fixtures/skill-triggers/
-  helm-workflow.json
-  helm-requirements.json
-  helm-prototype.json
-  helm-development.json
-  helm-verification.json
-  helm-operations.json
+  specnav-workflow.json
+  specnav-requirements.json
+  specnav-prototype.json
+  specnav-development.json
+  specnav-verification.json
+  specnav-operations.json
 ```
 
 Each fixture contains:
 
 ```json
 {
-  "skill": "helm-requirements",
+  "skill": "specnav-requirements",
   "should_trigger": [],
   "should_not_trigger": []
 }
@@ -519,8 +519,8 @@ documented in output. This makes the rewrite measurable.
 
 ### Phase 2: Rename and remap skills
 
-Rename skill folders to the `helm-*` names and update each plugin's
-`helm-stage.json`.
+Rename skill folders to the `specnav-*` names and update each plugin's
+`specnav-stage.json`.
 
 Do not leave generic names as the primary names. If compatibility aliases are
 needed, keep them temporary and explicitly marked for removal before release.
@@ -529,11 +529,11 @@ needed, keep them temporary and explicitly marked for removal before release.
 
 Implement:
 
-- `helm-workflow`
-- `helm-status`
-- `helm-doctor`
-- `helm-debug`
-- `helm-recovery`
+- `specnav-workflow`
+- `specnav-status`
+- `specnav-doctor`
+- `specnav-debug`
+- `specnav-recovery`
 
 Remove placeholder language.
 
@@ -564,9 +564,9 @@ verification, and operations.
 Only after skill compliance is green, resume the unfinished cross-plugin
 workflow state work:
 
-- `plugins/helm-core/scripts/workflow-state.js`
-- `plugins/helm-core/scripts/helm-doctor.js`
-- `plugins/helm-core/scripts/affordances.js`
+- `plugins/specnav-core/scripts/workflow-state.js`
+- `plugins/specnav-core/scripts/specnav-doctor.js`
+- `plugins/specnav-core/scripts/affordances.js`
 - `tests/run-cross-plugin-state-fixtures.sh`
 
 This avoids building more runtime behavior on top of invalid skill contracts.
@@ -575,7 +575,7 @@ This avoids building more runtime behavior on top of invalid skill contracts.
 
 The skill redesign is complete when:
 
-- all Helm public skills use valid Agent Skills frontmatter;
+- all SpecNav public skills use valid Agent Skills frontmatter;
 - no placeholder skills remain;
 - skill names are globally safe;
 - every skill description is trigger-ready;

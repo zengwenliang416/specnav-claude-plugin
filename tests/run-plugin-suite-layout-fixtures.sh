@@ -36,36 +36,36 @@ assert_no_bash_placeholders() {
 }
 
 jq -e '.plugins | length == 6' "$ROOT/.claude-plugin/marketplace.json" >/dev/null
-jq -e '.plugins[].name' "$ROOT/.claude-plugin/marketplace.json" >/tmp/helm-plugin-names.txt
+jq -e '.plugins[].name' "$ROOT/.claude-plugin/marketplace.json" >/tmp/specnav-plugin-names.txt
 jq -e 'all(.plugins[].source; startswith("./plugins/"))' "$ROOT/.claude-plugin/marketplace.json" >/dev/null
-grep -q '"helm-core"' /tmp/helm-plugin-names.txt
-grep -q '"helm-requirements"' /tmp/helm-plugin-names.txt
-grep -q '"helm-prototype"' /tmp/helm-plugin-names.txt
-grep -q '"helm-development"' /tmp/helm-plugin-names.txt
-grep -q '"helm-verification"' /tmp/helm-plugin-names.txt
-grep -q '"helm-operations"' /tmp/helm-plugin-names.txt
+grep -q '"specnav-core"' /tmp/specnav-plugin-names.txt
+grep -q '"specnav-requirements"' /tmp/specnav-plugin-names.txt
+grep -q '"specnav-prototype"' /tmp/specnav-plugin-names.txt
+grep -q '"specnav-development"' /tmp/specnav-plugin-names.txt
+grep -q '"specnav-verification"' /tmp/specnav-plugin-names.txt
+grep -q '"specnav-operations"' /tmp/specnav-plugin-names.txt
 
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
 
-for plugin in helm-core helm-requirements helm-prototype helm-development helm-verification helm-operations; do
+for plugin in specnav-core specnav-requirements specnav-prototype specnav-development specnav-verification specnav-operations; do
   test -d "$ROOT/plugins/$plugin/skills"
   test -d "$ROOT/plugins/$plugin/scripts"
   test -f "$ROOT/plugins/$plugin/.claude-plugin/plugin.json"
-  test -f "$ROOT/plugins/$plugin/helm-stage.json"
+  test -f "$ROOT/plugins/$plugin/specnav-stage.json"
   jq -e '.name == "'"$plugin"'"' "$ROOT/plugins/$plugin/.claude-plugin/plugin.json" >/dev/null
-  jq -e '.plugin == "'"$plugin"'"' "$ROOT/plugins/$plugin/helm-stage.json" >/dev/null
+  jq -e '.plugin == "'"$plugin"'"' "$ROOT/plugins/$plugin/specnav-stage.json" >/dev/null
 
   declared_skills="$tmp_dir/$plugin.skills"
-  jq -r '.skills[]?' "$ROOT/plugins/$plugin/helm-stage.json" | sort >"$declared_skills"
+  jq -r '.skills[]?' "$ROOT/plugins/$plugin/specnav-stage.json" | sort >"$declared_skills"
 
   while IFS= read -r command; do
     test -f "$ROOT/plugins/$plugin/commands/$command.md"
-  done < <(jq -r '.commands[]?' "$ROOT/plugins/$plugin/helm-stage.json")
+  done < <(jq -r '.commands[]?' "$ROOT/plugins/$plugin/specnav-stage.json")
 
   while IFS= read -r skill; do
     test -f "$ROOT/plugins/$plugin/skills/$skill/SKILL.md"
-  done < <(jq -r '.skills[]?' "$ROOT/plugins/$plugin/helm-stage.json")
+  done < <(jq -r '.skills[]?' "$ROOT/plugins/$plugin/specnav-stage.json")
 
   while IFS= read -r skill_file; do
     skill="$(basename "$(dirname "$skill_file")")"
@@ -77,25 +77,25 @@ for plugin in helm-core helm-requirements helm-prototype helm-development helm-v
 
   while IFS= read -r contract; do
     test -f "$ROOT/plugins/$plugin/$contract"
-  done < <(jq -r '(.contracts // {})[]' "$ROOT/plugins/$plugin/helm-stage.json")
+  done < <(jq -r '(.contracts // {})[]' "$ROOT/plugins/$plugin/specnav-stage.json")
 
   while IFS= read -r planned_contract; do
     test ! -e "$ROOT/plugins/$plugin/$planned_contract"
-  done < <(jq -r '(.planned_contracts // {})[]' "$ROOT/plugins/$plugin/helm-stage.json")
+  done < <(jq -r '(.planned_contracts // {})[]' "$ROOT/plugins/$plugin/specnav-stage.json")
 done
 
-test -f "$ROOT/plugins/helm-core/hooks/hooks.json"
-test -f "$ROOT/plugins/helm-core/scripts/helm-lib.js"
-test -f "$ROOT/plugins/helm-core/scripts/workflow-state.js"
-test -f "$ROOT/plugins/helm-core/scripts/helm-doctor.js"
-test ! -e "$ROOT/plugins/helm-core/commands/helm-verify.md"
-test ! -e "$ROOT/plugins/helm-core/commands/helm-archive.md"
+test -f "$ROOT/plugins/specnav-core/hooks/hooks.json"
+test -f "$ROOT/plugins/specnav-core/scripts/specnav-lib.js"
+test -f "$ROOT/plugins/specnav-core/scripts/workflow-state.js"
+test -f "$ROOT/plugins/specnav-core/scripts/specnav-doctor.js"
+test ! -e "$ROOT/plugins/specnav-core/commands/specnav-verify.md"
+test ! -e "$ROOT/plugins/specnav-core/commands/specnav-archive.md"
 for legacy_core_skill in archive bootstrap design explore fix implement propose tasks verify; do
-  test ! -e "$ROOT/plugins/helm-core/skills/$legacy_core_skill"
+  test ! -e "$ROOT/plugins/specnav-core/skills/$legacy_core_skill"
 done
 
 for command_file in "$ROOT"/plugins/*/commands/*.md; do
-  grep -q 'helm_plugin_root()' "$command_file"
+  grep -q 'specnav_plugin_root()' "$command_file"
   assert_no_bash_placeholders "$command_file"
   if grep -qF '$CLAUDE_PLUGIN_ROOT' "$command_file"; then
     echo "command must not rely on CLAUDE_PLUGIN_ROOT: $command_file" >&2
@@ -104,17 +104,17 @@ for command_file in "$ROOT"/plugins/*/commands/*.md; do
 done
 
 assert_first_before \
-  "$ROOT/plugins/helm-operations/commands/helm-archive.md" \
-  'node "$HELM_CORE_ROOT/scripts/plugin-suite.js"' \
-  'node "$HELM_OPERATIONS_ROOT/scripts/archive-gate.js"'
+  "$ROOT/plugins/specnav-operations/commands/specnav-archive.md" \
+  'node "$SPECNAV_CORE_ROOT/scripts/plugin-suite.js"' \
+  'node "$SPECNAV_OPERATIONS_ROOT/scripts/archive-gate.js"'
 
 for routing_file in \
-  "$ROOT/plugins/helm-core/commands/helm.md" \
-  "$ROOT/plugins/helm-core/skills/helm-route/SKILL.md"; do
-  if grep -Eq 'load the corresponding Helm skill|-> `(explore|propose|design|tasks|implement|fix|verify|archive)`' "$routing_file"; then
+  "$ROOT/plugins/specnav-core/commands/specnav.md" \
+  "$ROOT/plugins/specnav-core/skills/specnav-route/SKILL.md"; do
+  if grep -Eq 'load the corresponding SpecNav skill|-> `(explore|propose|design|tasks|implement|fix|verify|archive)`' "$routing_file"; then
     echo "legacy core lifecycle route remains in $routing_file" >&2
     exit 1
   fi
 done
 
-echo "helm plugin suite layout fixtures ok"
+echo "specnav plugin suite layout fixtures ok"

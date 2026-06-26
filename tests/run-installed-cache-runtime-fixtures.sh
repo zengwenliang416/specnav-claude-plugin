@@ -5,10 +5,10 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
-CACHE="$TMP_DIR/.claude/plugins/cache/helm-marketplace"
+CACHE="$TMP_DIR/.claude/plugins/cache/specnav-marketplace"
 VERSION="9.9.9"
 PROJECT="$TMP_DIR/project"
-PLUGINS=(helm-core helm-requirements helm-prototype helm-development helm-verification helm-operations)
+PLUGINS=(specnav-core specnav-requirements specnav-prototype specnav-development specnav-verification specnav-operations)
 
 mkdir -p "$CACHE"
 cp -R "$ROOT/tests/fixtures/simple-project/." "$PROJECT/"
@@ -20,42 +20,42 @@ done
 
 for plugin in "${PLUGINS[@]}"; do
   jq -n \
-    --arg id "$plugin@helm-marketplace" \
+    --arg id "$plugin@specnav-marketplace" \
     --arg installPath "$CACHE/$plugin/$VERSION" \
     '{id: $id, version: "9.9.9", scope: "user", enabled: true, installPath: $installPath}'
 done | jq -s '.' >"$TMP_DIR/plugin-list.json"
 
 export HOME="$TMP_DIR"
-export HELM_MARKETPLACE_ROOT="$CACHE"
-export HELM_PLUGIN_LIST_JSON
-HELM_PLUGIN_LIST_JSON="$(cat "$TMP_DIR/plugin-list.json")"
+export SPECNAV_MARKETPLACE_ROOT="$CACHE"
+export SPECNAV_PLUGIN_LIST_JSON
+SPECNAV_PLUGIN_LIST_JSON="$(cat "$TMP_DIR/plugin-list.json")"
 
-CORE="$CACHE/helm-core/$VERSION"
-REQ="$CACHE/helm-requirements/$VERSION"
-PROTO="$CACHE/helm-prototype/$VERSION"
-DEV="$CACHE/helm-development/$VERSION"
-VERIFY="$CACHE/helm-verification/$VERSION"
-OPS="$CACHE/helm-operations/$VERSION"
+CORE="$CACHE/specnav-core/$VERSION"
+REQ="$CACHE/specnav-requirements/$VERSION"
+PROTO="$CACHE/specnav-prototype/$VERSION"
+DEV="$CACHE/specnav-development/$VERSION"
+VERIFY="$CACHE/specnav-verification/$VERSION"
+OPS="$CACHE/specnav-operations/$VERSION"
 export CORE REQ PROTO DEV VERIFY OPS VERSION
 
 resolve_runtime_json="$TMP_DIR/resolve-runtime.json"
-node "$CORE/scripts/resolve-runtime.js" resolve --plugin helm-core --plugin helm-requirements --json >"$resolve_runtime_json"
+node "$CORE/scripts/resolve-runtime.js" resolve --plugin specnav-core --plugin specnav-requirements --json >"$resolve_runtime_json"
 jq -e '.ok == true' "$resolve_runtime_json" >/dev/null
-jq -e '.marketplace_root == env.HELM_MARKETPLACE_ROOT' "$resolve_runtime_json" >/dev/null
+jq -e '.marketplace_root == env.SPECNAV_MARKETPLACE_ROOT' "$resolve_runtime_json" >/dev/null
 jq -e '.plugins | length == 2' "$resolve_runtime_json" >/dev/null
-jq -e '.plugins[] | select(.name == "helm-core" and .root == env.CORE and .env == "HELM_CORE_ROOT" and .version == env.VERSION)' "$resolve_runtime_json" >/dev/null
-jq -e '.plugins[] | select(.name == "helm-requirements" and .root == env.REQ and .env == "HELM_REQUIREMENTS_ROOT" and .version == env.VERSION)' "$resolve_runtime_json" >/dev/null
+jq -e '.plugins[] | select(.name == "specnav-core" and .root == env.CORE and .env == "SPECNAV_CORE_ROOT" and .version == env.VERSION)' "$resolve_runtime_json" >/dev/null
+jq -e '.plugins[] | select(.name == "specnav-requirements" and .root == env.REQ and .env == "SPECNAV_REQUIREMENTS_ROOT" and .version == env.VERSION)' "$resolve_runtime_json" >/dev/null
 
 resolve_runtime_env_json="$TMP_DIR/resolve-runtime-env.json"
-node "$CORE/scripts/resolve-runtime.js" env --plugin helm-core --plugin helm-verification --shell --json >"$resolve_runtime_env_json"
+node "$CORE/scripts/resolve-runtime.js" env --plugin specnav-core --plugin specnav-verification --shell --json >"$resolve_runtime_env_json"
 jq -e '.ok == true' "$resolve_runtime_env_json" >/dev/null
-jq -e '.shell | contains("HELM_MARKETPLACE_ROOT=")' "$resolve_runtime_env_json" >/dev/null
-jq -e '.shell | contains("HELM_CORE_ROOT=")' "$resolve_runtime_env_json" >/dev/null
-jq -e '.shell | contains("HELM_VERIFICATION_ROOT=")' "$resolve_runtime_env_json" >/dev/null
+jq -e '.shell | contains("SPECNAV_MARKETPLACE_ROOT=")' "$resolve_runtime_env_json" >/dev/null
+jq -e '.shell | contains("SPECNAV_CORE_ROOT=")' "$resolve_runtime_env_json" >/dev/null
+jq -e '.shell | contains("SPECNAV_VERIFICATION_ROOT=")' "$resolve_runtime_env_json" >/dev/null
 
 (
-  unset HELM_MARKETPLACE_ROOT
-  unset HELM_CORE_ROOT HELM_REQUIREMENTS_ROOT HELM_PROTOTYPE_ROOT HELM_DEVELOPMENT_ROOT HELM_VERIFICATION_ROOT HELM_OPERATIONS_ROOT
+  unset SPECNAV_MARKETPLACE_ROOT
+  unset SPECNAV_CORE_ROOT SPECNAV_REQUIREMENTS_ROOT SPECNAV_PROTOTYPE_ROOT SPECNAV_DEVELOPMENT_ROOT SPECNAV_VERIFICATION_ROOT SPECNAV_OPERATIONS_ROOT
   node <<'NODE'
 const scripts = [
   `${process.env.DEV}/scripts/development-contract.js`,
@@ -115,16 +115,16 @@ run_blocking_contract verification "$TMP_DIR/verification.json" node "$VERIFY/sc
 run_blocking_contract operations "$TMP_DIR/operations.json" node "$OPS/scripts/operations-gate.js"
 
 for script in \
-  "$REQ/skills/helm-foundation-specs/scripts/create-foundation-specs.js" \
-  "$REQ/skills/helm-requirements/scripts/create-requirements-artifacts.js" \
-  "$PROTO/skills/helm-prototype/scripts/create-prototype.js" \
-  "$DEV/skills/helm-development-entry/scripts/create-development-entry.js" \
-  "$DEV/skills/helm-scope-lock/scripts/create-scope-lock.js" \
-  "$DEV/skills/helm-vertical-slices/scripts/create-vertical-slice.js" \
-  "$VERIFY/skills/helm-verify-plan/scripts/create-verify-plan.js" \
-  "$OPS/skills/helm-ops-readiness/scripts/create-readiness.js" \
-  "$OPS/skills/helm-release-plan/scripts/create-release-plan.js"; do
+  "$REQ/skills/specnav-foundation-specs/scripts/create-foundation-specs.js" \
+  "$REQ/skills/specnav-requirements/scripts/create-requirements-artifacts.js" \
+  "$PROTO/skills/specnav-prototype/scripts/create-prototype.js" \
+  "$DEV/skills/specnav-development-entry/scripts/create-development-entry.js" \
+  "$DEV/skills/specnav-scope-lock/scripts/create-scope-lock.js" \
+  "$DEV/skills/specnav-vertical-slices/scripts/create-vertical-slice.js" \
+  "$VERIFY/skills/specnav-verify-plan/scripts/create-verify-plan.js" \
+  "$OPS/skills/specnav-ops-readiness/scripts/create-readiness.js" \
+  "$OPS/skills/specnav-release-plan/scripts/create-release-plan.js"; do
   node "$script" --help >/dev/null
 done
 
-echo "helm installed-cache runtime fixtures ok"
+echo "specnav installed-cache runtime fixtures ok"

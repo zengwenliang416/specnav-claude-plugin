@@ -1,6 +1,6 @@
 # Spec Discovery and Negotiation
 
-Spec discovery is Helm's step 0 for project-specific rules. It runs before
+Spec discovery is SpecNav's step 0 for project-specific rules. It runs before
 requirements grilling when foundation specs are missing, incomplete, stale, or
 not grounded in current repository evidence.
 
@@ -8,12 +8,12 @@ Discovery is advisory evidence. It never bypasses `foundation-specs.js`.
 
 ## Purpose
 
-Helm must distinguish:
+SpecNav must distinguish:
 
 - **Facts**: directly observed repository evidence.
 - **Inferred conventions**: likely rules derived from multiple files.
 - **User decisions**: rules explicitly confirmed by the user.
-- **Open questions**: decisions Helm cannot safely infer.
+- **Open questions**: decisions SpecNav cannot safely infer.
 
 Only user-confirmed decisions and direct facts should become durable foundation
 spec rules.
@@ -39,17 +39,17 @@ Discovery must ignore generated and cache directories such as `.git`, `.next`,
 The machine report lives at:
 
 ```text
-openspec/.helm/context/repository-discovery.json
+openspec/.specnav/context/repository-discovery.json
 ```
 
 Required shape:
 
 ```json
 {
-  "schema": "helm.repositoryDiscovery.v1",
+  "schema": "specnav.repositoryDiscovery.v1",
   "project_root": "/abs/project",
   "generated_at": "ISO-8601",
-  "discovery_path": "openspec/.helm/context/repository-discovery.json",
+  "discovery_path": "openspec/.specnav/context/repository-discovery.json",
   "ignored_dirs": [".git", ".next", ".turbo", "build", "coverage", "dist", "node_modules"],
   "evidence": [],
   "findings": [],
@@ -87,7 +87,7 @@ Discovery feeds these specs:
 The final gate remains:
 
 ```bash
-node "$HELM_REQUIREMENTS_ROOT/scripts/foundation-specs.js" --json
+node "$SPECNAV_REQUIREMENTS_ROOT/scripts/foundation-specs.js" --json
 ```
 
 If that command reports blockers, requirements grilling remains blocked.

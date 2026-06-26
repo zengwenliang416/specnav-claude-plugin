@@ -1,6 +1,6 @@
 {
   "tool_name": "Bash",
   "tool_input": {
-    "command": "node \"$CLAUDE_PLUGIN_ROOT/scripts/helm-bootstrap.js\" --json"
+    "command": "node \"$CLAUDE_PLUGIN_ROOT/scripts/specnav-bootstrap.js\" --json"
   }
 }

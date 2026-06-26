@@ -8,7 +8,7 @@ const fs = require('fs');
 const path = require('path');
 
 const root = process.argv[2];
-const publicRepo = 'https://github.com/zengwenliang416/helm-claude-plugin';
+const publicRepo = 'https://github.com/zengwenliang416/specnav-claude-plugin';
 const errors = [];
 
 function fail(message) {
@@ -64,7 +64,7 @@ const publicDocs = [
   'docs/command-skill-matrix.md',
   'docs/compatibility.md',
   'docs/release-checklist.md',
-  'docs/helm-plan-review.html'
+  'docs/specnav-plan-review.html'
 ];
 
 for (const file of publicDocs) {
@@ -73,9 +73,10 @@ for (const file of publicDocs) {
 }
 
 const requiredEnglish = [
-  'This is not a Kubernetes Helm chart plugin.',
+  'SpecNav means navigating development through file-backed OpenSpec contracts',
   '## First Run',
   'claude plugin validate "$PWD"',
+  'specnav-core@specnav-marketplace',
   'docs/user-journey.md',
   'docs/spec-discovery.md',
   'docs/command-skill-matrix.md'
@@ -85,9 +86,10 @@ for (const marker of requiredEnglish) {
 }
 
 const requiredChinese = [
-  '它不是 Kubernetes Helm chart 插件',
+  'SpecNav 的含义是通过文件化 OpenSpec 契约导航开发过程',
   '## 第一次使用',
   'claude plugin validate "$PWD"',
+  'specnav-core@specnav-marketplace',
   'docs/user-journey.md',
   'docs/spec-discovery.md',
   'docs/command-skill-matrix.md'
@@ -133,10 +135,25 @@ for (const file of listCommandFiles(path.join(root, 'plugins'))) {
   }
 }
 
+const oldLower = ['he', 'lm'].join('');
+const oldTitle = ['He', 'lm'].join('');
+const oldUpper = ['HE', 'LM'].join('');
+const oldNamePattern = new RegExp([
+  oldLower,
+  oldTitle,
+  oldUpper,
+  `${oldLower}-claude-plugin`,
+  `${oldLower}-marketplace`,
+  `/${oldLower}`
+].map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'));
+for (const file of publicDocs) {
+  if (oldNamePattern.test(read(file))) fail(`${file}: previous product name leaked`);
+}
+
 if (errors.length) {
   for (const error of errors) console.error(error);
   process.exit(2);
 }
 NODE
 
-echo "helm public hygiene fixtures ok"
+echo "specnav public hygiene fixtures ok"

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-OPS="$ROOT/plugins/helm-operations"
+OPS="$ROOT/plugins/specnav-operations"
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
@@ -36,8 +36,8 @@ write_verified_project() {
   local change="add-dashboard"
   local change_dir="$project/openspec/changes/$change"
 
-  mkdir -p "$project/openspec/.helm" "$change_dir/development" "$change_dir/verify"
-  printf '%s\n' "$change" >"$project/openspec/.helm/active-change"
+  mkdir -p "$project/openspec/.specnav" "$change_dir/development" "$change_dir/verify"
+  printf '%s\n' "$change" >"$project/openspec/.specnav/active-change"
 
   cat >"$change_dir/development/handoff-to-verify.md" <<'MD'
 # Development Handoff
@@ -63,7 +63,7 @@ None.
 All six domains.
 MD
   cat >"$change_dir/verify/aggregate-report.md" <<'MD'
-# Helm Aggregate Verification Report
+# SpecNav Aggregate Verification Report
 ## Result
 green
 MD
@@ -93,7 +93,7 @@ Verification aggregate is green and release artifacts are present.
 MD
   cat >"$ops/readiness.json" <<JSON
 {
-  "schema": "helm.ops.readiness.v1",
+  "schema": "specnav.ops.readiness.v1",
   "change": "add-dashboard",
   "release_target": "plugin-marketplace",
   "verification": {
@@ -133,20 +133,20 @@ Checklist, install verification, update policy, compatibility matrix, changelog,
 Proceed after operations gate.
 MD
   cat >"$ops/release-checklist.json" <<'JSON'
-{"schema":"helm.ops.releaseChecklist.v1","change":"add-dashboard","release_target":"plugin-marketplace","checks":[{"name":"verification","status":"pass"},{"name":"install","status":"pass"},{"name":"compatibility","status":"pass"}]}
+{"schema":"specnav.ops.releaseChecklist.v1","change":"add-dashboard","release_target":"plugin-marketplace","checks":[{"name":"verification","status":"pass"},{"name":"install","status":"pass"},{"name":"compatibility","status":"pass"}]}
 JSON
   cat >"$ops/install-verification.json" <<'JSON'
-{"schema":"helm.ops.installVerification.v1","marketplace_root":"/repo","plugin_root":"/repo/plugins/helm-operations","plugin_name":"helm-operations","plugin_source":"plugins/helm-operations","target_project":"/project","command":"node plugins/helm-core/scripts/helm-doctor.js --json","ok":true,"workspaceSupport":"available","configStatus":"configured","host":"claude-code","discovery_root_checked":true,"reload_required":false}
+{"schema":"specnav.ops.installVerification.v1","marketplace_root":"/repo","plugin_root":"/repo/plugins/specnav-operations","plugin_name":"specnav-operations","plugin_source":"plugins/specnav-operations","target_project":"/project","command":"node plugins/specnav-core/scripts/specnav-doctor.js --json","ok":true,"workspaceSupport":"available","configStatus":"configured","host":"claude-code","discovery_root_checked":true,"reload_required":false}
 JSON
   cat >"$ops/update-policy.json" <<'JSON'
-{"schema":"helm.ops.updatePolicy.v1","registry_version":1,"default_scope":"current-host","all_hosts_requires_explicit_request":true,"installations":[{"id":"claude-code:default","host":"claude-code","pluginRoot":"/repo/plugins/helm-operations","discoveryRoot":"/repo","discoveryShape":"plugin-managed","trackedRef":"main","reloadHint":"restart Claude Code"}]}
+{"schema":"specnav.ops.updatePolicy.v1","registry_version":1,"default_scope":"current-host","all_hosts_requires_explicit_request":true,"installations":[{"id":"claude-code:default","host":"claude-code","pluginRoot":"/repo/plugins/specnav-operations","discoveryRoot":"/repo","discoveryShape":"plugin-managed","trackedRef":"main","reloadHint":"restart Claude Code"}]}
 JSON
   cat >"$ops/compatibility-matrix.md" <<'MD'
 # Compatibility Matrix
 ## Supported Hosts
 - claude-code: fresh-smoke
 ## Verification Command
-node plugins/helm-core/scripts/helm-doctor.js --json
+node plugins/specnav-core/scripts/specnav-doctor.js --json
 ## Doctor Result
 pass
 ## Known Limitations
@@ -163,7 +163,7 @@ merge to main after tests.
 ## Cleanup Decision
 Preserve worktree until user confirms cleanup.
 ## Provenance
-No Helm-owned cleanup marker is present.
+No SpecNav-owned cleanup marker is present.
 MD
   cat >"$ops/changelog.md" <<'MD'
 # Changelog
@@ -174,23 +174,23 @@ MD
 Dashboard summary is ready for release.
 MD
   cat >"$ops/update-spec.json" <<'JSON'
-{"schema":"helm.ops.updateSpec.v1","change":"add-dashboard","status":"no_writeback_needed","learning_items":[],"unresolved_items":[]}
+{"schema":"specnav.ops.updateSpec.v1","change":"add-dashboard","status":"no_writeback_needed","learning_items":[],"unresolved_items":[]}
 JSON
 }
 
 test -f "$OPS/scripts/operations-gate.js"
 test -f "$OPS/scripts/archive-gate.js"
-for skill in helm-ops-readiness helm-release-plan helm-install-verify helm-update-policy helm-compatibility-matrix helm-branch-finish helm-deploy helm-rollback helm-monitor helm-postmortem helm-update-spec; do
+for skill in specnav-ops-readiness specnav-release-plan specnav-install-verify specnav-update-policy specnav-compatibility-matrix specnav-branch-finish specnav-deploy specnav-rollback specnav-monitor specnav-postmortem specnav-update-spec; do
   test -f "$OPS/skills/$skill/SKILL.md"
   grep -q "name: $skill" "$OPS/skills/$skill/SKILL.md"
-  grep -Fq 'node "$HELM_OPERATIONS_ROOT/scripts/operations-gate.js" --json' "$OPS/skills/$skill/SKILL.md"
+  grep -Fq 'node "$SPECNAV_OPERATIONS_ROOT/scripts/operations-gate.js" --json' "$OPS/skills/$skill/SKILL.md"
 done
-jq -e '.contracts.operations == "scripts/operations-gate.js"' "$OPS/helm-stage.json" >/dev/null
-jq -e '.contracts.archive == "scripts/archive-gate.js"' "$OPS/helm-stage.json" >/dev/null
-jq -e 'has("planned_contracts") | not' "$OPS/helm-stage.json" >/dev/null
-grep -Fq -- '--marketplace-root "$HELM_MARKETPLACE_ROOT"' "$OPS/commands/helm-release.md"
-grep -Fq 'node "$HELM_OPERATIONS_ROOT/scripts/operations-gate.js" --json' "$OPS/commands/helm-release.md"
-grep -Fq 'node "$HELM_OPERATIONS_ROOT/scripts/archive-gate.js" --json' "$OPS/commands/helm-archive.md"
+jq -e '.contracts.operations == "scripts/operations-gate.js"' "$OPS/specnav-stage.json" >/dev/null
+jq -e '.contracts.archive == "scripts/archive-gate.js"' "$OPS/specnav-stage.json" >/dev/null
+jq -e 'has("planned_contracts") | not' "$OPS/specnav-stage.json" >/dev/null
+grep -Fq -- '--marketplace-root "$SPECNAV_MARKETPLACE_ROOT"' "$OPS/commands/specnav-release.md"
+grep -Fq 'node "$SPECNAV_OPERATIONS_ROOT/scripts/operations-gate.js" --json' "$OPS/commands/specnav-release.md"
+grep -Fq 'node "$SPECNAV_OPERATIONS_ROOT/scripts/archive-gate.js" --json' "$OPS/commands/specnav-archive.md"
 
 PROJECT="$TMP_DIR/ops-project"
 write_verified_project "$PROJECT"
@@ -324,4 +324,4 @@ mv "$TMP_DIR/update-fail.tmp" "$UPDATE_FAIL/openspec/changes/add-dashboard/opera
 run_gate operations-gate.js "$UPDATE_FAIL" "$TMP_DIR/update-fail.json" 2
 assert_blocker "$TMP_DIR/update-fail.json" 'update-spec-unresolved-items'
 
-echo "helm operations plugin fixtures ok"
+echo "specnav operations plugin fixtures ok"

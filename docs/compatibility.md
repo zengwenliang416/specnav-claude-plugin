@@ -1,6 +1,6 @@
 # Compatibility Matrix
 
-This file records the supported host surfaces for the Helm Claude Code plugin
+This file records the supported host surfaces for the SpecNav Claude Code plugin
 suite. Do not claim fresh support for a host or channel without a recent smoke
 run.
 
@@ -14,11 +14,11 @@ run.
 
 - `supported`: tested by current fixtures and expected to work.
 - `experimental`: known path exists, but fresh smoke evidence is missing.
-- `unsupported`: not expected to work; Helm must report exact blockers.
+- `unsupported`: not expected to work; SpecNav must report exact blockers.
 
 ## Current Requirements
 
-- OpenSpec CLI must be available for Helm-managed projects.
+- OpenSpec CLI must be available for SpecNav-managed projects.
 - All six plugins must be installed and enabled.
 - After changing commands, skills, hooks, agents, or plugin metadata, start a new
   Claude Code session.

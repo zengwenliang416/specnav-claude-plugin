@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-VERIFY="$ROOT/plugins/helm-verification"
+VERIFY="$ROOT/plugins/specnav-verification"
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
@@ -40,14 +40,14 @@ write_base_project() {
   local proto="$change_dir/prototype"
 
   mkdir -p \
-    "$project/openspec/.helm" \
+    "$project/openspec/.specnav" \
     "$project/openspec/specs/ui-design" \
     "$project/openspec/specs/system-architecture" \
     "$project/openspec/specs/frontend-backend-data-flow" \
     "$project/openspec/specs/component-architecture" \
     "$proto/artifact" \
     "$task"
-  printf '%s\n' "$change" >"$project/openspec/.helm/active-change"
+  printf '%s\n' "$change" >"$project/openspec/.specnav/active-change"
 
   cat >"$project/openspec/specs/ui-design/design.md" <<'MD'
 ---
@@ -157,7 +157,7 @@ Question: Which dashboard variant should ship?
 MD
   cat >"$proto/artifact/index.html" <<'HTML'
 <!doctype html>
-<html><body><main data-helm-screen="dashboard" data-helm-variant="balanced">Dashboard</main></body></html>
+<html><body><main data-specnav-screen="dashboard" data-specnav-variant="balanced">Dashboard</main></body></html>
 HTML
   cat >"$proto/screen-map.json" <<'JSON'
 {
@@ -173,7 +173,7 @@ HTML
 JSON
   cat >"$proto/prototype-manifest.json" <<'JSON'
 {
-  "schema": "helm.prototype.manifest.v1",
+  "schema": "specnav.prototype.manifest.v1",
   "version": "1.0.0",
   "type": "ui-html",
   "entry": "artifact/index.html",
@@ -188,7 +188,7 @@ JSON
 JSON
   cat >"$proto/verifier-report.json" <<'JSON'
 {
-  "schema": "helm.prototype.verifier.v1",
+  "schema": "specnav.prototype.verifier.v1",
   "status": "green",
   "checked_entry": "artifact/index.html",
   "checks": ["entry exists"]
@@ -497,7 +497,7 @@ MD
 {"schema_version":1,"change_id":"add-dashboard","evidence_action":"ran six-domain verification","result":"green","covered_scope":["dashboard summary"],"uncovered_scope":[],"residual_risk":[],"confidence":"A"}
 JSON
   cat >"$verify/behavior-evals/scenarios.json" <<'JSON'
-{"schema_version":1,"scenarios":[{"id":"verify-runs-six-domains","prompt":"/helm-verify","expected":["write aggregate report"]}]}
+{"schema_version":1,"scenarios":[{"id":"verify-runs-six-domains","prompt":"/specnav-verify","expected":["write aggregate report"]}]}
 JSON
   cat >"$verify/behavior-evals/report.md" <<'MD'
 # Behavior Evals
@@ -514,7 +514,7 @@ JSON
   cat >"$verify/behavior-evals/transcripts/verify-runs-six-domains.md" <<'MD'
 # Clean Session Transcript
 
-Prompt: /helm-verify
+Prompt: /specnav-verify
 
 Observed:
 - Loaded active change.
@@ -570,19 +570,19 @@ MD
 }
 
 test -f "$VERIFY/scripts/verify-domains.js"
-test -f "$VERIFY/skills/helm-verify-plan/SKILL.md"
-test -f "$VERIFY/skills/helm-verify-facticity/SKILL.md"
-test -f "$VERIFY/skills/helm-verify-static/SKILL.md"
-test -f "$VERIFY/skills/helm-verify-unit/SKILL.md"
-test -f "$VERIFY/skills/helm-verify-redteam/SKILL.md"
-test -f "$VERIFY/skills/helm-verify-e2e/SKILL.md"
-test -f "$VERIFY/skills/helm-verify-sensory/SKILL.md"
-test -f "$VERIFY/skills/helm-verify-rerun/SKILL.md"
-jq -e '.contracts.verification == "scripts/verify-domains.js"' "$VERIFY/helm-stage.json" >/dev/null
-jq -e 'has("planned_contracts") | not' "$VERIFY/helm-stage.json" >/dev/null
-grep -Fq -- '--marketplace-root "$HELM_MARKETPLACE_ROOT"' "$VERIFY/commands/helm-verify.md"
-grep -Fq 'node "$HELM_DEVELOPMENT_ROOT/scripts/development-contract.js" --mode handoff --json' "$VERIFY/commands/helm-verify.md"
-grep -Fq 'node "$HELM_VERIFICATION_ROOT/scripts/verify-domains.js" aggregate --json' "$VERIFY/commands/helm-verify.md"
+test -f "$VERIFY/skills/specnav-verify-plan/SKILL.md"
+test -f "$VERIFY/skills/specnav-verify-facticity/SKILL.md"
+test -f "$VERIFY/skills/specnav-verify-static/SKILL.md"
+test -f "$VERIFY/skills/specnav-verify-unit/SKILL.md"
+test -f "$VERIFY/skills/specnav-verify-redteam/SKILL.md"
+test -f "$VERIFY/skills/specnav-verify-e2e/SKILL.md"
+test -f "$VERIFY/skills/specnav-verify-sensory/SKILL.md"
+test -f "$VERIFY/skills/specnav-verify-rerun/SKILL.md"
+jq -e '.contracts.verification == "scripts/verify-domains.js"' "$VERIFY/specnav-stage.json" >/dev/null
+jq -e 'has("planned_contracts") | not' "$VERIFY/specnav-stage.json" >/dev/null
+grep -Fq -- '--marketplace-root "$SPECNAV_MARKETPLACE_ROOT"' "$VERIFY/commands/specnav-verify.md"
+grep -Fq 'node "$SPECNAV_DEVELOPMENT_ROOT/scripts/development-contract.js" --mode handoff --json' "$VERIFY/commands/specnav-verify.md"
+grep -Fq 'node "$SPECNAV_VERIFICATION_ROOT/scripts/verify-domains.js" aggregate --json' "$VERIFY/commands/specnav-verify.md"
 
 PROJECT="$TMP_DIR/verify-project"
 write_base_project "$PROJECT"
@@ -629,7 +629,7 @@ jq -e '.verdict == "green"' "$TMP_DIR/fresh-aggregate.json" >/dev/null
 test ! -f "$FRESH_DIR/verify-report.stale"
 
 set +e
-PROJECT_DIR="$PROJECT" node "$ROOT/plugins/helm-core/scripts/verify.js" >"$TMP_DIR/core-verify.txt"
+PROJECT_DIR="$PROJECT" node "$ROOT/plugins/specnav-core/scripts/verify.js" >"$TMP_DIR/core-verify.txt"
 CORE_VERIFY_STATUS=$?
 set -e
 [[ "$CORE_VERIFY_STATUS" == "1" ]]
@@ -684,4 +684,4 @@ rm "$DEVELOPMENT_FAIL_PROJECT/openspec/changes/add-dashboard/development/handoff
 run_json "$DEVELOPMENT_FAIL_PROJECT" validate "$TMP_DIR/development-fail.json" 2
 assert_blocker "$TMP_DIR/development-fail.json" 'development-blocked'
 
-echo "helm verification plugin fixtures ok"
+echo "specnav verification plugin fixtures ok"

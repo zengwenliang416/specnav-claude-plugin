@@ -1,0 +1,13 @@
+{
+  "name": "specnav-requirements",
+  "version": "0.4.0",
+  "description": "Requirements stage plugin for the SpecNav OpenSpec lifecycle suite.",
+  "author": {
+    "name": "Wenliang Zeng"
+  },
+  "homepage": "https://github.com/zengwenliang416/specnav-claude-plugin",
+  "repository": "https://github.com/zengwenliang416/specnav-claude-plugin",
+  "license": "MIT",
+  "keywords": ["claude-code", "openspec", "requirements", "specs"],
+  "skills": "./skills/"
+}

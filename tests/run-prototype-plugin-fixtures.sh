@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-PROTO="$ROOT/plugins/helm-prototype"
+PROTO="$ROOT/plugins/specnav-prototype"
 PROJECT="$ROOT/tests/fixtures/simple-project"
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
@@ -32,14 +32,14 @@ write_requirements_project() {
   local change="add-dashboard"
 
   mkdir -p \
-    "$project/openspec/.helm" \
+    "$project/openspec/.specnav" \
     "$project/openspec/specs/ui-design" \
     "$project/openspec/specs/system-architecture" \
     "$project/openspec/specs/frontend-backend-data-flow" \
     "$project/openspec/specs/component-architecture" \
     "$project/openspec/changes/$change"
 
-  printf '%s\n' "$change" >"$project/openspec/.helm/active-change"
+  printf '%s\n' "$change" >"$project/openspec/.specnav/active-change"
 
   cat >"$project/openspec/specs/ui-design/design.md" <<'MD'
 ---
@@ -177,8 +177,8 @@ MD
     <title>Dashboard Prototype</title>
   </head>
   <body>
-    <main data-helm-screen="dashboard" data-helm-variant="balanced">
-      <section data-helm-component="dashboard-summary">Dashboard summary</section>
+    <main data-specnav-screen="dashboard" data-specnav-variant="balanced">
+      <section data-specnav-component="dashboard-summary">Dashboard summary</section>
     </main>
   </body>
 </html>
@@ -201,7 +201,7 @@ JSON
 
   cat >"$prototype/prototype-manifest.json" <<'JSON'
 {
-  "schema": "helm.prototype.manifest.v1",
+  "schema": "specnav.prototype.manifest.v1",
   "version": "1.0.0",
   "type": "ui-html",
   "entry": "artifact/index.html",
@@ -217,7 +217,7 @@ JSON
 
   cat >"$prototype/verifier-report.json" <<'JSON'
 {
-  "schema": "helm.prototype.verifier.v1",
+  "schema": "specnav.prototype.verifier.v1",
   "status": "green",
   "checked_entry": "artifact/index.html",
   "checks": ["entry exists", "desktop viewport reviewed", "mobile viewport reviewed"]
@@ -289,29 +289,29 @@ JSON
 }
 
 test -f "$PROTO/scripts/prototype-contract.js"
-test -f "$PROTO/skills/helm-prototype/SKILL.md"
-test -f "$PROTO/skills/helm-prototype-verify/SKILL.md"
-test -f "$PROTO/skills/helm-prototype-handoff/SKILL.md"
-grep -q 'helm-prototype' "$PROTO/commands/helm-prototype.md"
-grep -Fq "runtime.requirePluginScript('helm-requirements', 'scripts/requirements-contract')" "$PROTO/scripts/prototype-contract.js"
-! grep -Fq '../../helm-requirements/scripts/requirements-contract' "$PROTO/scripts/prototype-contract.js"
-! grep -Fq '../../helm-core/scripts/helm-lib' "$PROTO/scripts/prototype-contract.js"
+test -f "$PROTO/skills/specnav-prototype/SKILL.md"
+test -f "$PROTO/skills/specnav-prototype-verify/SKILL.md"
+test -f "$PROTO/skills/specnav-prototype-handoff/SKILL.md"
+grep -q 'specnav-prototype' "$PROTO/commands/specnav-prototype.md"
+grep -Fq "runtime.requirePluginScript('specnav-requirements', 'scripts/requirements-contract')" "$PROTO/scripts/prototype-contract.js"
+! grep -Fq '../../specnav-requirements/scripts/requirements-contract' "$PROTO/scripts/prototype-contract.js"
+! grep -Fq '../../specnav-core/scripts/specnav-lib' "$PROTO/scripts/prototype-contract.js"
 ! grep -Fq 'scripts/contracts' "$PROTO/scripts/prototype-contract.js"
 
-grep -Fq 'node "$HELM_CORE_ROOT/scripts/plugin-suite.js" require' "$PROTO/commands/helm-prototype.md"
-grep -Fq -- '--marketplace-root "$HELM_MARKETPLACE_ROOT"' "$PROTO/commands/helm-prototype.md"
-grep -Fq 'node "$HELM_PROTOTYPE_ROOT/scripts/prototype-contract.js" --json' "$PROTO/commands/helm-prototype.md"
+grep -Fq 'node "$SPECNAV_CORE_ROOT/scripts/plugin-suite.js" require' "$PROTO/commands/specnav-prototype.md"
+grep -Fq -- '--marketplace-root "$SPECNAV_MARKETPLACE_ROOT"' "$PROTO/commands/specnav-prototype.md"
+grep -Fq 'node "$SPECNAV_PROTOTYPE_ROOT/scripts/prototype-contract.js" --json' "$PROTO/commands/specnav-prototype.md"
 
-grep -Fiq 'no fallback' "$PROTO/skills/helm-prototype/SKILL.md"
-grep -Fq 'Branch Classification' "$PROTO/skills/helm-prototype/SKILL.md"
-grep -Fq 'node "$HELM_PROTOTYPE_ROOT/scripts/prototype-contract.js" --json' "$PROTO/skills/helm-prototype/SKILL.md"
-grep -Fq 'verifier-report.json' "$PROTO/skills/helm-prototype-verify/SKILL.md"
-grep -Fq 'node "$HELM_PROTOTYPE_ROOT/scripts/prototype-contract.js" --json' "$PROTO/skills/helm-prototype-verify/SKILL.md"
-grep -Fq 'required_present' "$PROTO/skills/helm-prototype-handoff/SKILL.md"
-grep -Fq 'node "$HELM_PROTOTYPE_ROOT/scripts/prototype-contract.js" --json' "$PROTO/skills/helm-prototype-handoff/SKILL.md"
+grep -Fiq 'no fallback' "$PROTO/skills/specnav-prototype/SKILL.md"
+grep -Fq 'Branch Classification' "$PROTO/skills/specnav-prototype/SKILL.md"
+grep -Fq 'node "$SPECNAV_PROTOTYPE_ROOT/scripts/prototype-contract.js" --json' "$PROTO/skills/specnav-prototype/SKILL.md"
+grep -Fq 'verifier-report.json' "$PROTO/skills/specnav-prototype-verify/SKILL.md"
+grep -Fq 'node "$SPECNAV_PROTOTYPE_ROOT/scripts/prototype-contract.js" --json' "$PROTO/skills/specnav-prototype-verify/SKILL.md"
+grep -Fq 'required_present' "$PROTO/skills/specnav-prototype-handoff/SKILL.md"
+grep -Fq 'node "$SPECNAV_PROTOTYPE_ROOT/scripts/prototype-contract.js" --json' "$PROTO/skills/specnav-prototype-handoff/SKILL.md"
 
-jq -e '.contracts.prototype == "scripts/prototype-contract.js"' "$PROTO/helm-stage.json" >/dev/null
-jq -e 'has("planned_contracts") | not' "$PROTO/helm-stage.json" >/dev/null
+jq -e '.contracts.prototype == "scripts/prototype-contract.js"' "$PROTO/specnav-stage.json" >/dev/null
+jq -e 'has("planned_contracts") | not' "$PROTO/specnav-stage.json" >/dev/null
 
 run_json "$PROJECT" "$TMP_DIR/simple-project.json" 2
 jq -e '.ok == false' "$TMP_DIR/simple-project.json" >/dev/null
@@ -558,4 +558,4 @@ printf '%s\n' '# Prototype Handoff' 'This leaves one unresolved item.' >"$GAP_TE
 run_json "$GAP_TEXT_PROJECT" "$TMP_DIR/gap-text.json" 2
 assert_blocker "$TMP_DIR/gap-text.json" 'unresolved-prototype-gap:handoff.md'
 
-echo "helm prototype plugin fixtures ok"
+echo "specnav prototype plugin fixtures ok"

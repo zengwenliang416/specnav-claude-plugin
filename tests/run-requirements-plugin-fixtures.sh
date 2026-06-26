@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-REQ="$ROOT/plugins/helm-requirements"
+REQ="$ROOT/plugins/specnav-requirements"
 PROJECT="$ROOT/tests/fixtures/simple-project"
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
@@ -121,14 +121,14 @@ write_happy_project() {
   local change="add-dashboard"
 
   mkdir -p \
-    "$project/openspec/.helm" \
+    "$project/openspec/.specnav" \
     "$project/openspec/specs/ui-design" \
     "$project/openspec/specs/system-architecture" \
     "$project/openspec/specs/frontend-backend-data-flow" \
     "$project/openspec/specs/component-architecture" \
     "$project/openspec/changes/$change"
 
-  printf '%s\n' "$change" >"$project/openspec/.helm/active-change"
+  printf '%s\n' "$change" >"$project/openspec/.specnav/active-change"
 
   cat >"$project/openspec/specs/ui-design/design.md" <<'MD'
 ---
@@ -327,79 +327,79 @@ test -f "$REQ/scripts/foundation-specs.js"
 test -f "$REQ/scripts/requirements-contract.js"
 test -f "$REQ/scripts/repository-discovery.js"
 test -f "$REQ/scripts/repository-discovery-contract.js"
-test -f "$REQ/skills/helm-foundation-specs/SKILL.md"
-test -f "$REQ/skills/helm-repository-discovery/SKILL.md"
-test -f "$REQ/skills/helm-requirements/SKILL.md"
-test -f "$REQ/skills/helm-repository-discovery/references/repository-discovery.md"
-test -f "$REQ/skills/helm-repository-discovery/references/spec-negotiation.md"
-test -f "$REQ/skills/helm-repository-discovery/references/discovery-schema.md"
-test -f "$REQ/skills/helm-repository-discovery/assets/discovery/repository-discovery.json"
-test -f "$REQ/skills/helm-repository-discovery/assets/discovery/spec-negotiation.md"
-test -f "$REQ/skills/helm-repository-discovery/assets/discovery/foundation-update-map.json"
+test -f "$REQ/skills/specnav-foundation-specs/SKILL.md"
+test -f "$REQ/skills/specnav-repository-discovery/SKILL.md"
+test -f "$REQ/skills/specnav-requirements/SKILL.md"
+test -f "$REQ/skills/specnav-repository-discovery/references/repository-discovery.md"
+test -f "$REQ/skills/specnav-repository-discovery/references/spec-negotiation.md"
+test -f "$REQ/skills/specnav-repository-discovery/references/discovery-schema.md"
+test -f "$REQ/skills/specnav-repository-discovery/assets/discovery/repository-discovery.json"
+test -f "$REQ/skills/specnav-repository-discovery/assets/discovery/spec-negotiation.md"
+test -f "$REQ/skills/specnav-repository-discovery/assets/discovery/foundation-update-map.json"
 
-grep -Fiq 'token references' "$REQ/skills/helm-foundation-specs/SKILL.md"
-grep -Fiq 'theme parity' "$REQ/skills/helm-foundation-specs/SKILL.md"
-grep -Fiq 'frontmatter values' "$REQ/skills/helm-foundation-specs/SKILL.md"
-grep -Fq 'frontmatter_errors' "$REQ/skills/helm-foundation-specs/SKILL.md"
-grep -Fq 'repository-discovery.js' "$REQ/skills/helm-foundation-specs/SKILL.md"
-grep -Fq 'recommended answer' "$REQ/skills/helm-requirements/SKILL.md"
-grep -Fq 'tradeoff' "$REQ/skills/helm-requirements/SKILL.md"
-grep -Fq 'decision branch' "$REQ/skills/helm-requirements/SKILL.md"
-grep -Fq 'unresolved_gaps' "$REQ/skills/helm-requirements/SKILL.md"
-grep -Fq 'foundation spec' "$REQ/skills/helm-requirements/SKILL.md"
-grep -Fq 'repository-discovery.js' "$REQ/skills/helm-requirements/SKILL.md"
-grep -Fq 'repository-discovery-contract.js' "$REQ/skills/helm-repository-discovery/SKILL.md"
-jq -e '.schema == "helm.repositoryDiscovery.v1"' "$REQ/skills/helm-repository-discovery/assets/discovery/repository-discovery.json" >/dev/null
-jq -e '.targets."system-architecture".discovery_types | index("next-framework") != null' "$REQ/skills/helm-repository-discovery/assets/discovery/foundation-update-map.json" >/dev/null
-jq -e '.skills | index("helm-repository-discovery") != null' "$REQ/helm-stage.json" >/dev/null
-jq -e '.contracts.discovery == "scripts/repository-discovery-contract.js"' "$REQ/helm-stage.json" >/dev/null
+grep -Fiq 'token references' "$REQ/skills/specnav-foundation-specs/SKILL.md"
+grep -Fiq 'theme parity' "$REQ/skills/specnav-foundation-specs/SKILL.md"
+grep -Fiq 'frontmatter values' "$REQ/skills/specnav-foundation-specs/SKILL.md"
+grep -Fq 'frontmatter_errors' "$REQ/skills/specnav-foundation-specs/SKILL.md"
+grep -Fq 'repository-discovery.js' "$REQ/skills/specnav-foundation-specs/SKILL.md"
+grep -Fq 'recommended answer' "$REQ/skills/specnav-requirements/SKILL.md"
+grep -Fq 'tradeoff' "$REQ/skills/specnav-requirements/SKILL.md"
+grep -Fq 'decision branch' "$REQ/skills/specnav-requirements/SKILL.md"
+grep -Fq 'unresolved_gaps' "$REQ/skills/specnav-requirements/SKILL.md"
+grep -Fq 'foundation spec' "$REQ/skills/specnav-requirements/SKILL.md"
+grep -Fq 'repository-discovery.js' "$REQ/skills/specnav-requirements/SKILL.md"
+grep -Fq 'repository-discovery-contract.js' "$REQ/skills/specnav-repository-discovery/SKILL.md"
+jq -e '.schema == "specnav.repositoryDiscovery.v1"' "$REQ/skills/specnav-repository-discovery/assets/discovery/repository-discovery.json" >/dev/null
+jq -e '.targets."system-architecture".discovery_types | index("next-framework") != null' "$REQ/skills/specnav-repository-discovery/assets/discovery/foundation-update-map.json" >/dev/null
+jq -e '.skills | index("specnav-repository-discovery") != null' "$REQ/specnav-stage.json" >/dev/null
+jq -e '.contracts.discovery == "scripts/repository-discovery-contract.js"' "$REQ/specnav-stage.json" >/dev/null
 
-grep -q 'helm-requirements' "$REQ/commands/helm-requirements.md"
-grep -Fq 'node "$HELM_CORE_ROOT/scripts/plugin-suite.js" require' "$REQ/commands/helm-requirements.md"
-grep -Fq -- '--marketplace-root "$HELM_MARKETPLACE_ROOT"' "$REQ/commands/helm-requirements.md"
+grep -q 'specnav-requirements' "$REQ/commands/specnav-requirements.md"
+grep -Fq 'node "$SPECNAV_CORE_ROOT/scripts/plugin-suite.js" require' "$REQ/commands/specnav-requirements.md"
+grep -Fq -- '--marketplace-root "$SPECNAV_MARKETPLACE_ROOT"' "$REQ/commands/specnav-requirements.md"
 
 DISCOVERY_PROJECT="$TMP_DIR/discovery-project"
 write_discovery_project "$DISCOVERY_PROJECT"
 run_json "$DISCOVERY_PROJECT" "$REQ/scripts/repository-discovery.js" "$TMP_DIR/repository-discovery.json" 0
-jq -e '.schema == "helm.repositoryDiscovery.v1"' "$TMP_DIR/repository-discovery.json" >/dev/null
+jq -e '.schema == "specnav.repositoryDiscovery.v1"' "$TMP_DIR/repository-discovery.json" >/dev/null
 jq -e --arg project "$DISCOVERY_PROJECT" '.project_root == $project' "$TMP_DIR/repository-discovery.json" >/dev/null
 jq -e '.evidence[] | select(.path == "package.json")' "$TMP_DIR/repository-discovery.json" >/dev/null
 jq -e '.evidence | map(select(.path | startswith("dist/") or contains("node_modules"))) | length == 0' "$TMP_DIR/repository-discovery.json" >/dev/null
 jq -e '.findings | length > 0' "$TMP_DIR/repository-discovery.json" >/dev/null
 jq -e 'all(.findings[]; (.confidence >= 0 and .confidence <= 1) and (.evidence_refs | length > 0))' "$TMP_DIR/repository-discovery.json" >/dev/null
 jq -e '.conflicts[] | select(.question or .open_item)' "$TMP_DIR/repository-discovery.json" >/dev/null
-test ! -e "$DISCOVERY_PROJECT/openspec/.helm/context/repository-discovery.json"
+test ! -e "$DISCOVERY_PROJECT/openspec/.specnav/context/repository-discovery.json"
 
 set +e
 PROJECT_DIR="$DISCOVERY_PROJECT" node "$REQ/scripts/repository-discovery.js" --write --json >"$TMP_DIR/repository-discovery-write.json"
 STATUS=$?
 set -e
 [[ "$STATUS" == "0" ]]
-test -f "$DISCOVERY_PROJECT/openspec/.helm/context/repository-discovery.json"
+test -f "$DISCOVERY_PROJECT/openspec/.specnav/context/repository-discovery.json"
 run_json "$DISCOVERY_PROJECT" "$REQ/scripts/repository-discovery-contract.js" "$TMP_DIR/repository-discovery-contract.json" 0
 jq -e '.ok == true' "$TMP_DIR/repository-discovery-contract.json" >/dev/null
 
-jq '.findings[0].confidence = 1.5' "$DISCOVERY_PROJECT/openspec/.helm/context/repository-discovery.json" >"$TMP_DIR/discovery-invalid-confidence.json"
+jq '.findings[0].confidence = 1.5' "$DISCOVERY_PROJECT/openspec/.specnav/context/repository-discovery.json" >"$TMP_DIR/discovery-invalid-confidence.json"
 run_contract_file "$DISCOVERY_PROJECT" "$REQ/scripts/repository-discovery-contract.js" "$TMP_DIR/discovery-invalid-confidence.json" "$TMP_DIR/discovery-invalid-confidence-result.json" 2
 jq -e '.blockers[] | select(startswith("invalid-confidence:"))' "$TMP_DIR/discovery-invalid-confidence-result.json" >/dev/null
 
-jq '.findings[0].evidence_refs = ["ev-missing"]' "$DISCOVERY_PROJECT/openspec/.helm/context/repository-discovery.json" >"$TMP_DIR/discovery-missing-evidence-ref.json"
+jq '.findings[0].evidence_refs = ["ev-missing"]' "$DISCOVERY_PROJECT/openspec/.specnav/context/repository-discovery.json" >"$TMP_DIR/discovery-missing-evidence-ref.json"
 run_contract_file "$DISCOVERY_PROJECT" "$REQ/scripts/repository-discovery-contract.js" "$TMP_DIR/discovery-missing-evidence-ref.json" "$TMP_DIR/discovery-missing-evidence-ref-result.json" 2
 jq -e '.blockers[] | select(startswith("missing-evidence-ref:"))' "$TMP_DIR/discovery-missing-evidence-ref-result.json" >/dev/null
 
-jq '.evidence[0].path = "../outside"' "$DISCOVERY_PROJECT/openspec/.helm/context/repository-discovery.json" >"$TMP_DIR/discovery-path-escape.json"
+jq '.evidence[0].path = "../outside"' "$DISCOVERY_PROJECT/openspec/.specnav/context/repository-discovery.json" >"$TMP_DIR/discovery-path-escape.json"
 run_contract_file "$DISCOVERY_PROJECT" "$REQ/scripts/repository-discovery-contract.js" "$TMP_DIR/discovery-path-escape.json" "$TMP_DIR/discovery-path-escape-result.json" 2
 jq -e '.blockers[] | select(startswith("invalid-evidence-path:"))' "$TMP_DIR/discovery-path-escape-result.json" >/dev/null
 
-jq '.findings[0].foundation_target.spec = "unknown-foundation"' "$DISCOVERY_PROJECT/openspec/.helm/context/repository-discovery.json" >"$TMP_DIR/discovery-unknown-foundation.json"
+jq '.findings[0].foundation_target.spec = "unknown-foundation"' "$DISCOVERY_PROJECT/openspec/.specnav/context/repository-discovery.json" >"$TMP_DIR/discovery-unknown-foundation.json"
 run_contract_file "$DISCOVERY_PROJECT" "$REQ/scripts/repository-discovery-contract.js" "$TMP_DIR/discovery-unknown-foundation.json" "$TMP_DIR/discovery-unknown-foundation-result.json" 2
 jq -e '.blockers[] | select(startswith("unknown-foundation-spec:"))' "$TMP_DIR/discovery-unknown-foundation-result.json" >/dev/null
 
-jq 'del(.conflicts[0].question) | del(.conflicts[0].open_item)' "$DISCOVERY_PROJECT/openspec/.helm/context/repository-discovery.json" >"$TMP_DIR/discovery-conflict-missing-question.json"
+jq 'del(.conflicts[0].question) | del(.conflicts[0].open_item)' "$DISCOVERY_PROJECT/openspec/.specnav/context/repository-discovery.json" >"$TMP_DIR/discovery-conflict-missing-question.json"
 run_contract_file "$DISCOVERY_PROJECT" "$REQ/scripts/repository-discovery-contract.js" "$TMP_DIR/discovery-conflict-missing-question.json" "$TMP_DIR/discovery-conflict-missing-question-result.json" 2
 jq -e '.blockers[] | select(startswith("missing-conflict-question:"))' "$TMP_DIR/discovery-conflict-missing-question-result.json" >/dev/null
 
-jq 'del(.open_items[0].question)' "$DISCOVERY_PROJECT/openspec/.helm/context/repository-discovery.json" >"$TMP_DIR/discovery-open-item-missing-question.json"
+jq 'del(.open_items[0].question)' "$DISCOVERY_PROJECT/openspec/.specnav/context/repository-discovery.json" >"$TMP_DIR/discovery-open-item-missing-question.json"
 run_contract_file "$DISCOVERY_PROJECT" "$REQ/scripts/repository-discovery-contract.js" "$TMP_DIR/discovery-open-item-missing-question.json" "$TMP_DIR/discovery-open-item-missing-question-result.json" 2
 jq -e '.blockers[] | select(startswith("missing-question:"))' "$TMP_DIR/discovery-open-item-missing-question-result.json" >/dev/null
 
@@ -408,15 +408,15 @@ set +e
 (
   cd "$TMP_DIR/external-project"
   export CLAUDE_PLUGIN_ROOT="$REQ"
-  node "$CLAUDE_PLUGIN_ROOT/../helm-core/scripts/plugin-suite.js" require --marketplace-root "$CLAUDE_PLUGIN_ROOT/../.." --plugin helm-core --plugin helm-requirements --json
+  node "$CLAUDE_PLUGIN_ROOT/../specnav-core/scripts/plugin-suite.js" require --marketplace-root "$CLAUDE_PLUGIN_ROOT/../.." --plugin specnav-core --plugin specnav-requirements --json
 ) >"$TMP_DIR/external-plugin-suite-require.json"
 STATUS=$?
 set -e
 [[ "$STATUS" == "0" ]]
 jq -e '.ok == true' "$TMP_DIR/external-plugin-suite-require.json" >/dev/null
 jq -e '.plugins | length == 2' "$TMP_DIR/external-plugin-suite-require.json" >/dev/null
-jq -e '.plugins[] | select(.name == "helm-core" and .ok == true)' "$TMP_DIR/external-plugin-suite-require.json" >/dev/null
-jq -e '.plugins[] | select(.name == "helm-requirements" and .ok == true)' "$TMP_DIR/external-plugin-suite-require.json" >/dev/null
+jq -e '.plugins[] | select(.name == "specnav-core" and .ok == true)' "$TMP_DIR/external-plugin-suite-require.json" >/dev/null
+jq -e '.plugins[] | select(.name == "specnav-requirements" and .ok == true)' "$TMP_DIR/external-plugin-suite-require.json" >/dev/null
 
 set +e
 PROJECT_DIR="$PROJECT" node "$REQ/scripts/foundation-specs.js" --json >"$TMP_DIR/foundation-specs.json"
@@ -1131,16 +1131,16 @@ jq -e '.ok == true' "$TMP_DIR/happy-requirements-contract.json" >/dev/null
 
 SINGLE_CHANGE_INFERENCE_PROJECT="$TMP_DIR/single-change-inference-project"
 cp -R "$HAPPY_PROJECT" "$SINGLE_CHANGE_INFERENCE_PROJECT"
-rm "$SINGLE_CHANGE_INFERENCE_PROJECT/openspec/.helm/active-change"
+rm "$SINGLE_CHANGE_INFERENCE_PROJECT/openspec/.specnav/active-change"
 run_json "$SINGLE_CHANGE_INFERENCE_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/single-change-inference.json" 0
 jq -e '.ok == true' "$TMP_DIR/single-change-inference.json" >/dev/null
 jq -e '.active_change == "add-dashboard"' "$TMP_DIR/single-change-inference.json" >/dev/null
 
 WORKFLOW_STATE_ACTIVE_CHANGE_PROJECT="$TMP_DIR/workflow-state-active-change-project"
 cp -R "$HAPPY_PROJECT" "$WORKFLOW_STATE_ACTIVE_CHANGE_PROJECT"
-rm "$WORKFLOW_STATE_ACTIVE_CHANGE_PROJECT/openspec/.helm/active-change"
+rm "$WORKFLOW_STATE_ACTIVE_CHANGE_PROJECT/openspec/.specnav/active-change"
 mkdir -p "$WORKFLOW_STATE_ACTIVE_CHANGE_PROJECT/openspec/changes/another-change"
-cat >"$WORKFLOW_STATE_ACTIVE_CHANGE_PROJECT/openspec/.helm/workflow-state.json" <<'JSON'
+cat >"$WORKFLOW_STATE_ACTIVE_CHANGE_PROJECT/openspec/.specnav/workflow-state.json" <<'JSON'
 {
   "schema_version": 1,
   "active_change": "add-dashboard"
@@ -1152,10 +1152,10 @@ jq -e '.active_change == "add-dashboard"' "$TMP_DIR/workflow-state-active-change
 
 ENV_ACTIVE_CHANGE_PROJECT="$TMP_DIR/env-active-change-project"
 cp -R "$HAPPY_PROJECT" "$ENV_ACTIVE_CHANGE_PROJECT"
-printf '%s\n' '../bad' >"$ENV_ACTIVE_CHANGE_PROJECT/openspec/.helm/active-change"
+printf '%s\n' '../bad' >"$ENV_ACTIVE_CHANGE_PROJECT/openspec/.specnav/active-change"
 mkdir -p "$ENV_ACTIVE_CHANGE_PROJECT/openspec/changes/another-change"
 set +e
-PROJECT_DIR="$ENV_ACTIVE_CHANGE_PROJECT" HELM_CHANGE="add-dashboard" node "$REQ/scripts/requirements-contract.js" --json >"$TMP_DIR/env-active-change.json"
+PROJECT_DIR="$ENV_ACTIVE_CHANGE_PROJECT" SPECNAV_CHANGE="add-dashboard" node "$REQ/scripts/requirements-contract.js" --json >"$TMP_DIR/env-active-change.json"
 STATUS=$?
 set -e
 [[ "$STATUS" == "0" ]]
@@ -1164,21 +1164,21 @@ jq -e '.active_change == "add-dashboard"' "$TMP_DIR/env-active-change.json" >/de
 
 AMBIGUOUS_ACTIVE_CHANGE_PROJECT="$TMP_DIR/ambiguous-active-change-project"
 cp -R "$HAPPY_PROJECT" "$AMBIGUOUS_ACTIVE_CHANGE_PROJECT"
-rm "$AMBIGUOUS_ACTIVE_CHANGE_PROJECT/openspec/.helm/active-change"
-rm -f "$AMBIGUOUS_ACTIVE_CHANGE_PROJECT/openspec/.helm/workflow-state.json"
+rm "$AMBIGUOUS_ACTIVE_CHANGE_PROJECT/openspec/.specnav/active-change"
+rm -f "$AMBIGUOUS_ACTIVE_CHANGE_PROJECT/openspec/.specnav/workflow-state.json"
 mkdir -p "$AMBIGUOUS_ACTIVE_CHANGE_PROJECT/openspec/changes/another-change"
 run_json "$AMBIGUOUS_ACTIVE_CHANGE_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/ambiguous-active-change.json" 2
 assert_active_change_only_blocker "$TMP_DIR/ambiguous-active-change.json"
 
 EMPTY_ACTIVE_CHANGE_PROJECT="$TMP_DIR/empty-active-change-project"
 cp -R "$HAPPY_PROJECT" "$EMPTY_ACTIVE_CHANGE_PROJECT"
-: >"$EMPTY_ACTIVE_CHANGE_PROJECT/openspec/.helm/active-change"
+: >"$EMPTY_ACTIVE_CHANGE_PROJECT/openspec/.specnav/active-change"
 run_json "$EMPTY_ACTIVE_CHANGE_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/empty-active-change.json" 2
 assert_active_change_only_blocker "$TMP_DIR/empty-active-change.json"
 
 PADDED_ACTIVE_CHANGE_PROJECT="$TMP_DIR/padded-active-change-project"
 cp -R "$HAPPY_PROJECT" "$PADDED_ACTIVE_CHANGE_PROJECT"
-printf '%s' ' add-dashboard ' >"$PADDED_ACTIVE_CHANGE_PROJECT/openspec/.helm/active-change"
+printf '%s' ' add-dashboard ' >"$PADDED_ACTIVE_CHANGE_PROJECT/openspec/.specnav/active-change"
 run_json "$PADDED_ACTIVE_CHANGE_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/padded-active-change.json" 2
 assert_active_change_only_blocker "$TMP_DIR/padded-active-change.json"
 
@@ -1188,13 +1188,13 @@ cp "$DOT_ACTIVE_CHANGE_PROJECT/openspec/changes/add-dashboard/requirements.md" "
 cp "$DOT_ACTIVE_CHANGE_PROJECT/openspec/changes/add-dashboard/acceptance.md" "$DOT_ACTIVE_CHANGE_PROJECT/openspec/changes/acceptance.md"
 cp "$DOT_ACTIVE_CHANGE_PROJECT/openspec/changes/add-dashboard/spec-map.json" "$DOT_ACTIVE_CHANGE_PROJECT/openspec/changes/spec-map.json"
 cp "$DOT_ACTIVE_CHANGE_PROJECT/openspec/changes/add-dashboard/component-impact-map.json" "$DOT_ACTIVE_CHANGE_PROJECT/openspec/changes/component-impact-map.json"
-printf '%s\n' '.' >"$DOT_ACTIVE_CHANGE_PROJECT/openspec/.helm/active-change"
+printf '%s\n' '.' >"$DOT_ACTIVE_CHANGE_PROJECT/openspec/.specnav/active-change"
 run_json "$DOT_ACTIVE_CHANGE_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/dot-active-change.json" 2
 assert_active_change_only_blocker "$TMP_DIR/dot-active-change.json"
 
 INVALID_ACTIVE_CHANGE_PROJECT="$TMP_DIR/invalid-active-change-project"
 cp -R "$HAPPY_PROJECT" "$INVALID_ACTIVE_CHANGE_PROJECT"
-printf '%s\n' '../add-dashboard' >"$INVALID_ACTIVE_CHANGE_PROJECT/openspec/.helm/active-change"
+printf '%s\n' '../add-dashboard' >"$INVALID_ACTIVE_CHANGE_PROJECT/openspec/.specnav/active-change"
 run_json "$INVALID_ACTIVE_CHANGE_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/invalid-active-change.json" 2
 assert_active_change_only_blocker "$TMP_DIR/invalid-active-change.json"
 
@@ -1731,4 +1731,4 @@ MD
 run_json "$MISSING_FLOW_ID_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/missing-flow-id.json" 2
 jq -e '.blockers[] | select(. == "missing-flow-id:frontend-backend-data-flow")' "$TMP_DIR/missing-flow-id.json" >/dev/null
 
-echo "helm requirements plugin fixtures ok"
+echo "specnav requirements plugin fixtures ok"

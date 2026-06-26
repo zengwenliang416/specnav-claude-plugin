@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-06-23-specnav-plugin-suite",
+  "lastCheckpointRef": "docs/aegis/work/2026-06-23-specnav-plugin-suite/todo-checkpoint-draft.json",
+  "resumeInstruction": "Resume in /Users/wenliang_zeng/.config/aegis/worktrees/specnav-claude-plugin/specnav-plugin-suite. Continue Task 2 final resolver input validation patch.",
+  "knownPartialWork": [
+    "Task 2 spec review functionally passed but flagged specnav-stage.json plan scope; quality review found flag-value, invalid entry, unreadable file issues."
+  ],
+  "mustReadBeforeContinuing": [
+    "docs/aegis/work/2026-06-23-specnav-plugin-suite/10-intent.md",
+    "docs/aegis/work/2026-06-23-specnav-plugin-suite/20-checkpoint.md",
+    "docs/aegis/work/2026-06-23-specnav-plugin-suite/todo-checkpoint-draft.json"
+  ],
+  "unsafeToAssume": [
+    "Do not let CLI flags consume another flag as a value; all bad input paths must return JSON blockers."
+  ]
+}

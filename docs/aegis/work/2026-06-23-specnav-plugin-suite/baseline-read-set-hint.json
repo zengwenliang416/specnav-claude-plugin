@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "candidateDocs": [
+    "docs/superpowers/plans/2026-06-23-specnav-plugin-suite-implementation.md",
+    "docs/design.md"
+  ],
+  "whyRelevant": "The plan and design document are the current user-approved authority for plugin boundaries and lifecycle behavior.",
+  "missingAuthority": [
+    "Later task sections may require consulting docs/design.md and the superseded plan for detailed stage content before implementation."
+  ]
+}

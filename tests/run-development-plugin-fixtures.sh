@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-DEV="$ROOT/plugins/helm-development"
+DEV="$ROOT/plugins/specnav-development"
 PROJECT="$ROOT/tests/fixtures/simple-project"
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
@@ -42,14 +42,14 @@ write_requirements_project() {
   local change="add-dashboard"
 
   mkdir -p \
-    "$project/openspec/.helm" \
+    "$project/openspec/.specnav" \
     "$project/openspec/specs/ui-design" \
     "$project/openspec/specs/system-architecture" \
     "$project/openspec/specs/frontend-backend-data-flow" \
     "$project/openspec/specs/component-architecture" \
     "$project/openspec/changes/$change"
 
-  printf '%s\n' "$change" >"$project/openspec/.helm/active-change"
+  printf '%s\n' "$change" >"$project/openspec/.specnav/active-change"
 
   cat >"$project/openspec/specs/ui-design/design.md" <<'MD'
 ---
@@ -187,8 +187,8 @@ MD
     <title>Dashboard Prototype</title>
   </head>
   <body>
-    <main data-helm-screen="dashboard" data-helm-variant="balanced">
-      <section data-helm-component="dashboard-summary">Dashboard summary</section>
+    <main data-specnav-screen="dashboard" data-specnav-variant="balanced">
+      <section data-specnav-component="dashboard-summary">Dashboard summary</section>
     </main>
   </body>
 </html>
@@ -211,7 +211,7 @@ JSON
 
   cat >"$prototype/prototype-manifest.json" <<'JSON'
 {
-  "schema": "helm.prototype.manifest.v1",
+  "schema": "specnav.prototype.manifest.v1",
   "version": "1.0.0",
   "type": "ui-html",
   "entry": "artifact/index.html",
@@ -227,7 +227,7 @@ JSON
 
   cat >"$prototype/verifier-report.json" <<'JSON'
 {
-  "schema": "helm.prototype.verifier.v1",
+  "schema": "specnav.prototype.verifier.v1",
   "status": "green",
   "checked_entry": "artifact/index.html",
   "checks": ["entry exists", "desktop viewport reviewed", "mobile viewport reviewed"]
@@ -694,34 +694,34 @@ MD
 }
 
 test -f "$DEV/scripts/development-contract.js"
-test -f "$DEV/skills/helm-development-entry/SKILL.md"
-test -f "$DEV/skills/helm-scope-lock/SKILL.md"
-test -f "$DEV/skills/helm-vertical-slices/SKILL.md"
-test -f "$DEV/skills/helm-fix/SKILL.md"
-test -f "$DEV/skills/helm-debug/SKILL.md"
-test -f "$DEV/skills/helm-break-loop/SKILL.md"
-grep -q 'helm-development' "$DEV/commands/helm-implement.md"
-grep -Fq "runtime.requirePluginScript('helm-prototype', 'scripts/prototype-contract')" "$DEV/scripts/development-contract.js"
-! grep -Fq '../../helm-prototype/scripts/prototype-contract' "$DEV/scripts/development-contract.js"
-! grep -Fq '../../helm-core/scripts/helm-lib' "$DEV/scripts/development-contract.js"
-! grep -Fq 'plugins/helm-core/scripts/contracts' "$DEV/scripts/development-contract.js"
-! grep -Fq '../../helm-core/scripts/contracts' "$DEV/scripts/development-contract.js"
+test -f "$DEV/skills/specnav-development-entry/SKILL.md"
+test -f "$DEV/skills/specnav-scope-lock/SKILL.md"
+test -f "$DEV/skills/specnav-vertical-slices/SKILL.md"
+test -f "$DEV/skills/specnav-fix/SKILL.md"
+test -f "$DEV/skills/specnav-debug/SKILL.md"
+test -f "$DEV/skills/specnav-break-loop/SKILL.md"
+grep -q 'specnav-development' "$DEV/commands/specnav-implement.md"
+grep -Fq "runtime.requirePluginScript('specnav-prototype', 'scripts/prototype-contract')" "$DEV/scripts/development-contract.js"
+! grep -Fq '../../specnav-prototype/scripts/prototype-contract' "$DEV/scripts/development-contract.js"
+! grep -Fq '../../specnav-core/scripts/specnav-lib' "$DEV/scripts/development-contract.js"
+! grep -Fq 'plugins/specnav-core/scripts/contracts' "$DEV/scripts/development-contract.js"
+! grep -Fq '../../specnav-core/scripts/contracts' "$DEV/scripts/development-contract.js"
 
-grep -Fq 'node "$HELM_CORE_ROOT/scripts/plugin-suite.js" require' "$DEV/commands/helm-implement.md"
-grep -Fq -- '--marketplace-root "$HELM_MARKETPLACE_ROOT"' "$DEV/commands/helm-implement.md"
-grep -Fq -- '--plugin helm-core --plugin helm-requirements --plugin helm-prototype --plugin helm-development' "$DEV/commands/helm-implement.md"
-grep -Fq 'node "$HELM_DEVELOPMENT_ROOT/scripts/development-contract.js" --mode entry --json' "$DEV/commands/helm-implement.md"
-grep -Fq 'node "$HELM_DEVELOPMENT_ROOT/scripts/development-contract.js" --mode handoff --json' "$DEV/commands/helm-implement.md"
-grep -Fiq 'fallback' "$DEV/commands/helm-implement.md"
+grep -Fq 'node "$SPECNAV_CORE_ROOT/scripts/plugin-suite.js" require' "$DEV/commands/specnav-implement.md"
+grep -Fq -- '--marketplace-root "$SPECNAV_MARKETPLACE_ROOT"' "$DEV/commands/specnav-implement.md"
+grep -Fq -- '--plugin specnav-core --plugin specnav-requirements --plugin specnav-prototype --plugin specnav-development' "$DEV/commands/specnav-implement.md"
+grep -Fq 'node "$SPECNAV_DEVELOPMENT_ROOT/scripts/development-contract.js" --mode entry --json' "$DEV/commands/specnav-implement.md"
+grep -Fq 'node "$SPECNAV_DEVELOPMENT_ROOT/scripts/development-contract.js" --mode handoff --json' "$DEV/commands/specnav-implement.md"
+grep -Fiq 'fallback' "$DEV/commands/specnav-implement.md"
 
-for skill in helm-development-entry helm-scope-lock helm-vertical-slices; do
-  grep -Fq 'node "$HELM_DEVELOPMENT_ROOT/scripts/development-contract.js" --mode entry --json' "$DEV/skills/$skill/SKILL.md"
+for skill in specnav-development-entry specnav-scope-lock specnav-vertical-slices; do
+  grep -Fq 'node "$SPECNAV_DEVELOPMENT_ROOT/scripts/development-contract.js" --mode entry --json' "$DEV/skills/$skill/SKILL.md"
   grep -Fiq 'fallback' "$DEV/skills/$skill/SKILL.md"
 done
-grep -Fq 'node "$HELM_DEVELOPMENT_ROOT/scripts/development-contract.js" --mode handoff --json' "$DEV/skills/helm-vertical-slices/SKILL.md"
+grep -Fq 'node "$SPECNAV_DEVELOPMENT_ROOT/scripts/development-contract.js" --mode handoff --json' "$DEV/skills/specnav-vertical-slices/SKILL.md"
 
-jq -e '.contracts.development == "scripts/development-contract.js"' "$DEV/helm-stage.json" >/dev/null
-jq -e 'has("planned_contracts") | not' "$DEV/helm-stage.json" >/dev/null
+jq -e '.contracts.development == "scripts/development-contract.js"' "$DEV/specnav-stage.json" >/dev/null
+jq -e 'has("planned_contracts") | not' "$DEV/specnav-stage.json" >/dev/null
 
 run_json "$PROJECT" "$TMP_DIR/simple-project.json" 2
 jq -e '.ok == false' "$TMP_DIR/simple-project.json" >/dev/null
@@ -1064,4 +1064,4 @@ JSONL
 run_json "$VALIDATION_FAIL_PROJECT" "$TMP_DIR/validation-fail.json" 2
 assert_blocker "$TMP_DIR/validation-fail.json" 'validation-log:no-pass'
 
-echo "helm development plugin fixtures ok"
+echo "specnav development plugin fixtures ok"

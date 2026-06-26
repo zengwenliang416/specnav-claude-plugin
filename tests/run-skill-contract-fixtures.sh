@@ -11,7 +11,7 @@ const childProcess = require('child_process');
 const root = process.argv[2];
 const pluginsDir = path.join(root, 'plugins');
 const pluginNames = fs.readdirSync(pluginsDir)
-  .filter((name) => name.startsWith('helm-') && fs.statSync(path.join(pluginsDir, name)).isDirectory())
+  .filter((name) => name.startsWith('specnav-') && fs.statSync(path.join(pluginsDir, name)).isDirectory())
   .sort();
 
 const allowedFrontmatter = new Set(['name', 'description']);
@@ -36,8 +36,8 @@ const genericNames = new Set([
   'install-verify',
   'ops-readiness',
   'postmortem',
-  'using-helm',
-  'helm-router',
+  'using-specnav',
+  'specnav-router',
   'break-loop',
 ]);
 
@@ -148,21 +148,21 @@ function validateScriptReference(pluginName, file, scriptRef) {
   validateNodeScript(file, target, { requireHelp: scriptRef.includes('/skills/') });
 }
 
-function extractHelmRootScriptRefs(body) {
+function extractSpecNavRootScriptRefs(body) {
   const refs = [];
   const varToPlugin = {
-    HELM_CORE_ROOT: 'helm-core',
-    HELM_REQUIREMENTS_ROOT: 'helm-requirements',
-    HELM_PROTOTYPE_ROOT: 'helm-prototype',
-    HELM_DEVELOPMENT_ROOT: 'helm-development',
-    HELM_VERIFICATION_ROOT: 'helm-verification',
-    HELM_OPERATIONS_ROOT: 'helm-operations'
+    SPECNAV_CORE_ROOT: 'specnav-core',
+    SPECNAV_REQUIREMENTS_ROOT: 'specnav-requirements',
+    SPECNAV_PROTOTYPE_ROOT: 'specnav-prototype',
+    SPECNAV_DEVELOPMENT_ROOT: 'specnav-development',
+    SPECNAV_VERIFICATION_ROOT: 'specnav-verification',
+    SPECNAV_OPERATIONS_ROOT: 'specnav-operations'
   };
-  const pattern = /\$(HELM_[A-Z_]+_ROOT)\/[^"'\s`)]+\.js/g;
+  const pattern = /\$(SPECNAV_[A-Z_]+_ROOT)\/[^"'\s`)]+\.js/g;
   for (const match of body.matchAll(pattern)) {
     const targetPlugin = varToPlugin[match[1]];
     if (!targetPlugin) {
-      fail(`unknown Helm root variable: ${match[1]}`);
+      fail(`unknown SpecNav root variable: ${match[1]}`);
       continue;
     }
     refs.push({
@@ -205,7 +205,7 @@ function checkSkill(pluginName, file, declaredSkillNames) {
   const keys = Object.keys(data);
   for (const key of keys) {
     if (!allowedFrontmatter.has(key)) {
-      fail(`${rel}: frontmatter key not allowed in Helm strict subset: ${key}`);
+      fail(`${rel}: frontmatter key not allowed in SpecNav strict subset: ${key}`);
     }
   }
   for (const key of allowedFrontmatter) {
@@ -220,8 +220,8 @@ function checkSkill(pluginName, file, declaredSkillNames) {
   if (name !== folderName) {
     fail(`${rel}: name '${name}' must match folder '${folderName}'`);
   }
-  if (!/^helm-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(name)) {
-    fail(`${rel}: skill name must be helm-prefixed lowercase kebab-case`);
+  if (!/^specnav-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(name)) {
+    fail(`${rel}: skill name must be specnav-prefixed lowercase kebab-case`);
   }
   if (name.length > 64) {
     fail(`${rel}: skill name exceeds 64 characters`);
@@ -230,7 +230,7 @@ function checkSkill(pluginName, file, declaredSkillNames) {
     fail(`${rel}: generic or legacy public skill name remains: ${name}`);
   }
   if (!declaredSkillNames.has(name)) {
-    fail(`${rel}: skill is not declared in helm-stage.json`);
+    fail(`${rel}: skill is not declared in specnav-stage.json`);
   }
 
   if (!description.trim()) {
@@ -280,7 +280,7 @@ function checkSkill(pluginName, file, declaredSkillNames) {
     fail(`${rel}: skill must not rely on CLAUDE_PLUGIN_ROOT outside hooks`);
   }
 
-  const scriptRefs = extractHelmRootScriptRefs(body);
+  const scriptRefs = extractSpecNavRootScriptRefs(body);
   for (const { pluginName: targetPlugin, scriptRef } of scriptRefs) {
     validateScriptReference(targetPlugin, rel, scriptRef);
   }
@@ -288,9 +288,9 @@ function checkSkill(pluginName, file, declaredSkillNames) {
 
 for (const pluginName of pluginNames) {
   const pluginDir = path.join(pluginsDir, pluginName);
-  const stageFile = path.join(pluginDir, 'helm-stage.json');
+  const stageFile = path.join(pluginDir, 'specnav-stage.json');
   if (!fs.existsSync(stageFile)) {
-    fail(`${pluginName}: missing helm-stage.json`);
+    fail(`${pluginName}: missing specnav-stage.json`);
     continue;
   }
 
@@ -316,5 +316,5 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log('helm skill contract fixtures ok');
+console.log('specnav skill contract fixtures ok');
 NODE

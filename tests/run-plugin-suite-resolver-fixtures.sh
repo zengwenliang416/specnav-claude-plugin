@@ -10,7 +10,7 @@ run_failure() {
   shift
 
   set +e
-  node "$ROOT/plugins/helm-core/scripts/plugin-suite.js" "$@" --json >"$output"
+  node "$ROOT/plugins/specnav-core/scripts/plugin-suite.js" "$@" --json >"$output"
   local exit_code=$?
   set -e
 
@@ -23,7 +23,7 @@ run_runtime_failure() {
   shift
 
   set +e
-  node "$ROOT/plugins/helm-core/scripts/resolve-runtime.js" "$@" --json >"$output"
+  node "$ROOT/plugins/specnav-core/scripts/resolve-runtime.js" "$@" --json >"$output"
   local exit_code=$?
   set -e
 
@@ -31,27 +31,27 @@ run_runtime_failure() {
   jq -e '.ok == false' "$output" >/dev/null
 }
 
-node "$ROOT/plugins/helm-core/scripts/plugin-suite.js" list --marketplace-root "$ROOT" --json >/tmp/helm-suite-list.json
-jq -e '.ok == true' /tmp/helm-suite-list.json >/dev/null
-jq -e '.plugins | length == 6' /tmp/helm-suite-list.json >/dev/null
-jq -e '.plugins[] | select(.name == "helm-core" and .stage == "core")' /tmp/helm-suite-list.json >/dev/null
-jq -e '.plugins[] | select(.name == "helm-verification" and .stage == "verification")' /tmp/helm-suite-list.json >/dev/null
+node "$ROOT/plugins/specnav-core/scripts/plugin-suite.js" list --marketplace-root "$ROOT" --json >/tmp/specnav-suite-list.json
+jq -e '.ok == true' /tmp/specnav-suite-list.json >/dev/null
+jq -e '.plugins | length == 6' /tmp/specnav-suite-list.json >/dev/null
+jq -e '.plugins[] | select(.name == "specnav-core" and .stage == "core")' /tmp/specnav-suite-list.json >/dev/null
+jq -e '.plugins[] | select(.name == "specnav-verification" and .stage == "verification")' /tmp/specnav-suite-list.json >/dev/null
 
-node "$ROOT/plugins/helm-core/scripts/plugin-suite.js" resolve --marketplace-root "$ROOT" --plugin helm-requirements --json >/tmp/helm-suite-requirements.json
-jq -e '.ok == true' /tmp/helm-suite-requirements.json >/dev/null
-jq -e '.plugin.name == "helm-requirements"' /tmp/helm-suite-requirements.json >/dev/null
-jq -e '.plugin.stage == "requirements"' /tmp/helm-suite-requirements.json >/dev/null
+node "$ROOT/plugins/specnav-core/scripts/plugin-suite.js" resolve --marketplace-root "$ROOT" --plugin specnav-requirements --json >/tmp/specnav-suite-requirements.json
+jq -e '.ok == true' /tmp/specnav-suite-requirements.json >/dev/null
+jq -e '.plugin.name == "specnav-requirements"' /tmp/specnav-suite-requirements.json >/dev/null
+jq -e '.plugin.stage == "requirements"' /tmp/specnav-suite-requirements.json >/dev/null
 
-node "$ROOT/plugins/helm-core/scripts/plugin-suite.js" require --marketplace-root "$ROOT" --plugin helm-core --plugin helm-requirements --json >/tmp/helm-suite-require.json
-jq -e '.ok == true' /tmp/helm-suite-require.json >/dev/null
+node "$ROOT/plugins/specnav-core/scripts/plugin-suite.js" require --marketplace-root "$ROOT" --plugin specnav-core --plugin specnav-requirements --json >/tmp/specnav-suite-require.json
+jq -e '.ok == true' /tmp/specnav-suite-require.json >/dev/null
 
 set +e
-node "$ROOT/plugins/helm-core/scripts/plugin-suite.js" require --marketplace-root "$ROOT" --plugin helm-missing --json >/tmp/helm-suite-missing.json
+node "$ROOT/plugins/specnav-core/scripts/plugin-suite.js" require --marketplace-root "$ROOT" --plugin specnav-missing --json >/tmp/specnav-suite-missing.json
 STATUS=$?
 set -e
 [[ "$STATUS" == "2" ]]
-jq -e '.ok == false' /tmp/helm-suite-missing.json >/dev/null
-jq -e '.blockers[] | select(. == "missing-plugin:helm-missing")' /tmp/helm-suite-missing.json >/dev/null
+jq -e '.ok == false' /tmp/specnav-suite-missing.json >/dev/null
+jq -e '.blockers[] | select(. == "missing-plugin:specnav-missing")' /tmp/specnav-suite-missing.json >/dev/null
 
 run_failure "$tmp_dir/unknown-command.json" inspect --marketplace-root "$ROOT"
 jq -e '.blockers[] | select(. == "unknown-command:inspect")' "$tmp_dir/unknown-command.json" >/dev/null
@@ -74,12 +74,12 @@ mkdir -p "$runtime_cache"
 run_runtime_failure "$tmp_dir/resolve-runtime-invalid-plugin.json" resolve --marketplace-root "$runtime_cache" --plugin "bad/name"
 jq -e '.blockers[] | select(. == "invalid-plugin-name:bad/name")' "$tmp_dir/resolve-runtime-invalid-plugin.json" >/dev/null
 
-run_runtime_failure "$tmp_dir/resolve-runtime-missing-plugin.json" resolve --marketplace-root "$runtime_cache" --plugin helm-missing
-jq -e '.blockers[] | select(. == "missing-installed-plugin:helm-missing")' "$tmp_dir/resolve-runtime-missing-plugin.json" >/dev/null
+run_runtime_failure "$tmp_dir/resolve-runtime-missing-plugin.json" resolve --marketplace-root "$runtime_cache" --plugin specnav-missing
+jq -e '.blockers[] | select(. == "missing-installed-plugin:specnav-missing")' "$tmp_dir/resolve-runtime-missing-plugin.json" >/dev/null
 
-mkdir -p "$runtime_cache/helm-empty/9.9.9"
-run_runtime_failure "$tmp_dir/resolve-runtime-missing-active.json" resolve --marketplace-root "$runtime_cache" --plugin helm-empty
-jq -e '.blockers[] | select(. == "missing-active-installed-plugin:helm-empty")' "$tmp_dir/resolve-runtime-missing-active.json" >/dev/null
+mkdir -p "$runtime_cache/specnav-empty/9.9.9"
+run_runtime_failure "$tmp_dir/resolve-runtime-missing-active.json" resolve --marketplace-root "$runtime_cache" --plugin specnav-empty
+jq -e '.blockers[] | select(. == "missing-active-installed-plugin:specnav-empty")' "$tmp_dir/resolve-runtime-missing-active.json" >/dev/null
 
 run_failure "$tmp_dir/list-missing-marketplace-root-value.json" list --marketplace-root
 jq -e '.blockers[] | select(. == "missing-argument:--marketplace-root")' "$tmp_dir/list-missing-marketplace-root-value.json" >/dev/null
@@ -87,7 +87,7 @@ jq -e '.blockers[] | select(. == "missing-argument:--marketplace-root")' "$tmp_d
 run_failure "$tmp_dir/resolve-flag-looking-plugin-value.json" resolve --plugin --marketplace-root "$ROOT"
 jq -e '.blockers[] | select(. == "missing-argument:--plugin")' "$tmp_dir/resolve-flag-looking-plugin-value.json" >/dev/null
 
-run_failure "$tmp_dir/resolve-duplicate-plugin.json" resolve --marketplace-root "$ROOT" --plugin helm-core --plugin helm-requirements
+run_failure "$tmp_dir/resolve-duplicate-plugin.json" resolve --marketplace-root "$ROOT" --plugin specnav-core --plugin specnav-requirements
 jq -e '.blockers[] | select(. == "duplicate-argument:--plugin")' "$tmp_dir/resolve-duplicate-plugin.json" >/dev/null
 
 run_failure "$tmp_dir/list-duplicate-marketplace-root.json" list --marketplace-root "$ROOT" --marketplace-root "$ROOT"
@@ -184,7 +184,7 @@ cat >"$outside_plugin/.claude-plugin/plugin.json" <<'JSON'
   "version": "0.0.0"
 }
 JSON
-cat >"$outside_plugin/helm-stage.json" <<'JSON'
+cat >"$outside_plugin/specnav-stage.json" <<'JSON'
 {
   "plugin": "escape-plugin",
   "stage": "escape"
@@ -217,7 +217,7 @@ cat >"$malformed_plugin_stage/.claude-plugin/marketplace.json" <<'JSON'
 }
 JSON
 printf '{ "name": ' >"$malformed_plugin_stage/plugins/bad-plugin-json/.claude-plugin/plugin.json"
-cat >"$malformed_plugin_stage/plugins/bad-plugin-json/helm-stage.json" <<'JSON'
+cat >"$malformed_plugin_stage/plugins/bad-plugin-json/specnav-stage.json" <<'JSON'
 {
   "plugin": "bad-plugin-json",
   "stage": "broken"
@@ -229,7 +229,7 @@ cat >"$malformed_plugin_stage/plugins/bad-stage-manifest/.claude-plugin/plugin.j
   "version": "0.0.0"
 }
 JSON
-printf '{ "plugin": ' >"$malformed_plugin_stage/plugins/bad-stage-manifest/helm-stage.json"
+printf '{ "plugin": ' >"$malformed_plugin_stage/plugins/bad-stage-manifest/specnav-stage.json"
 run_failure "$tmp_dir/malformed-plugin-stage.json" list --marketplace-root "$malformed_plugin_stage"
 jq -e '.blockers[] | select(. == "malformed-plugin-json:bad-plugin-json")' "$tmp_dir/malformed-plugin-stage.json" >/dev/null
 jq -e '.blockers[] | select(. == "malformed-stage-manifest:bad-stage-manifest")' "$tmp_dir/malformed-plugin-stage.json" >/dev/null
@@ -321,7 +321,7 @@ cat >"$invalid_plugin_stage/plugins/bad-plugin-shape/.claude-plugin/plugin.json"
   "version": "0.0.0"
 }
 JSON
-cat >"$invalid_plugin_stage/plugins/bad-plugin-shape/helm-stage.json" <<'JSON'
+cat >"$invalid_plugin_stage/plugins/bad-plugin-shape/specnav-stage.json" <<'JSON'
 {
   "plugin": "bad-plugin-shape",
   "stage": "broken"
@@ -332,7 +332,7 @@ cat >"$invalid_plugin_stage/plugins/bad-plugin-missing-version/.claude-plugin/pl
   "name": "bad-plugin-missing-version"
 }
 JSON
-cat >"$invalid_plugin_stage/plugins/bad-plugin-missing-version/helm-stage.json" <<'JSON'
+cat >"$invalid_plugin_stage/plugins/bad-plugin-missing-version/specnav-stage.json" <<'JSON'
 {
   "plugin": "bad-plugin-missing-version",
   "stage": "broken"
@@ -344,7 +344,7 @@ cat >"$invalid_plugin_stage/plugins/bad-plugin-blank-version/.claude-plugin/plug
   "version": "   "
 }
 JSON
-cat >"$invalid_plugin_stage/plugins/bad-plugin-blank-version/helm-stage.json" <<'JSON'
+cat >"$invalid_plugin_stage/plugins/bad-plugin-blank-version/specnav-stage.json" <<'JSON'
 {
   "plugin": "bad-plugin-blank-version",
   "stage": "broken"
@@ -356,7 +356,7 @@ cat >"$invalid_plugin_stage/plugins/bad-plugin-name-mismatch/.claude-plugin/plug
   "version": "0.0.0"
 }
 JSON
-cat >"$invalid_plugin_stage/plugins/bad-plugin-name-mismatch/helm-stage.json" <<'JSON'
+cat >"$invalid_plugin_stage/plugins/bad-plugin-name-mismatch/specnav-stage.json" <<'JSON'
 {
   "plugin": "bad-plugin-name-mismatch",
   "stage": "broken"
@@ -368,7 +368,7 @@ cat >"$invalid_plugin_stage/plugins/bad-stage-missing-plugin/.claude-plugin/plug
   "version": "0.0.0"
 }
 JSON
-cat >"$invalid_plugin_stage/plugins/bad-stage-missing-plugin/helm-stage.json" <<'JSON'
+cat >"$invalid_plugin_stage/plugins/bad-stage-missing-plugin/specnav-stage.json" <<'JSON'
 {
   "stage": "requirements"
 }
@@ -379,7 +379,7 @@ cat >"$invalid_plugin_stage/plugins/bad-stage-plugin-mismatch/.claude-plugin/plu
   "version": "0.0.0"
 }
 JSON
-cat >"$invalid_plugin_stage/plugins/bad-stage-plugin-mismatch/helm-stage.json" <<'JSON'
+cat >"$invalid_plugin_stage/plugins/bad-stage-plugin-mismatch/specnav-stage.json" <<'JSON'
 {
   "plugin": "not-bad-stage-plugin-mismatch",
   "stage": "broken"
@@ -391,7 +391,7 @@ cat >"$invalid_plugin_stage/plugins/bad-stage-plugin-field/.claude-plugin/plugin
   "version": "0.0.0"
 }
 JSON
-cat >"$invalid_plugin_stage/plugins/bad-stage-plugin-field/helm-stage.json" <<'JSON'
+cat >"$invalid_plugin_stage/plugins/bad-stage-plugin-field/specnav-stage.json" <<'JSON'
 {
   "plugin": 123,
   "stage": "broken"
@@ -403,7 +403,7 @@ cat >"$invalid_plugin_stage/plugins/bad-stage-required-field/.claude-plugin/plug
   "version": "0.0.0"
 }
 JSON
-cat >"$invalid_plugin_stage/plugins/bad-stage-required-field/helm-stage.json" <<'JSON'
+cat >"$invalid_plugin_stage/plugins/bad-stage-required-field/specnav-stage.json" <<'JSON'
 {
   "plugin": "bad-stage-required-field",
   "stage": "broken",
@@ -416,7 +416,7 @@ cat >"$invalid_plugin_stage/plugins/bad-stage-commands-field/.claude-plugin/plug
   "version": "0.0.0"
 }
 JSON
-cat >"$invalid_plugin_stage/plugins/bad-stage-commands-field/helm-stage.json" <<'JSON'
+cat >"$invalid_plugin_stage/plugins/bad-stage-commands-field/specnav-stage.json" <<'JSON'
 {
   "plugin": "bad-stage-commands-field",
   "stage": "broken",
@@ -434,7 +434,7 @@ cat >"$invalid_plugin_stage/plugins/bad-stage-skills-field/.claude-plugin/plugin
   "version": "0.0.0"
 }
 JSON
-cat >"$invalid_plugin_stage/plugins/bad-stage-skills-field/helm-stage.json" <<'JSON'
+cat >"$invalid_plugin_stage/plugins/bad-stage-skills-field/specnav-stage.json" <<'JSON'
 {
   "plugin": "bad-stage-skills-field",
   "stage": "broken",
@@ -452,7 +452,7 @@ cat >"$invalid_plugin_stage/plugins/bad-stage-contracts-field/.claude-plugin/plu
   "version": "0.0.0"
 }
 JSON
-cat >"$invalid_plugin_stage/plugins/bad-stage-contracts-field/helm-stage.json" <<'JSON'
+cat >"$invalid_plugin_stage/plugins/bad-stage-contracts-field/specnav-stage.json" <<'JSON'
 {
   "plugin": "bad-stage-contracts-field",
   "stage": "broken",
@@ -469,7 +469,7 @@ cat >"$invalid_plugin_stage/plugins/bad-stage-contract-empty-key/.claude-plugin/
   "version": "0.0.0"
 }
 JSON
-cat >"$invalid_plugin_stage/plugins/bad-stage-contract-empty-key/helm-stage.json" <<'JSON'
+cat >"$invalid_plugin_stage/plugins/bad-stage-contract-empty-key/specnav-stage.json" <<'JSON'
 {
   "plugin": "bad-stage-contract-empty-key",
   "stage": "broken",
@@ -520,7 +520,7 @@ cat >"$good_bad_marketplace/plugins/good/.claude-plugin/plugin.json" <<'JSON'
   "version": "0.0.0"
 }
 JSON
-cat >"$good_bad_marketplace/plugins/good/helm-stage.json" <<'JSON'
+cat >"$good_bad_marketplace/plugins/good/specnav-stage.json" <<'JSON'
 {
   "plugin": "good",
   "stage": "ok"
@@ -531,13 +531,13 @@ cat >"$good_bad_marketplace/plugins/bad/.claude-plugin/plugin.json" <<'JSON'
   "version": "0.0.0"
 }
 JSON
-cat >"$good_bad_marketplace/plugins/bad/helm-stage.json" <<'JSON'
+cat >"$good_bad_marketplace/plugins/bad/specnav-stage.json" <<'JSON'
 {
   "plugin": "bad",
   "stage": "broken"
 }
 JSON
-node "$ROOT/plugins/helm-core/scripts/plugin-suite.js" require --marketplace-root "$good_bad_marketplace" --plugin good --json >"$tmp_dir/good-bad-require-good.json"
+node "$ROOT/plugins/specnav-core/scripts/plugin-suite.js" require --marketplace-root "$good_bad_marketplace" --plugin good --json >"$tmp_dir/good-bad-require-good.json"
 jq -e '.ok == true' "$tmp_dir/good-bad-require-good.json" >/dev/null
 jq -e '.blockers | length == 0' "$tmp_dir/good-bad-require-good.json" >/dev/null
 jq -e '.plugins | length == 1' "$tmp_dir/good-bad-require-good.json" >/dev/null
@@ -550,7 +550,7 @@ mkdir -p \
   "$unreadable_plugin_stage/.claude-plugin" \
   "$unreadable_plugin_stage/plugins/unreadable-plugin-json/.claude-plugin/plugin.json" \
   "$unreadable_plugin_stage/plugins/unreadable-stage-manifest/.claude-plugin" \
-  "$unreadable_plugin_stage/plugins/unreadable-stage-manifest/helm-stage.json"
+  "$unreadable_plugin_stage/plugins/unreadable-stage-manifest/specnav-stage.json"
 cat >"$unreadable_plugin_stage/.claude-plugin/marketplace.json" <<'JSON'
 {
   "name": "unreadable-plugin-stage-fixture",
@@ -568,7 +568,7 @@ cat >"$unreadable_plugin_stage/.claude-plugin/marketplace.json" <<'JSON'
   ]
 }
 JSON
-cat >"$unreadable_plugin_stage/plugins/unreadable-plugin-json/helm-stage.json" <<'JSON'
+cat >"$unreadable_plugin_stage/plugins/unreadable-plugin-json/specnav-stage.json" <<'JSON'
 {
   "plugin": "unreadable-plugin-json",
   "stage": "broken"
@@ -587,4 +587,4 @@ jq -e '.blockers[] | select(. == "unreadable-stage-manifest:unreadable-stage-man
 run_failure "$tmp_dir/require-broken-deduped.json" require --marketplace-root "$malformed_plugin_stage" --plugin bad-plugin-json
 jq -e '[.blockers[] | select(. == "malformed-plugin-json:bad-plugin-json")] | length == 1' "$tmp_dir/require-broken-deduped.json" >/dev/null
 
-echo "helm plugin suite resolver fixtures ok"
+echo "specnav plugin suite resolver fixtures ok"

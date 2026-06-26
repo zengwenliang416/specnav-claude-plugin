@@ -1,15 +1,15 @@
 # Runtime state
-openspec/.helm/affordances.json
-openspec/.helm/events.jsonl
-openspec/.helm/overrides/
+openspec/.specnav/affordances.json
+openspec/.specnav/events.jsonl
+openspec/.specnav/overrides/
 openspec/changes/*/verify-report.json
 openspec/changes/*/verify-report.md
 openspec/changes/*/verify-report.stale
 
 # Test-generated state
-tests/fixtures/**/openspec/.helm/affordances.json
-tests/fixtures/**/openspec/.helm/events.jsonl
-tests/fixtures/**/openspec/.helm/overrides/
+tests/fixtures/**/openspec/.specnav/affordances.json
+tests/fixtures/**/openspec/.specnav/events.jsonl
+tests/fixtures/**/openspec/.specnav/overrides/
 tests/fixtures/**/openspec/changes/*/verify-report.json
 tests/fixtures/**/openspec/changes/*/verify-report.md
 tests/fixtures/**/openspec/changes/*/verify-report.stale

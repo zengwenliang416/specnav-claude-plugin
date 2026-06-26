@@ -8,16 +8,16 @@ if ! command -v claude >/dev/null 2>&1; then
   exit 2
 fi
 
-claude plugin validate "$ROOT" >/tmp/helm-validate-marketplace.out
+claude plugin validate "$ROOT" >/tmp/specnav-validate-marketplace.out
 
 for plugin in \
-  helm-core \
-  helm-requirements \
-  helm-prototype \
-  helm-development \
-  helm-verification \
-  helm-operations; do
-  claude plugin validate "$ROOT/plugins/$plugin" >"/tmp/helm-validate-$plugin.out"
+  specnav-core \
+  specnav-requirements \
+  specnav-prototype \
+  specnav-development \
+  specnav-verification \
+  specnav-operations; do
+  claude plugin validate "$ROOT/plugins/$plugin" >"/tmp/specnav-validate-$plugin.out"
 done
 
-echo "helm plugin validate fixtures ok"
+echo "specnav plugin validate fixtures ok"

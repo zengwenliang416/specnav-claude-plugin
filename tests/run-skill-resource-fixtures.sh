@@ -9,8 +9,8 @@ PROJECT="$TMP/project"
 CHANGE="demo-change"
 OUT="$TMP/out.json"
 ERR="$TMP/err.txt"
-mkdir -p "$PROJECT/openspec/.helm" "$PROJECT/openspec/changes/$CHANGE"
-printf '%s\n' "$CHANGE" > "$PROJECT/openspec/.helm/active-change"
+mkdir -p "$PROJECT/openspec/.specnav" "$PROJECT/openspec/changes/$CHANGE"
+printf '%s\n' "$CHANGE" > "$PROJECT/openspec/.specnav/active-change"
 
 run_json() {
   node "$1" --project "$PROJECT" --change "$CHANGE" --json "${@:2}" >"$OUT"
@@ -39,7 +39,7 @@ assert_missing_active_change_blocks() {
   local script="$1"
   local no_active="$TMP/no-active-change"
   mkdir -p "$no_active/openspec/changes/$CHANGE"
-  if env -u HELM_CHANGE node "$script" --project "$no_active" --json >"$OUT" 2>"$ERR"; then
+  if env -u SPECNAV_CHANGE node "$script" --project "$no_active" --json >"$OUT" 2>"$ERR"; then
     echo "expected missing active change to block: $script" >&2
     exit 1
   fi
@@ -56,15 +56,15 @@ assert_blocks_with() {
   node -e 'const fs=require("fs"); const data=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if (!data.blockers || !data.blockers.includes(process.argv[2])) process.exit(1);' "$OUT" "$blocker"
 }
 
-FOUNDATION="$ROOT/plugins/helm-requirements/skills/helm-foundation-specs/scripts/create-foundation-specs.js"
-REQUIREMENTS="$ROOT/plugins/helm-requirements/skills/helm-requirements/scripts/create-requirements-artifacts.js"
-PROTOTYPE="$ROOT/plugins/helm-prototype/skills/helm-prototype/scripts/create-prototype.js"
-DEV_ENTRY="$ROOT/plugins/helm-development/skills/helm-development-entry/scripts/create-development-entry.js"
-SCOPE="$ROOT/plugins/helm-development/skills/helm-scope-lock/scripts/create-scope-lock.js"
-SLICE="$ROOT/plugins/helm-development/skills/helm-vertical-slices/scripts/create-vertical-slice.js"
-VERIFY="$ROOT/plugins/helm-verification/skills/helm-verify-plan/scripts/create-verify-plan.js"
-READINESS="$ROOT/plugins/helm-operations/skills/helm-ops-readiness/scripts/create-readiness.js"
-RELEASE="$ROOT/plugins/helm-operations/skills/helm-release-plan/scripts/create-release-plan.js"
+FOUNDATION="$ROOT/plugins/specnav-requirements/skills/specnav-foundation-specs/scripts/create-foundation-specs.js"
+REQUIREMENTS="$ROOT/plugins/specnav-requirements/skills/specnav-requirements/scripts/create-requirements-artifacts.js"
+PROTOTYPE="$ROOT/plugins/specnav-prototype/skills/specnav-prototype/scripts/create-prototype.js"
+DEV_ENTRY="$ROOT/plugins/specnav-development/skills/specnav-development-entry/scripts/create-development-entry.js"
+SCOPE="$ROOT/plugins/specnav-development/skills/specnav-scope-lock/scripts/create-scope-lock.js"
+SLICE="$ROOT/plugins/specnav-development/skills/specnav-vertical-slices/scripts/create-vertical-slice.js"
+VERIFY="$ROOT/plugins/specnav-verification/skills/specnav-verify-plan/scripts/create-verify-plan.js"
+READINESS="$ROOT/plugins/specnav-operations/skills/specnav-ops-readiness/scripts/create-readiness.js"
+RELEASE="$ROOT/plugins/specnav-operations/skills/specnav-release-plan/scripts/create-release-plan.js"
 
 assert_missing_openspec_blocks "$FOUNDATION"
 assert_missing_active_change_blocks "$REQUIREMENTS"
@@ -74,7 +74,7 @@ assert_file "openspec/specs/ui-design/design.md"
 assert_file "openspec/specs/system-architecture/design.md"
 assert_file "openspec/specs/frontend-backend-data-flow/design.md"
 assert_file "openspec/specs/component-architecture/design.md"
-PROJECT_DIR="$PROJECT" node "$ROOT/plugins/helm-requirements/scripts/foundation-specs.js" --json >"$OUT" || true
+PROJECT_DIR="$PROJECT" node "$ROOT/plugins/specnav-requirements/scripts/foundation-specs.js" --json >"$OUT" || true
 node -e 'const fs=require("fs"); const data=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if (data.ok || !data.blockers.some((item) => item.startsWith("unresolved-foundation-spec-decisions:"))) process.exit(1);' "$OUT"
 
 run_json "$REQUIREMENTS"
@@ -127,4 +127,4 @@ assert_blocks_with invalid-release-target node "$READINESS"
 assert_file "openspec/changes/$CHANGE/operations/readiness.md"
 assert_file "openspec/changes/$CHANGE/operations/readiness.json"
 
-echo "helm skill resource fixtures ok"
+echo "specnav skill resource fixtures ok"
