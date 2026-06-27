@@ -596,8 +596,16 @@ jq -e '.ok == true' "$TMP_DIR/valid-verify.json" >/dev/null
 jq -e '.artifacts[] | select(.name == "facticity/report.json" and .ok == true)' "$TMP_DIR/valid-verify.json" >/dev/null
 run_json "$PROJECT" aggregate "$TMP_DIR/aggregate-green.json" 0
 jq -e '.verdict == "green"' "$TMP_DIR/aggregate-green.json" >/dev/null
+jq -e '.html_report == "verify/aggregate-report.html"' "$TMP_DIR/aggregate-green.json" >/dev/null
+jq -e '.review_style == "claude-warm-editorial"' "$TMP_DIR/aggregate-green.json" >/dev/null
 jq -e '.status == "green"' "$PROJECT/openspec/changes/add-dashboard/verify-report.json" >/dev/null
+jq -e '.html_report == "verify-report.html"' "$PROJECT/openspec/changes/add-dashboard/verify-report.json" >/dev/null
 test -f "$PROJECT/openspec/changes/add-dashboard/verify/aggregate-report.json"
+test -f "$PROJECT/openspec/changes/add-dashboard/verify/aggregate-report.html"
+test -f "$PROJECT/openspec/changes/add-dashboard/verify-report.html"
+grep -Fq '#faf9f5' "$PROJECT/openspec/changes/add-dashboard/verify-report.html"
+grep -Fq '#cc785c' "$PROJECT/openspec/changes/add-dashboard/verify-report.html"
+grep -Fq 'Six-domain verification' "$PROJECT/openspec/changes/add-dashboard/verify-report.html"
 
 # Stale marker unresolved: a production edit after green verification (domain reports predate the marker)
 # must block validation and force the aggregate red without re-running domains.

@@ -86,7 +86,7 @@ The detailed walkthrough is in [docs/user-journey.md](docs/user-journey.md).
 | Requirements | `/specnav-requirements` | foundation specs, active change | `requirements.md`, `acceptance.md`, `spec-map.json`, `component-impact-map.json` | missing/invalid foundation specs, unresolved gaps | `/specnav-prototype` |
 | Prototype | `/specnav-prototype` | requirements artifacts, design context | `prototype/` artifacts, verifier report, handoff | missing context, verifier red, no approval | `/specnav-implement` |
 | Development | `/specnav-implement` | requirements, prototype handoff, scope | `scope.json`, task artifacts, production edits | invalid scope, upstream drift, review failure | `/specnav-verify` |
-| Verification | `/specnav-verify` | development handoff, specs, tests | six-domain `verify/` evidence and aggregate report | stale report, red domain, missing evidence | `/specnav-release` |
+| Verification | `/specnav-verify` | development handoff, specs, tests | six-domain `verify/` evidence, aggregate report, stakeholder HTML report | stale report, red domain, missing evidence | `/specnav-release` |
 | Operations | `/specnav-release`, `/specnav-archive` | green verification, git/docs/release target | `operations/` readiness and release artifacts | verify not green, target ambiguous, ops artifact missing | archive/writeback |
 
 For the complete command and skill matrix, see
@@ -157,6 +157,13 @@ bash tests/run-smoke.sh
 ```
 
 Stage-specific fixtures live in `tests/run-*-plugin-fixtures.sh`.
+
+Verification aggregate output includes both machine and review artifacts:
+`verify/aggregate-report.json`, `verify/aggregate-report.md`,
+`verify/aggregate-report.html`, plus change-level `verify-report.json`,
+`verify-report.md`, and `verify-report.html`. The HTML report uses the warm
+Claude editorial style so it can be shared for stakeholder review without
+opening JSON.
 
 ## Design Notes
 

@@ -96,12 +96,24 @@ done
 
 for command_file in "$ROOT"/plugins/*/commands/*.md; do
   grep -q 'specnav_plugin_root()' "$command_file"
+  if grep -qF 'node - "$1"' "$command_file"; then
+    echo "command resolver must not use slash-command positional $1: $command_file" >&2
+    exit 1
+  fi
+  if grep -qF 'process.argv[2]' "$command_file"; then
+    echo "command resolver must use SPECNAV_PLUGIN_NAME, not argv[2]: $command_file" >&2
+    exit 1
+  fi
   assert_no_bash_placeholders "$command_file"
   if grep -qF '$CLAUDE_PLUGIN_ROOT' "$command_file"; then
     echo "command must not rely on CLAUDE_PLUGIN_ROOT: $command_file" >&2
     exit 1
   fi
 done
+
+grep -Fq '$SPECNAV_REQUIREMENTS_ROOT/skills/specnav-requirements/SKILL.md' "$ROOT/plugins/specnav-requirements/commands/specnav-requirements.md"
+grep -Fq '$SPECNAV_PROTOTYPE_ROOT/skills/specnav-prototype/SKILL.md' "$ROOT/plugins/specnav-prototype/commands/specnav-prototype.md"
+grep -Fq '$SPECNAV_VERIFICATION_ROOT/skills/specnav-verify-plan/SKILL.md' "$ROOT/plugins/specnav-verification/commands/specnav-verify.md"
 
 assert_first_before \
   "$ROOT/plugins/specnav-operations/commands/specnav-archive.md" \

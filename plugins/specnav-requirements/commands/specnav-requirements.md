@@ -13,11 +13,12 @@ Run this suite check:
 set -euo pipefail
 
 specnav_plugin_root() {
-  node - "$1" <<'NODE'
+  local plugin_name="${SPECNAV_PLUGIN_NAME:?missing SPECNAV_PLUGIN_NAME}"
+  SPECNAV_PLUGIN_NAME="$plugin_name" node - <<'NODE'
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const plugin = process.argv[2];
+const plugin = process.env.SPECNAV_PLUGIN_NAME;
 const base = path.join(os.homedir(), '.claude', 'plugins', 'cache', 'specnav-marketplace', plugin);
 function block(reason) {
   console.error(`${reason}:${plugin}`);
@@ -37,10 +38,22 @@ process.stdout.write(candidates[0].root);
 NODE
 }
 
-SPECNAV_CORE_ROOT="$(specnav_plugin_root specnav-core)"
-SPECNAV_REQUIREMENTS_ROOT="$(specnav_plugin_root specnav-requirements)"
+SPECNAV_PLUGIN_NAME=specnav-core
+SPECNAV_CORE_ROOT="$(specnav_plugin_root)"
+SPECNAV_PLUGIN_NAME=specnav-requirements
+SPECNAV_REQUIREMENTS_ROOT="$(specnav_plugin_root)"
 SPECNAV_MARKETPLACE_ROOT="$(dirname "$(dirname "$SPECNAV_REQUIREMENTS_ROOT")")"
 node "$SPECNAV_CORE_ROOT/scripts/plugin-suite.js" require --marketplace-root "$SPECNAV_MARKETPLACE_ROOT" --plugin specnav-core --plugin specnav-requirements --json
 ```
 
-If the suite check exits non-zero, report the emitted blockers and stop. If the suite check passes, load the `specnav-requirements` skill.
+If the suite check exits non-zero, report the emitted blockers and stop.
+
+If the suite check passes, read and follow exactly:
+
+```text
+$SPECNAV_REQUIREMENTS_ROOT/skills/specnav-requirements/SKILL.md
+```
+
+Do not infer a `.claude-plugin/skills/...` path, do not load a similarly named
+skill from another plugin, and stop with `missing-skill:specnav-requirements` if
+that file is absent.

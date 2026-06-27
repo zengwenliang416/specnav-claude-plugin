@@ -11,11 +11,12 @@ Run:
 set -euo pipefail
 
 specnav_plugin_root() {
-  node - "$1" <<'NODE'
+  local plugin_name="${SPECNAV_PLUGIN_NAME:?missing SPECNAV_PLUGIN_NAME}"
+  SPECNAV_PLUGIN_NAME="$plugin_name" node - <<'NODE'
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const plugin = process.argv[2];
+const plugin = process.env.SPECNAV_PLUGIN_NAME;
 const base = path.join(os.homedir(), '.claude', 'plugins', 'cache', 'specnav-marketplace', plugin);
 function block(reason) {
   console.error(`${reason}:${plugin}`);
@@ -35,9 +36,12 @@ process.stdout.write(candidates[0].root);
 NODE
 }
 
-SPECNAV_CORE_ROOT="$(specnav_plugin_root specnav-core)"
-SPECNAV_DEVELOPMENT_ROOT="$(specnav_plugin_root specnav-development)"
-SPECNAV_VERIFICATION_ROOT="$(specnav_plugin_root specnav-verification)"
+SPECNAV_PLUGIN_NAME=specnav-core
+SPECNAV_CORE_ROOT="$(specnav_plugin_root)"
+SPECNAV_PLUGIN_NAME=specnav-development
+SPECNAV_DEVELOPMENT_ROOT="$(specnav_plugin_root)"
+SPECNAV_PLUGIN_NAME=specnav-verification
+SPECNAV_VERIFICATION_ROOT="$(specnav_plugin_root)"
 SPECNAV_MARKETPLACE_ROOT="$(dirname "$(dirname "$SPECNAV_VERIFICATION_ROOT")")"
 node "$SPECNAV_CORE_ROOT/scripts/plugin-suite.js" require --marketplace-root "$SPECNAV_MARKETPLACE_ROOT" --plugin specnav-core --plugin specnav-development --plugin specnav-verification --json
 ```
@@ -50,7 +54,19 @@ node "$SPECNAV_DEVELOPMENT_ROOT/scripts/development-contract.js" --mode handoff 
 
 If development is blocked, report the exact blockers and stop. Do not fabricate verification evidence.
 
-If development passes, load `specnav-verify-plan`, then run all six domain skills: `specnav-verify-facticity`, `specnav-verify-static`, `specnav-verify-unit`, `specnav-verify-redteam`, `specnav-verify-e2e`, and `specnav-verify-sensory`.
+If development passes, read and follow these exact installed-cache skill files:
+
+- `$SPECNAV_VERIFICATION_ROOT/skills/specnav-verify-plan/SKILL.md`
+- `$SPECNAV_VERIFICATION_ROOT/skills/specnav-verify-facticity/SKILL.md`
+- `$SPECNAV_VERIFICATION_ROOT/skills/specnav-verify-static/SKILL.md`
+- `$SPECNAV_VERIFICATION_ROOT/skills/specnav-verify-unit/SKILL.md`
+- `$SPECNAV_VERIFICATION_ROOT/skills/specnav-verify-redteam/SKILL.md`
+- `$SPECNAV_VERIFICATION_ROOT/skills/specnav-verify-e2e/SKILL.md`
+- `$SPECNAV_VERIFICATION_ROOT/skills/specnav-verify-sensory/SKILL.md`
+
+Do not infer `.claude-plugin/skills/...` paths and do not treat the six domains
+as labels only. Each domain must create or update its `verify/<domain>/report.*`
+artifacts with commands, evidence, findings, required fixes, and residual risk.
 
 After the domain artifacts exist, run:
 
@@ -58,4 +74,15 @@ After the domain artifacts exist, run:
 node "$SPECNAV_VERIFICATION_ROOT/scripts/verify-domains.js" aggregate --json
 ```
 
-Proceed to operations only when `verify/aggregate-report.json.verdict` is `green`.
+The aggregate command must write machine and human review artifacts:
+
+- `openspec/changes/<change>/verify/aggregate-report.json`
+- `openspec/changes/<change>/verify/aggregate-report.md`
+- `openspec/changes/<change>/verify/aggregate-report.html`
+- `openspec/changes/<change>/verify-report.json`
+- `openspec/changes/<change>/verify-report.md`
+- `openspec/changes/<change>/verify-report.html`
+
+Proceed to operations only when `verify/aggregate-report.json.verdict` is
+`green`. If the user needs to review with stakeholders, open or provide the
+`verify-report.html` path first.

@@ -68,7 +68,7 @@ claude plugin enable specnav-operations@specnav-marketplace
 | 需求 | `/specnav-requirements` | foundation specs、active change | `requirements.md`、`acceptance.md`、`spec-map.json`、`component-impact-map.json` | specs 缺失/非法、unresolved gaps | `/specnav-prototype` |
 | 原型 | `/specnav-prototype` | requirements artifacts、设计上下文 | `prototype/` artifacts、verifier report、handoff | 上下文缺失、verifier red、未批准 | `/specnav-implement` |
 | 开发 | `/specnav-implement` | requirements、prototype handoff、scope | `scope.json`、任务 artifacts、生产代码改动 | scope 非法、上游漂移、review 失败 | `/specnav-verify` |
-| 验证 | `/specnav-verify` | development handoff、specs、tests | 六域 `verify/` 证据和 aggregate report | stale report、domain red、证据缺失 | `/specnav-release` |
+| 验证 | `/specnav-verify` | development handoff、specs、tests | 六域 `verify/` 证据、aggregate report、可给同事审阅的 HTML 报告 | stale report、domain red、证据缺失 | `/specnav-release` |
 | 运维 | `/specnav-release`、`/specnav-archive` | green verification、git/docs/release target | `operations/` readiness 和 release artifacts | verify not green、target 不明确、ops artifact 缺失 | archive/writeback |
 
 完整命令和 skill 矩阵见 [docs/command-skill-matrix.md](docs/command-skill-matrix.md)。
@@ -127,6 +127,12 @@ bash tests/run-smoke.sh
 ```
 
 每个阶段还有独立 fixture：`requirements`、`prototype`、`development`、`verification`、`operations`。
+
+验证阶段的 aggregate 会同时输出机器可读和人工审阅产物：
+`verify/aggregate-report.json`、`verify/aggregate-report.md`、
+`verify/aggregate-report.html`，以及 change 根目录下的 `verify-report.json`、
+`verify-report.md`、`verify-report.html`。HTML 报告使用 Claude warm editorial
+风格，方便直接拿给同事或干系人审阅。
 
 ## 设计文档
 

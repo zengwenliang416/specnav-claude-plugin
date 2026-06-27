@@ -9,11 +9,12 @@ Run:
 set -euo pipefail
 
 specnav_plugin_root() {
-  node - "$1" <<'NODE'
+  local plugin_name="${SPECNAV_PLUGIN_NAME:?missing SPECNAV_PLUGIN_NAME}"
+  SPECNAV_PLUGIN_NAME="$plugin_name" node - <<'NODE'
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const plugin = process.argv[2];
+const plugin = process.env.SPECNAV_PLUGIN_NAME;
 const base = path.join(os.homedir(), '.claude', 'plugins', 'cache', 'specnav-marketplace', plugin);
 function block(reason) {
   console.error(`${reason}:${plugin}`);
@@ -33,7 +34,8 @@ process.stdout.write(candidates[0].root);
 NODE
 }
 
-SPECNAV_CORE_ROOT="$(specnav_plugin_root specnav-core)"
+SPECNAV_PLUGIN_NAME=specnav-core
+SPECNAV_CORE_ROOT="$(specnav_plugin_root)"
 node "$SPECNAV_CORE_ROOT/scripts/specnav-doctor.js" --json
 ```
 

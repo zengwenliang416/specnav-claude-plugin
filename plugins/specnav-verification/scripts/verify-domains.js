@@ -209,6 +209,293 @@ function validateBlockers(verifyDir, change) {
   return artifactResult(change, name, blockers, { entries: result.entries.length });
 }
 
+function escapeHtml(value) {
+  return String(value == null ? '' : value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function listItems(values, empty = 'None') {
+  if (!Array.isArray(values) || values.length === 0) return `<li>${escapeHtml(empty)}</li>`;
+  return values.map((value) => `<li>${escapeHtml(value)}</li>`).join('');
+}
+
+function artifactRows(artifacts) {
+  return artifacts.map((artifact) => {
+    const status = artifact.ok ? 'pass' : 'blocked';
+    const blockers = artifact.blockers && artifact.blockers.length ? artifact.blockers.join(', ') : '-';
+    return [
+      '<tr>',
+      `<td><code>${escapeHtml(artifact.name)}</code></td>`,
+      `<td><span class="status ${status}">${escapeHtml(status)}</span></td>`,
+      `<td>${escapeHtml(blockers)}</td>`,
+      '</tr>'
+    ].join('');
+  }).join('\n');
+}
+
+function domainCards(report) {
+  return DOMAINS.map((domain) => {
+    const verdict = report.domains && report.domains[domain] ? report.domains[domain] : 'blocked';
+    return [
+      `<article class="domain-card ${escapeHtml(verdict)}">`,
+      `<p class="eyebrow">${escapeHtml(domain)}</p>`,
+      `<h3>${escapeHtml(verdict)}</h3>`,
+      `<p>Evidence file: <code>verify/${escapeHtml(domain)}/report.json</code></p>`,
+      '</article>'
+    ].join('');
+  }).join('\n');
+}
+
+function renderAggregateHtml(report) {
+  const verdict = report.verdict || 'red';
+  const generated = report.generated_at || new Date().toISOString();
+  const blocking = Array.isArray(report.blocking_findings) ? report.blocking_findings : [];
+  const artifacts = Array.isArray(report.artifacts) ? report.artifacts : [];
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SpecNav Verification Report</title>
+  <style>
+    :root {
+      --canvas: #faf9f5;
+      --surface-soft: #f5f0e8;
+      --surface-card: #efe9de;
+      --surface-dark: #181715;
+      --surface-dark-elevated: #252320;
+      --primary: #cc785c;
+      --primary-active: #a9583e;
+      --accent-teal: #5db8a6;
+      --accent-amber: #e8a55a;
+      --ink: #141413;
+      --body: #3d3d3a;
+      --muted: #6c6a64;
+      --muted-soft: #8e8b82;
+      --hairline: #e6dfd8;
+      --on-dark: #faf9f5;
+      --on-dark-soft: #a09d96;
+      --error: #c64545;
+      --success: #5db872;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--canvas);
+      color: var(--body);
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.55;
+    }
+    .page { max-width: 1200px; margin: 0 auto; padding: 64px 24px 80px; }
+    .topline {
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      align-items: center;
+      margin-bottom: 64px;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; color: var(--ink); font-weight: 600; }
+    .mark {
+      width: 20px;
+      height: 20px;
+      position: relative;
+      display: inline-block;
+    }
+    .mark::before,
+    .mark::after {
+      content: "";
+      position: absolute;
+      inset: 9px 1px auto 1px;
+      height: 2px;
+      background: var(--ink);
+      border-radius: 999px;
+    }
+    .mark::after { transform: rotate(90deg); }
+    .badge {
+      border-radius: 999px;
+      background: var(--surface-card);
+      color: var(--ink);
+      border: 1px solid var(--hairline);
+      padding: 6px 12px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+      gap: 32px;
+      align-items: stretch;
+      margin-bottom: 96px;
+    }
+    h1, h2, h3 {
+      color: var(--ink);
+      font-family: "Tiempos Headline", "Cormorant Garamond", Georgia, "Times New Roman", serif;
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      margin: 0;
+    }
+    h1 { font-size: clamp(44px, 7vw, 72px); line-height: 1.04; max-width: 760px; }
+    h2 { font-size: clamp(30px, 4vw, 48px); line-height: 1.1; margin-bottom: 24px; }
+    h3 { font-size: 28px; line-height: 1.2; }
+    .lead { color: var(--body-strong, #252523); font-size: 18px; max-width: 680px; margin-top: 24px; }
+    .eyebrow {
+      margin: 0 0 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .cta-card {
+      background: var(--primary);
+      color: white;
+      border-radius: 12px;
+      padding: 32px;
+      min-height: 100%;
+    }
+    .cta-card h2, .cta-card p { color: white; }
+    .cta-card code {
+      background: rgba(255,255,255,0.16);
+      color: white;
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+    .dark-panel {
+      background: var(--surface-dark);
+      color: var(--on-dark);
+      border-radius: 12px;
+      padding: 32px;
+      margin-bottom: 96px;
+    }
+    .dark-panel h2 { color: var(--on-dark); }
+    .domain-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+    .domain-card {
+      background: var(--surface-dark-elevated);
+      border: 1px solid rgba(250,249,245,0.08);
+      border-radius: 12px;
+      padding: 24px;
+    }
+    .domain-card h3 { color: var(--on-dark); }
+    .domain-card p { color: var(--on-dark-soft); }
+    .domain-card.green { border-color: rgba(93,184,114,0.5); }
+    .domain-card.red, .domain-card.blocked { border-color: rgba(198,69,69,0.6); }
+    .section {
+      background: var(--surface-card);
+      border-radius: 12px;
+      padding: 32px;
+      margin-bottom: 32px;
+    }
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+    .meta {
+      background: var(--canvas);
+      border: 1px solid var(--hairline);
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .meta strong { display: block; color: var(--ink); margin-bottom: 6px; }
+    table { width: 100%; border-collapse: collapse; background: var(--canvas); border-radius: 12px; overflow: hidden; }
+    th, td { text-align: left; padding: 14px 16px; border-bottom: 1px solid var(--hairline); vertical-align: top; }
+    th { color: var(--ink); font-size: 13px; font-weight: 600; background: var(--surface-soft); }
+    code {
+      font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+      font-size: 13px;
+      color: var(--primary-active);
+    }
+    .status {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .status.pass, .status.green { background: rgba(93,184,114,0.14); color: #2d7f42; }
+    .status.blocked, .status.red { background: rgba(198,69,69,0.12); color: var(--error); }
+    ul { margin: 0; padding-left: 20px; }
+    .footer {
+      color: var(--muted-soft);
+      font-size: 13px;
+      padding-top: 32px;
+    }
+    @media (max-width: 820px) {
+      .hero, .meta-grid, .domain-grid { grid-template-columns: 1fr; }
+      .topline { align-items: flex-start; flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <nav class="topline">
+      <div class="brand"><span class="mark" aria-hidden="true"></span><span>SpecNav</span></div>
+      <span class="badge">Six-domain verification</span>
+    </nav>
+
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Verification report</p>
+        <h1>Evidence-backed delivery review for ${escapeHtml(report.active_change || 'active change')}</h1>
+        <p class="lead">This page summarizes the six verification domains, blocking findings, artifact coverage, and stakeholder-ready review status generated by SpecNav.</p>
+      </div>
+      <aside class="cta-card">
+        <p class="eyebrow">Current verdict</p>
+        <h2>${escapeHtml(verdict)}</h2>
+        <p>Generated at <code>${escapeHtml(generated)}</code>.</p>
+        <p>Machine report: <code>verify/aggregate-report.json</code></p>
+      </aside>
+    </section>
+
+    <section class="dark-panel">
+      <h2>Domain Results</h2>
+      <div class="domain-grid">
+        ${domainCards(report)}
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Review Summary</h2>
+      <div class="meta-grid">
+        <div class="meta"><strong>Change</strong>${escapeHtml(report.active_change || 'none')}</div>
+        <div class="meta"><strong>Verdict</strong><span class="status ${escapeHtml(verdict)}">${escapeHtml(verdict)}</span></div>
+        <div class="meta"><strong>Stale</strong>${report.stale ? 'yes' : 'no'}</div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Blocking Findings</h2>
+      <ul>${listItems(blocking)}</ul>
+    </section>
+
+    <section class="section">
+      <h2>Artifact Coverage</h2>
+      <table>
+        <thead><tr><th>Artifact</th><th>Status</th><th>Blockers</th></tr></thead>
+        <tbody>
+          ${artifactRows(artifacts)}
+        </tbody>
+      </table>
+    </section>
+
+    <p class="footer">Claude warm editorial style: cream canvas, coral action surface, dark product panel, serif display headings, and humanist sans body.</p>
+  </main>
+</body>
+</html>
+`;
+}
+
 function validateReceipt(verifyDir, change) {
   const name = 'receipt.json';
   const parsed = readJsonFile(path.join(verifyDir, name));
@@ -421,6 +708,8 @@ function writeAggregate(root = lib.projectRoot()) {
     residual_risk: [],
     evidence_receipt: 'verify/receipt.json',
     behavior_eval_report: 'verify/behavior-evals/report.json',
+    html_report: 'verify/aggregate-report.html',
+    review_style: 'claude-warm-editorial',
     stale: staleUnresolved,
     blockers: validation.blockers,
     required_domains: DOMAINS,
@@ -446,14 +735,18 @@ function writeAggregate(root = lib.projectRoot()) {
       ...report.artifacts.map((artifact) => `| ${artifact.name} | ${artifact.ok ? 'pass' : 'blocked'} | ${artifact.blockers.join('<br>') || '-'} |`)
     ];
     fs.writeFileSync(path.join(verifyDir, 'aggregate-report.md'), `${lines.join('\n')}\n`);
+    fs.writeFileSync(path.join(verifyDir, 'aggregate-report.html'), renderAggregateHtml(report));
     lib.writeJson(path.join(validation.change_dir, 'verify-report.json'), {
       schema_version: 1,
       generated_at: report.generated_at,
       active_change: report.active_change,
       status: verdict,
-      aggregate: report
+      aggregate: report,
+      html_report: 'verify-report.html',
+      review_style: report.review_style
     });
     fs.writeFileSync(path.join(validation.change_dir, 'verify-report.md'), `${lines.join('\n')}\n`);
+    fs.writeFileSync(path.join(validation.change_dir, 'verify-report.html'), renderAggregateHtml(report));
     if (verdict === 'green') {
       try {
         fs.unlinkSync(path.join(validation.change_dir, 'verify-report.stale'));

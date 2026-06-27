@@ -13,11 +13,12 @@ Run this suite check:
 set -euo pipefail
 
 specnav_plugin_root() {
-  node - "$1" <<'NODE'
+  local plugin_name="${SPECNAV_PLUGIN_NAME:?missing SPECNAV_PLUGIN_NAME}"
+  SPECNAV_PLUGIN_NAME="$plugin_name" node - <<'NODE'
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const plugin = process.argv[2];
+const plugin = process.env.SPECNAV_PLUGIN_NAME;
 const base = path.join(os.homedir(), '.claude', 'plugins', 'cache', 'specnav-marketplace', plugin);
 function block(reason) {
   console.error(`${reason}:${plugin}`);
@@ -37,8 +38,10 @@ process.stdout.write(candidates[0].root);
 NODE
 }
 
-SPECNAV_CORE_ROOT="$(specnav_plugin_root specnav-core)"
-SPECNAV_DEVELOPMENT_ROOT="$(specnav_plugin_root specnav-development)"
+SPECNAV_PLUGIN_NAME=specnav-core
+SPECNAV_CORE_ROOT="$(specnav_plugin_root)"
+SPECNAV_PLUGIN_NAME=specnav-development
+SPECNAV_DEVELOPMENT_ROOT="$(specnav_plugin_root)"
 SPECNAV_MARKETPLACE_ROOT="$(dirname "$(dirname "$SPECNAV_DEVELOPMENT_ROOT")")"
 node "$SPECNAV_CORE_ROOT/scripts/plugin-suite.js" require --marketplace-root "$SPECNAV_MARKETPLACE_ROOT" --plugin specnav-core --plugin specnav-requirements --plugin specnav-prototype --plugin specnav-development --json
 ```
@@ -49,7 +52,19 @@ If the suite check exits non-zero, report the emitted blockers and stop. If it p
 node "$SPECNAV_DEVELOPMENT_ROOT/scripts/development-contract.js" --mode entry --json
 ```
 
-If the entry contract is blocked, load `specnav-development-entry`, `specnav-scope-lock`, or `specnav-vertical-slices` according to the exact blocker and repair only the allowed development artifacts. Do not fallback to a different change, infer missing upstream decisions, bypass prototype approval, or continue with production edits while the entry contract is blocked. Start production edits only after the entry gate returns `"ok": true`.
+If the entry contract is blocked, read the exact owning skill path and repair
+only the allowed development artifacts:
+
+- `$SPECNAV_DEVELOPMENT_ROOT/skills/specnav-development-entry/SKILL.md`
+- `$SPECNAV_DEVELOPMENT_ROOT/skills/specnav-scope-lock/SKILL.md`
+- `$SPECNAV_DEVELOPMENT_ROOT/skills/specnav-vertical-slices/SKILL.md`
+
+Choose the skill according to the exact blocker. Do not infer a
+`.claude-plugin/skills/...` path, do not load similarly named skills from another
+plugin, do not fallback to a different change, infer missing upstream decisions,
+bypass prototype approval, or continue with production edits while the entry
+contract is blocked. Start production edits only after the entry gate returns
+`"ok": true`.
 
 Before handoff to verification, run the handoff gate:
 
