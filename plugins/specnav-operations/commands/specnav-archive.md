@@ -40,10 +40,12 @@ SPECNAV_PLUGIN_NAME=specnav-operations
 SPECNAV_OPERATIONS_ROOT="$(specnav_plugin_root)"
 SPECNAV_MARKETPLACE_ROOT="$(dirname "$(dirname "$SPECNAV_OPERATIONS_ROOT")")"
 node "$SPECNAV_CORE_ROOT/scripts/plugin-suite.js" require --marketplace-root "$SPECNAV_MARKETPLACE_ROOT" --plugin specnav-core --plugin specnav-verification --plugin specnav-operations --json
+node "$SPECNAV_CORE_ROOT/scripts/tasks-md.js" normalize --json
 node "$SPECNAV_OPERATIONS_ROOT/scripts/archive-gate.js" --json
 ```
 
-Archive only when both commands pass and `operations/archive-gate.json.verdict` is `green`.
-If the archive gate reports `tasks-md:*`, report those blockers exactly. Do not
-say `tasks.md` has "no incomplete checkbox" when the file contains plain bullets;
-plain bullets mean `tasks-md:no-checkboxes`, not completion evidence.
+Archive only when all commands pass and `operations/archive-gate.json.verdict`
+is `green`. If `tasks-md.js normalize` changes the file but exits with
+`tasks-md:incomplete-checkboxes`, stop and tell the user the task file has been
+converted to standard checkbox syntax and now needs explicit `- [x]` completion
+evidence. Do not describe plain bullets as completed tasks.

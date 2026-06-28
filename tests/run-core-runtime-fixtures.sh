@@ -93,6 +93,29 @@ if [ "$suite_missing_root_status" -ne 2 ]; then
 fi
 assert_jq '.blockers | index("missing-marketplace-json")' "$suite_missing_root_json" "plugin-suite require without marketplace root did not report missing marketplace"
 
+TASKS_PROJECT="$TMP_DIR/tasks-project"
+TASKS_CHANGE="normalize-tasks"
+mkdir -p "$TASKS_PROJECT/openspec/.specnav" "$TASKS_PROJECT/openspec/changes/$TASKS_CHANGE"
+printf '%s\n' "$TASKS_CHANGE" >"$TASKS_PROJECT/openspec/.specnav/active-change"
+cat >"$TASKS_PROJECT/openspec/changes/$TASKS_CHANGE/tasks.md" <<'MD'
+# Tasks
+
+- user can review payroll payslips
+1. HR can export CPF contribution summary
+MD
+tasks_normalize_json="$TMP_DIR/tasks-normalize.json"
+tasks_normalize_status=0
+PROJECT_DIR="$TASKS_PROJECT" node "$CORE/scripts/tasks-md.js" normalize --json >"$tasks_normalize_json" || tasks_normalize_status=$?
+if [ "$tasks_normalize_status" -ne 2 ]; then
+  echo "tasks-md normalize exited $tasks_normalize_status, expected 2 for unchecked normalized tasks" >&2
+  cat "$tasks_normalize_json" >&2
+  exit 1
+fi
+assert_grep_fixed '- [ ] user can review payroll payslips' "$TASKS_PROJECT/openspec/changes/$TASKS_CHANGE/tasks.md" "tasks-md did not normalize plain bullet to checkbox"
+assert_grep_fixed '- [ ] HR can export CPF contribution summary' "$TASKS_PROJECT/openspec/changes/$TASKS_CHANGE/tasks.md" "tasks-md did not normalize numbered task to checkbox"
+assert_jq '.changed == true' "$tasks_normalize_json" "tasks-md normalize did not report changed true"
+assert_jq '.blockers | index("tasks-md:incomplete-checkboxes")' "$tasks_normalize_json" "tasks-md normalize did not report incomplete checkbox blocker"
+
 INSTALLED_CACHE="$TMP_DIR/installed-cache/specnav-marketplace"
 mkdir -p "$INSTALLED_CACHE"
 SPECNAV_PLUGINS=(specnav-core specnav-requirements specnav-prototype specnav-development specnav-verification specnav-operations)

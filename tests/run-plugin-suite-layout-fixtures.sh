@@ -118,6 +118,11 @@ grep -Fq '$SPECNAV_VERIFICATION_ROOT/skills/specnav-verify-plan/SKILL.md' "$ROOT
 assert_first_before \
   "$ROOT/plugins/specnav-operations/commands/specnav-archive.md" \
   'node "$SPECNAV_CORE_ROOT/scripts/plugin-suite.js"' \
+  'node "$SPECNAV_CORE_ROOT/scripts/tasks-md.js" normalize --json'
+
+assert_first_before \
+  "$ROOT/plugins/specnav-operations/commands/specnav-archive.md" \
+  'node "$SPECNAV_CORE_ROOT/scripts/tasks-md.js" normalize --json' \
   'node "$SPECNAV_OPERATIONS_ROOT/scripts/archive-gate.js"'
 
 for routing_file in \

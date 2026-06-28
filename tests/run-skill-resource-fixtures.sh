@@ -59,6 +59,7 @@ assert_blocks_with() {
 FOUNDATION="$ROOT/plugins/specnav-requirements/skills/specnav-foundation-specs/scripts/create-foundation-specs.js"
 REQUIREMENTS="$ROOT/plugins/specnav-requirements/skills/specnav-requirements/scripts/create-requirements-artifacts.js"
 PROTOTYPE="$ROOT/plugins/specnav-prototype/skills/specnav-prototype/scripts/create-prototype.js"
+TASKS_MD="$ROOT/plugins/specnav-core/scripts/tasks-md.js"
 DEV_ENTRY="$ROOT/plugins/specnav-development/skills/specnav-development-entry/scripts/create-development-entry.js"
 SCOPE="$ROOT/plugins/specnav-development/skills/specnav-scope-lock/scripts/create-scope-lock.js"
 SLICE="$ROOT/plugins/specnav-development/skills/specnav-vertical-slices/scripts/create-vertical-slice.js"
@@ -104,9 +105,21 @@ assert_blocks_with missing-task-id node "$SLICE"
 assert_blocks_with missing-option-value:--task-id node "$SLICE" --task-id --json
 assert_blocks_with invalid-task-id node "$SLICE" --task-id=../../outside
 assert_file "openspec/changes/$CHANGE/tasks.md"
+grep -Fq -- '- [ ] User can complete the primary approved flow from the prototype handoff.' "$PROJECT/openspec/changes/$CHANGE/tasks.md"
 assert_file "openspec/changes/$CHANGE/development/tasks/slice-001/brief.md"
 assert_file "openspec/changes/$CHANGE/development/tasks/slice-001/context.json"
 assert_file "openspec/changes/$CHANGE/development/handoff-to-verify.md"
+
+cat >"$PROJECT/openspec/changes/$CHANGE/tasks.md" <<'MD'
+# Tasks
+
+- user can complete the primary approved flow from the prototype handoff
+MD
+if node "$TASKS_MD" normalize --project "$PROJECT" --change "$CHANGE" --json >"$OUT"; then
+  echo "expected tasks-md normalize to keep unchecked tasks blocking handoff" >&2
+  exit 1
+fi
+grep -Fq -- '- [ ] user can complete the primary approved flow from the prototype handoff' "$PROJECT/openspec/changes/$CHANGE/tasks.md"
 
 run_json "$VERIFY"
 assert_file "openspec/changes/$CHANGE/verify/plan.json"

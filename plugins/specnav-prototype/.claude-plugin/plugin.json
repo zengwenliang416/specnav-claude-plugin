@@ -1,6 +1,6 @@
 {
   "name": "specnav-prototype",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "description": "Prototype stage plugin for the SpecNav OpenSpec lifecycle suite.",
   "author": {
     "name": "Wenliang Zeng"

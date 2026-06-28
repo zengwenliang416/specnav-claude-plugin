@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.4
+
+- Add `specnav-core/scripts/tasks-md.js` to normalize existing OpenSpec
+  `tasks.md` files into standard checkbox task syntax.
+- Run task normalization before archive so plain bullets become `- [ ]` tasks
+  instead of staying as non-standard artifacts.
+
 ## 0.4.3
 
 - Tighten archive and operations readiness instructions so plain `tasks.md`

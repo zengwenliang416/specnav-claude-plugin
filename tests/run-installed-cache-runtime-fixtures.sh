@@ -115,6 +115,7 @@ run_blocking_contract verification "$TMP_DIR/verification.json" node "$VERIFY/sc
 run_blocking_contract operations "$TMP_DIR/operations.json" node "$OPS/scripts/operations-gate.js"
 
 for script in \
+  "$CORE/scripts/tasks-md.js" \
   "$REQ/skills/specnav-foundation-specs/scripts/create-foundation-specs.js" \
   "$REQ/skills/specnav-requirements/scripts/create-requirements-artifacts.js" \
   "$PROTO/skills/specnav-prototype/scripts/create-prototype.js" \

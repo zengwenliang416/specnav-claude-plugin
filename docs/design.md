@@ -4,7 +4,7 @@ This document describes the current Claude Code implementation of SpecNav. The l
 
 ## 1. Current Shape
 
-SpecNav is currently a Claude Code marketplace repository containing six installable plugins. Current implementation version: `0.4.3`.
+SpecNav is currently a Claude Code marketplace repository containing six installable plugins. Current implementation version: `0.4.4`.
 
 The accepted target is now the current implementation shape: one marketplace root, one core runtime plugin, and one plugin for each major lifecycle stage.
 
@@ -559,9 +559,10 @@ The PreToolUse guard enforces these at edit time for file tools (Write/Edit/Mult
 ### 6.4 Vertical Slice Tasking
 
 `tasks.md` must describe tracer-bullet vertical slices as checkbox tasks, not
-layer tasks. Plain bullets are not completion evidence. During handoff and
-archive, every task item must use `- [ ]` or `- [x]`; archive requires all task
-checkboxes to be checked.
+layer tasks. Plain bullets are non-standard OpenSpec tasks and must be
+normalized with `scripts/tasks-md.js normalize` into `- [ ]` / `- [x]` syntax.
+During handoff and archive, every task item must use checkbox syntax; archive
+requires all task checkboxes to be checked.
 
 Bad:
 
@@ -1119,8 +1120,8 @@ Blocks archive if:
 - no active change exists;
 - verify is missing or red;
 - verify report is stale;
-- `tasks.md` is missing, has plain bullets, mixes checkbox and plain bullets, or
-  contains unchecked tasks;
+- `tasks.md` is missing or still has unchecked tasks after
+  `scripts/tasks-md.js normalize`;
 - high-risk sign-off is missing.
 
 ### `scripts/specnav-guard.js`
@@ -2201,6 +2202,13 @@ Completed in `0.4.3`:
    bullets are reported as `tasks-md:no-checkboxes`.
 2. Prohibit the misleading "no incomplete checkbox" phrasing when a task file
    contains no checkbox evidence.
+
+Completed in `0.4.4`:
+
+1. Add `scripts/tasks-md.js` as the core OpenSpec `tasks.md` standardizer.
+2. Normalize plain task bullets into standard checkbox syntax before archive.
+3. Keep archive blocked until normalized tasks have explicit `- [x]`
+   completion evidence.
 
 Next:
 
