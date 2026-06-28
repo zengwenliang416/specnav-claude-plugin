@@ -9,42 +9,42 @@
       "name": "specnav-core",
       "source": "./plugins/specnav-core",
       "description": "SpecNav core runtime: router, hooks, state machine, doctor, and suite governance.",
-      "version": "0.4.2",
+      "version": "0.4.3",
       "category": "productivity"
     },
     {
       "name": "specnav-requirements",
       "source": "./plugins/specnav-requirements",
       "description": "SpecNav requirements stage: foundation specs, requirements questioning, acceptance, and maps.",
-      "version": "0.4.2",
+      "version": "0.4.3",
       "category": "productivity"
     },
     {
       "name": "specnav-prototype",
       "source": "./plugins/specnav-prototype",
       "description": "SpecNav prototype stage: isolated prototype code, review, verification, and handoff.",
-      "version": "0.4.2",
+      "version": "0.4.3",
       "category": "productivity"
     },
     {
       "name": "specnav-development",
       "source": "./plugins/specnav-development",
       "description": "SpecNav development stage: scope lock, vertical slices, task ledger, and development handoff.",
-      "version": "0.4.2",
+      "version": "0.4.3",
       "category": "productivity"
     },
     {
       "name": "specnav-verification",
       "source": "./plugins/specnav-verification",
       "description": "SpecNav verification stage: six-domain evidence, traceability, receipt, and aggregate report.",
-      "version": "0.4.2",
+      "version": "0.4.3",
       "category": "productivity"
     },
     {
       "name": "specnav-operations",
       "source": "./plugins/specnav-operations",
       "description": "SpecNav operations stage: release, install/update policy, deploy, rollback, monitor, and archive.",
-      "version": "0.4.2",
+      "version": "0.4.3",
       "category": "productivity"
     }
   ]

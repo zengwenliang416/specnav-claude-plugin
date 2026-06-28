@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.3
+
+- Tighten archive and operations readiness instructions so plain `tasks.md`
+  bullets are reported as `tasks-md:no-checkboxes`, not described as completion
+  evidence.
+
 ## 0.4.2
 
 - Require `tasks.md` to use checkbox task evidence before development handoff

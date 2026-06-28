@@ -4,7 +4,7 @@ This document describes the current Claude Code implementation of SpecNav. The l
 
 ## 1. Current Shape
 
-SpecNav is currently a Claude Code marketplace repository containing six installable plugins. Current implementation version: `0.4.2`.
+SpecNav is currently a Claude Code marketplace repository containing six installable plugins. Current implementation version: `0.4.3`.
 
 The accepted target is now the current implementation shape: one marketplace root, one core runtime plugin, and one plugin for each major lifecycle stage.
 
@@ -2194,6 +2194,13 @@ Completed in `0.4.2`:
    bullets, or unchecked tasks.
 3. Update vertical-slice templates and fixtures so new task files start as
    checkbox tasks.
+
+Completed in `0.4.3`:
+
+1. Tighten archive and operations readiness instructions so plain `tasks.md`
+   bullets are reported as `tasks-md:no-checkboxes`.
+2. Prohibit the misleading "no incomplete checkbox" phrasing when a task file
+   contains no checkbox evidence.
 
 Next:
 

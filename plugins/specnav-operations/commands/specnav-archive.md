@@ -44,3 +44,6 @@ node "$SPECNAV_OPERATIONS_ROOT/scripts/archive-gate.js" --json
 ```
 
 Archive only when both commands pass and `operations/archive-gate.json.verdict` is `green`.
+If the archive gate reports `tasks-md:*`, report those blockers exactly. Do not
+say `tasks.md` has "no incomplete checkbox" when the file contains plain bullets;
+plain bullets mean `tasks-md:no-checkboxes`, not completion evidence.
