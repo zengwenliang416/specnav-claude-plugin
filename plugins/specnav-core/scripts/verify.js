@@ -14,13 +14,14 @@ function detectTestCommand(root) {
 }
 
 function verify(root = lib.projectRoot()) {
-  const change = lib.activeChange(root);
+  const changeState = lib.activeChangeState(root);
+  const change = changeState.change;
   const dir = lib.changeDir(root, change);
   const checks = [];
   const add = (name, status, detail = '') => checks.push({ name, status, detail });
 
   if (!change || !dir || !fs.existsSync(dir)) {
-    add('active-change', 'fail', 'No active OpenSpec change found.');
+    add('active-change', 'fail', `No active OpenSpec change found: ${(changeState.blockers || []).join(', ') || 'active-change'}.`);
   } else {
     add('active-change', 'pass', change);
   }
@@ -46,6 +47,11 @@ function verify(root = lib.projectRoot()) {
     generated_at: new Date().toISOString(),
     project_root: root,
     active_change: change,
+    change_resolution: {
+      source: changeState.source,
+      candidates: changeState.candidates || [],
+      blockers: changeState.blockers || []
+    },
     status,
     checks,
     test_command: command,

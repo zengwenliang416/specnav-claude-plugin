@@ -184,8 +184,66 @@ MD
 JSON
 }
 
+write_fake_openspec() {
+  local bin="$1"
+
+  cat >"$bin" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ "${1:-}" == "--no-color" ]]; then
+  shift
+fi
+
+cmd="${1:-}"
+shift || true
+
+case "$cmd" in
+  validate)
+    exit 0
+    ;;
+  archive)
+    change=""
+    while [[ "$#" -gt 0 ]]; do
+      case "$1" in
+        --yes|--skip-specs)
+          shift
+          ;;
+        *)
+          if [[ -z "$change" ]]; then
+            change="$1"
+          fi
+          shift
+          ;;
+      esac
+    done
+    if [[ -z "$change" ]]; then
+      echo "missing change" >&2
+      exit 2
+    fi
+    date_prefix="${SPECNAV_FAKE_ARCHIVE_DATE:-2026-06-28}"
+    src="openspec/changes/$change"
+    dest="openspec/changes/archive/${date_prefix}-${change}"
+    if [[ ! -d "$src" ]]; then
+      echo "missing source $src" >&2
+      exit 2
+    fi
+    mkdir -p "$(dirname "$dest")" "openspec/specs/$change"
+    mv "$src" "$dest"
+    printf '# Archived %s\n' "$change" >"openspec/specs/$change/spec.md"
+    ;;
+  *)
+    echo "unexpected openspec command: $cmd" >&2
+    exit 2
+    ;;
+esac
+SH
+  chmod +x "$bin"
+}
+
 test -f "$OPS/scripts/operations-gate.js"
 test -f "$OPS/scripts/archive-gate.js"
+test -f "$OPS/scripts/archive-change.js"
 for skill in specnav-ops-readiness specnav-release-plan specnav-install-verify specnav-update-policy specnav-compatibility-matrix specnav-branch-finish specnav-deploy specnav-rollback specnav-monitor specnav-postmortem specnav-update-spec; do
   test -f "$OPS/skills/$skill/SKILL.md"
   grep -q "name: $skill" "$OPS/skills/$skill/SKILL.md"
@@ -193,10 +251,13 @@ for skill in specnav-ops-readiness specnav-release-plan specnav-install-verify s
 done
 jq -e '.contracts.operations == "scripts/operations-gate.js"' "$OPS/specnav-stage.json" >/dev/null
 jq -e '.contracts.archive == "scripts/archive-gate.js"' "$OPS/specnav-stage.json" >/dev/null
+jq -e '.contracts.archive_action == "scripts/archive-change.js"' "$OPS/specnav-stage.json" >/dev/null
 jq -e 'has("planned_contracts") | not' "$OPS/specnav-stage.json" >/dev/null
 grep -Fq -- '--marketplace-root "$SPECNAV_MARKETPLACE_ROOT"' "$OPS/commands/specnav-release.md"
 grep -Fq 'node "$SPECNAV_OPERATIONS_ROOT/scripts/operations-gate.js" --json' "$OPS/commands/specnav-release.md"
-grep -Fq 'node "$SPECNAV_OPERATIONS_ROOT/scripts/archive-gate.js" --json' "$OPS/commands/specnav-archive.md"
+grep -Fq 'node "$SPECNAV_OPERATIONS_ROOT/scripts/archive-change.js" --json' "$OPS/commands/specnav-archive.md"
+grep -Fq 'native' "$OPS/commands/specnav-archive.md"
+grep -Fq 'OpenSpec skills' "$OPS/commands/specnav-archive.md"
 
 PROJECT="$TMP_DIR/ops-project"
 write_verified_project "$PROJECT"
@@ -210,6 +271,58 @@ run_gate archive-gate.js "$PROJECT" "$TMP_DIR/archive-green.json" 0
 jq -e '.verdict == "green"' "$TMP_DIR/archive-green.json" >/dev/null
 test -f "$PROJECT/openspec/changes/add-dashboard/operations/archive-gate.json"
 test -s "$PROJECT/openspec/changes/add-dashboard/operations/archive-log.jsonl"
+
+FAKE_OPENSPEC="$TMP_DIR/openspec"
+write_fake_openspec "$FAKE_OPENSPEC"
+ARCHIVE_PROJECT="$TMP_DIR/archive-action"
+cp -R "$PROJECT" "$ARCHIVE_PROJECT"
+mkdir -p "$ARCHIVE_PROJECT/openspec/changes/next-change" "$ARCHIVE_PROJECT/openspec/changes/add-dashboard/verify/evidence"
+printf '%s\n' 'add-dashboard' >"$ARCHIVE_PROJECT/openspec/.specnav/active-change"
+cat >"$ARCHIVE_PROJECT/openspec/.specnav/change-registry.json" <<'JSON'
+{
+  "schema_version": 1,
+  "generated_at": "2026-06-28T00:00:00.000Z",
+  "current_focus": "add-dashboard",
+  "changes": [
+    {
+      "id": "add-dashboard",
+      "stage": "operations",
+      "status": "active",
+      "branch": "feature/add-dashboard",
+      "created_at": "2026-06-28",
+      "last_active_at": "2026-06-28"
+    },
+    {
+      "id": "next-change",
+      "stage": "requirements",
+      "status": "active",
+      "branch": "feature/add-dashboard",
+      "created_at": "2026-06-28",
+      "last_active_at": "2026-06-28"
+    }
+  ]
+}
+JSON
+cat >"$ARCHIVE_PROJECT/openspec/changes/add-dashboard/requirements.md" <<'MD'
+# Requirements
+Dashboard requirements.
+MD
+printf '{}\n' >"$ARCHIVE_PROJECT/openspec/changes/add-dashboard/verify/evidence/screenshot.json"
+cat >"$ARCHIVE_PROJECT/openspec/changes/add-dashboard/verify/evidence-index.jsonl" <<'JSONL'
+{"id":"REQ","path":"openspec/changes/add-dashboard/requirements.md"}
+{"id":"IMG","path":"verify/evidence/screenshot.json"}
+JSONL
+PROJECT_DIR="$ARCHIVE_PROJECT" SPECNAV_OPENSPEC_BIN="$FAKE_OPENSPEC" SPECNAV_FAKE_ARCHIVE_DATE="2026-06-28" \
+  node "$OPS/scripts/archive-change.js" --json >"$TMP_DIR/archive-action.json"
+jq -e '.ok == true and .archive_path == "openspec/changes/archive/2026-06-28-add-dashboard" and .active_change_after == "next-change"' "$TMP_DIR/archive-action.json" >/dev/null
+test ! -e "$ARCHIVE_PROJECT/openspec/changes/add-dashboard"
+test -d "$ARCHIVE_PROJECT/openspec/changes/archive/2026-06-28-add-dashboard"
+test -f "$ARCHIVE_PROJECT/openspec/changes/archive/2026-06-28-add-dashboard/operations/archive-receipt.json"
+jq -e '.current_focus == "next-change"' "$ARCHIVE_PROJECT/openspec/.specnav/change-registry.json" >/dev/null
+jq -e '.changes[] | select(.id == "add-dashboard" and .status == "archived" and .archive_path == "openspec/changes/archive/2026-06-28-add-dashboard")' "$ARCHIVE_PROJECT/openspec/.specnav/change-registry.json" >/dev/null
+grep -Fxq 'next-change' "$ARCHIVE_PROJECT/openspec/.specnav/active-change"
+grep -Fq 'openspec/changes/archive/2026-06-28-add-dashboard/requirements.md' "$ARCHIVE_PROJECT/openspec/changes/archive/2026-06-28-add-dashboard/verify/evidence-index.jsonl"
+grep -Fq 'openspec/changes/archive/2026-06-28-add-dashboard/verify/evidence/screenshot.json' "$ARCHIVE_PROJECT/openspec/changes/archive/2026-06-28-add-dashboard/verify/evidence-index.jsonl"
 
 NO_CHECKBOX="$TMP_DIR/no-checkbox"
 cp -R "$PROJECT" "$NO_CHECKBOX"

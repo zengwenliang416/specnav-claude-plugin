@@ -336,19 +336,24 @@ single_change_affordances_json="$TMP_DIR/single-change-affordances.json"
 PROJECT_DIR="$single_change_project" node "$CORE/scripts/affordances.js" --json >"$single_change_affordances_json"
 assert_jq '.active_change == "add-dark-mode"' "$single_change_affordances_json" "affordances did not infer the only change"
 
-workflow_state_project="$TMP_DIR/workflow-state-active-project"
-cp -R "$PROJECT_FIXTURE" "$workflow_state_project"
-rm "$workflow_state_project/openspec/.specnav/active-change"
-mkdir -p "$workflow_state_project/openspec/changes/another-change"
-cat >"$workflow_state_project/openspec/.specnav/workflow-state.json" <<'JSON'
+registry_focus_project="$TMP_DIR/registry-focus-project"
+cp -R "$PROJECT_FIXTURE" "$registry_focus_project"
+rm "$registry_focus_project/openspec/.specnav/active-change"
+mkdir -p "$registry_focus_project/openspec/changes/another-change"
+cat >"$registry_focus_project/openspec/.specnav/change-registry.json" <<'JSON'
 {
   "schema_version": 1,
-  "active_change": "add-dark-mode"
+  "current_focus": "add-dark-mode",
+  "changes": [
+    {"id": "add-dark-mode", "stage": "development", "status": "active"},
+    {"id": "another-change", "stage": "requirements", "status": "active"}
+  ]
 }
 JSON
-workflow_state_affordances_json="$TMP_DIR/workflow-state-affordances.json"
-PROJECT_DIR="$workflow_state_project" node "$CORE/scripts/affordances.js" --json >"$workflow_state_affordances_json"
-assert_jq '.active_change == "add-dark-mode"' "$workflow_state_affordances_json" "affordances did not read workflow-state active_change"
+registry_focus_affordances_json="$TMP_DIR/registry-focus-affordances.json"
+PROJECT_DIR="$registry_focus_project" node "$CORE/scripts/affordances.js" --json >"$registry_focus_affordances_json"
+assert_jq '.active_change == "add-dark-mode"' "$registry_focus_affordances_json" "affordances did not read registry current_focus"
+assert_jq '.change_resolution.source == "change-registry"' "$registry_focus_affordances_json" "affordances did not report change-registry source"
 
 ambiguous_change_project="$TMP_DIR/ambiguous-change-project"
 cp -R "$PROJECT_FIXTURE" "$ambiguous_change_project"
@@ -358,6 +363,18 @@ mkdir -p "$ambiguous_change_project/openspec/changes/another-change"
 ambiguous_change_affordances_json="$TMP_DIR/ambiguous-change-affordances.json"
 PROJECT_DIR="$ambiguous_change_project" node "$CORE/scripts/affordances.js" --json >"$ambiguous_change_affordances_json"
 assert_jq '.active_change == null' "$ambiguous_change_affordances_json" "affordances inferred an ambiguous active change"
-assert_jq '.state_source == "no-active-change"' "$ambiguous_change_affordances_json" "affordances did not report no-active-change for ambiguous changes"
+assert_jq '.state_source == "ambiguous"' "$ambiguous_change_affordances_json" "affordances did not report ambiguous for ambiguous changes"
+assert_jq '.blockers | index("ambiguous-change")' "$ambiguous_change_affordances_json" "affordances did not report ambiguous-change blocker"
+
+legacy_project="$TMP_DIR/legacy-entrypoint-project"
+cp -R "$PROJECT_FIXTURE" "$legacy_project"
+mkdir -p "$legacy_project/.claude/skills/openspec-propose" "$legacy_project/.claude/commands/opsx"
+printf '%s\n' '---' 'name: openspec-propose' '---' >"$legacy_project/.claude/skills/openspec-propose/SKILL.md"
+printf '%s\n' '---' 'name: "OPSX: Propose"' '---' >"$legacy_project/.claude/commands/opsx/propose.md"
+legacy_affordances_json="$TMP_DIR/legacy-affordances.json"
+PROJECT_DIR="$legacy_project" node "$CORE/scripts/affordances.js" --json >"$legacy_affordances_json"
+assert_jq '.blockers | index("legacy-openspec-workflow")' "$legacy_affordances_json" "affordances did not block legacy OpenSpec workflow entrypoints"
+assert_jq '.legacy_openspec_entrypoints[] | select(.name == "openspec-propose")' "$legacy_affordances_json" "affordances did not list legacy openspec-propose skill"
+assert_jq '.legacy_openspec_entrypoints[] | select(.name == "opsx/propose")' "$legacy_affordances_json" "affordances did not list legacy opsx/propose command"
 
 echo "specnav core runtime fixtures ok"

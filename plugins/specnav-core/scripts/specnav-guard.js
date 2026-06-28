@@ -152,10 +152,15 @@ function main() {
     allow(root, 'no-target-path');
   }
 
-  const change = lib.activeChange(root);
+  const changeState = lib.activeChangeState(root);
+  const change = changeState.change;
   const dir = lib.changeDir(root, change);
-  if (!change || !dir) warn(root, 'No active SpecNav change; run /specnav-status or /specnav propose.');
   if (!productionPaths.length) allow(root, 'openspec-edit');
+  if (!change || !dir) {
+    const blockers = changeState.blockers && changeState.blockers.length ? changeState.blockers : ['active-change'];
+    lib.event(root, 'hook.deny', { reason: blockers[0], paths: productionPaths, candidates: changeState.candidates || [] });
+    deny(`production edits require an explicit SpecNav change: ${blockers.join(', ')}. Set SPECNAV_CHANGE or repair openspec/.specnav/change-registry.json.`);
+  }
 
   if (!lib.fileExists(path.join(dir, 'tasks.md'))) {
     const overridden = productionPaths.every((rel) => pathOverrideAllows(root, 'missing-tasks', rel, change));

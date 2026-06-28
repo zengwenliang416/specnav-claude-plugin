@@ -1,6 +1,6 @@
 {
   "name": "specnav-core",
-  "version": "0.4.4",
+  "version": "0.4.5",
   "description": "Core runtime for the SpecNav OpenSpec lifecycle plugin suite.",
   "author": {
     "name": "Wenliang Zeng"

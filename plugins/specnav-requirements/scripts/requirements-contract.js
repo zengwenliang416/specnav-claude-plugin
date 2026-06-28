@@ -70,7 +70,7 @@ function readTextFile(file) {
 }
 
 function strictActiveChange(projectRoot) {
-  return lib.activeChange(projectRoot);
+  return lib.activeChangeState(projectRoot);
 }
 
 function changeDirExists(dir) {
@@ -208,13 +208,14 @@ function validateArtifact(dir, change, name) {
 function validateRequirements(root = lib.projectRoot()) {
   const projectRoot = path.resolve(root);
   const foundation = foundationSpecs.validateFoundationSpecs(projectRoot);
-  const change = strictActiveChange(projectRoot);
+  const changeState = strictActiveChange(projectRoot);
+  const change = changeState.change;
   const dir = change ? lib.changeDir(projectRoot, change) : null;
   const activeChangeOk = changeDirExists(dir);
   const blockers = [];
 
   if (!foundation.ok) blockers.push(...foundation.blockers);
-  if (!activeChangeOk) blockers.push('active-change');
+  if (!activeChangeOk) blockers.push(...(changeState.blockers && changeState.blockers.length ? changeState.blockers : ['active-change']));
 
   const artifacts = activeChangeOk ? REQUIRED_ARTIFACTS.map((name) => validateArtifact(dir, change, name)) : [];
   blockers.push(...artifacts.flatMap((artifact) => artifact.blockers));
@@ -223,6 +224,11 @@ function validateRequirements(root = lib.projectRoot()) {
     ok: blockers.length === 0,
     project_root: projectRoot,
     active_change: activeChangeOk ? change : null,
+    change_resolution: {
+      source: changeState.source,
+      candidates: changeState.candidates || [],
+      blockers: changeState.blockers || []
+    },
     blockers: unique(blockers),
     foundation,
     artifacts

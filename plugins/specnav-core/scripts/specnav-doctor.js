@@ -112,9 +112,23 @@ function doctor(options = {}) {
   if (targetRoot) {
     const specnavDir = lib.specnavDir(targetRoot);
     const hasOpenSpec = fs.existsSync(lib.openspecDir(targetRoot));
+    const legacyEntrypoints = lib.detectLegacyOpenSpecEntrypoints(targetRoot);
+    const legacySkills = legacyEntrypoints.filter((entry) => entry.type === 'skill');
+    const legacyCommands = legacyEntrypoints.filter((entry) => entry.type === 'command');
     checks.push(check('target-openspec', hasOpenSpec, targetRoot));
+    checks.push(check(
+      'legacy-openspec-skills',
+      legacySkills.length === 0,
+      legacySkills.length ? legacySkills.map((entry) => entry.path).join(', ') : 'none'
+    ));
+    checks.push(check(
+      'legacy-opsx-commands',
+      legacyCommands.length === 0,
+      legacyCommands.length ? legacyCommands.map((entry) => entry.path).join(', ') : 'none'
+    ));
     if (hasOpenSpec) {
       checks.push(check('workflow-state-file', fs.existsSync(path.join(specnavDir, 'workflow-state.json')), 'openspec/.specnav/workflow-state.json'));
+      checks.push(check('change-registry-file', fs.existsSync(path.join(specnavDir, 'change-registry.json')), 'openspec/.specnav/change-registry.json'));
       const contextOk = workflow.CONTEXT_MANIFESTS.every(([, fileName]) => {
         const file = path.join(specnavDir, 'context', fileName);
         return fs.existsSync(file) && fs.readFileSync(file, 'utf8').trim() !== '';
@@ -140,7 +154,8 @@ function doctor(options = {}) {
       ok: claudeInventory.ok,
       marketplace: marketplaceName,
       required: REQUIRED_PLUGINS.map((name) => `${name}@${marketplaceName}`)
-    }
+    },
+    legacy_openspec_entrypoints: targetRoot ? lib.detectLegacyOpenSpecEntrypoints(targetRoot) : []
   };
 }
 

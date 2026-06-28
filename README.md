@@ -87,10 +87,15 @@ The detailed walkthrough is in [docs/user-journey.md](docs/user-journey.md).
 | Prototype | `/specnav-prototype` | requirements artifacts, design context | `prototype/` artifacts, verifier report, handoff | missing context, verifier red, no approval | `/specnav-implement` |
 | Development | `/specnav-implement` | requirements, prototype handoff, scope | `scope.json`, task artifacts, production edits | invalid scope, upstream drift, review failure | `/specnav-verify` |
 | Verification | `/specnav-verify` | development handoff, specs, tests | six-domain `verify/` evidence, aggregate report, stakeholder HTML report | stale report, red domain, missing evidence | `/specnav-release` |
-| Operations | `/specnav-release`, `/specnav-archive` | green verification, git/docs/release target | `operations/` readiness and release artifacts | verify not green, target ambiguous, ops artifact missing | archive/writeback |
+| Operations | `/specnav-release`, `/specnav-archive` | green verification, git/docs/release target | `operations/` readiness/release artifacts, archive receipt | verify not green, target ambiguous, ops artifact missing | archive/writeback |
 
 For the complete command and skill matrix, see
 [docs/command-skill-matrix.md](docs/command-skill-matrix.md).
+
+`/specnav-archive` is an action, not just a gate. It normalizes `tasks.md`,
+requires a green operations archive gate, runs `openspec validate` and
+`openspec archive`, updates SpecNav change focus, rewrites archived evidence
+paths, and writes `operations/archive-receipt.json` inside the archived change.
 
 ## Spec Discovery
 

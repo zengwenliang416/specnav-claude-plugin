@@ -1136,19 +1136,24 @@ run_json "$SINGLE_CHANGE_INFERENCE_PROJECT" "$REQ/scripts/requirements-contract.
 jq -e '.ok == true' "$TMP_DIR/single-change-inference.json" >/dev/null
 jq -e '.active_change == "add-dashboard"' "$TMP_DIR/single-change-inference.json" >/dev/null
 
-WORKFLOW_STATE_ACTIVE_CHANGE_PROJECT="$TMP_DIR/workflow-state-active-change-project"
-cp -R "$HAPPY_PROJECT" "$WORKFLOW_STATE_ACTIVE_CHANGE_PROJECT"
-rm "$WORKFLOW_STATE_ACTIVE_CHANGE_PROJECT/openspec/.specnav/active-change"
-mkdir -p "$WORKFLOW_STATE_ACTIVE_CHANGE_PROJECT/openspec/changes/another-change"
-cat >"$WORKFLOW_STATE_ACTIVE_CHANGE_PROJECT/openspec/.specnav/workflow-state.json" <<'JSON'
+REGISTRY_FOCUS_PROJECT="$TMP_DIR/registry-focus-project"
+cp -R "$HAPPY_PROJECT" "$REGISTRY_FOCUS_PROJECT"
+rm "$REGISTRY_FOCUS_PROJECT/openspec/.specnav/active-change"
+mkdir -p "$REGISTRY_FOCUS_PROJECT/openspec/changes/another-change"
+cat >"$REGISTRY_FOCUS_PROJECT/openspec/.specnav/change-registry.json" <<'JSON'
 {
   "schema_version": 1,
-  "active_change": "add-dashboard"
+  "current_focus": "add-dashboard",
+  "changes": [
+    {"id": "add-dashboard", "stage": "requirements", "status": "active"},
+    {"id": "another-change", "stage": "requirements", "status": "active"}
+  ]
 }
 JSON
-run_json "$WORKFLOW_STATE_ACTIVE_CHANGE_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/workflow-state-active-change.json" 0
-jq -e '.ok == true' "$TMP_DIR/workflow-state-active-change.json" >/dev/null
-jq -e '.active_change == "add-dashboard"' "$TMP_DIR/workflow-state-active-change.json" >/dev/null
+run_json "$REGISTRY_FOCUS_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/registry-focus.json" 0
+jq -e '.ok == true' "$TMP_DIR/registry-focus.json" >/dev/null
+jq -e '.active_change == "add-dashboard"' "$TMP_DIR/registry-focus.json" >/dev/null
+jq -e '.change_resolution.source == "change-registry"' "$TMP_DIR/registry-focus.json" >/dev/null
 
 ENV_ACTIVE_CHANGE_PROJECT="$TMP_DIR/env-active-change-project"
 cp -R "$HAPPY_PROJECT" "$ENV_ACTIVE_CHANGE_PROJECT"
@@ -1168,7 +1173,10 @@ rm "$AMBIGUOUS_ACTIVE_CHANGE_PROJECT/openspec/.specnav/active-change"
 rm -f "$AMBIGUOUS_ACTIVE_CHANGE_PROJECT/openspec/.specnav/workflow-state.json"
 mkdir -p "$AMBIGUOUS_ACTIVE_CHANGE_PROJECT/openspec/changes/another-change"
 run_json "$AMBIGUOUS_ACTIVE_CHANGE_PROJECT" "$REQ/scripts/requirements-contract.js" "$TMP_DIR/ambiguous-active-change.json" 2
-assert_active_change_only_blocker "$TMP_DIR/ambiguous-active-change.json"
+jq -e '.active_change == null' "$TMP_DIR/ambiguous-active-change.json" >/dev/null
+jq -e '.blockers | sort == ["ambiguous-change"]' "$TMP_DIR/ambiguous-active-change.json" >/dev/null
+jq -e '.change_resolution.candidates | length == 2' "$TMP_DIR/ambiguous-active-change.json" >/dev/null
+jq -e '.artifacts | length == 0' "$TMP_DIR/ambiguous-active-change.json" >/dev/null
 
 EMPTY_ACTIVE_CHANGE_PROJECT="$TMP_DIR/empty-active-change-project"
 cp -R "$HAPPY_PROJECT" "$EMPTY_ACTIVE_CHANGE_PROJECT"

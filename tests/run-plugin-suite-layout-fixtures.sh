@@ -118,12 +118,10 @@ grep -Fq '$SPECNAV_VERIFICATION_ROOT/skills/specnav-verify-plan/SKILL.md' "$ROOT
 assert_first_before \
   "$ROOT/plugins/specnav-operations/commands/specnav-archive.md" \
   'node "$SPECNAV_CORE_ROOT/scripts/plugin-suite.js"' \
-  'node "$SPECNAV_CORE_ROOT/scripts/tasks-md.js" normalize --json'
+  'node "$SPECNAV_OPERATIONS_ROOT/scripts/archive-change.js" --json'
 
-assert_first_before \
-  "$ROOT/plugins/specnav-operations/commands/specnav-archive.md" \
-  'node "$SPECNAV_CORE_ROOT/scripts/tasks-md.js" normalize --json' \
-  'node "$SPECNAV_OPERATIONS_ROOT/scripts/archive-gate.js"'
+grep -Fq 'native' "$ROOT/plugins/specnav-operations/commands/specnav-archive.md"
+grep -Fq 'OpenSpec skills' "$ROOT/plugins/specnav-operations/commands/specnav-archive.md"
 
 for routing_file in \
   "$ROOT/plugins/specnav-core/commands/specnav.md" \

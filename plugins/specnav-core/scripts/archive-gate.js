@@ -6,10 +6,11 @@ const path = require('path');
 const lib = require('./specnav-lib');
 
 function gate(root = lib.projectRoot()) {
-  const change = lib.activeChange(root);
+  const changeState = lib.activeChangeState(root);
+  const change = changeState.change;
   const dir = lib.changeDir(root, change);
   const blockers = [];
-  if (!dir || !fs.existsSync(dir)) blockers.push('active-change');
+  if (!dir || !fs.existsSync(dir)) blockers.push(...(changeState.blockers && changeState.blockers.length ? changeState.blockers : ['active-change']));
   const verify = lib.readJson(path.join(dir || '', 'verify-report.json'), null);
   if (!verify || verify.status !== 'green') blockers.push('verify');
   if (lib.fileExists(path.join(dir || '', 'verify-report.stale'))) blockers.push('fresh-verify');
@@ -18,6 +19,11 @@ function gate(root = lib.projectRoot()) {
   return {
     ok: blockers.length === 0,
     active_change: change,
+    change_resolution: {
+      source: changeState.source,
+      candidates: changeState.candidates || [],
+      blockers: changeState.blockers || []
+    },
     risk_tier: risk.tier,
     blockers
   };

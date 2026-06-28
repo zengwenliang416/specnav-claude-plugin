@@ -69,9 +69,14 @@ claude plugin enable specnav-operations@specnav-marketplace
 | 原型 | `/specnav-prototype` | requirements artifacts、设计上下文 | `prototype/` artifacts、verifier report、handoff | 上下文缺失、verifier red、未批准 | `/specnav-implement` |
 | 开发 | `/specnav-implement` | requirements、prototype handoff、scope | `scope.json`、任务 artifacts、生产代码改动 | scope 非法、上游漂移、review 失败 | `/specnav-verify` |
 | 验证 | `/specnav-verify` | development handoff、specs、tests | 六域 `verify/` 证据、aggregate report、可给同事审阅的 HTML 报告 | stale report、domain red、证据缺失 | `/specnav-release` |
-| 运维 | `/specnav-release`、`/specnav-archive` | green verification、git/docs/release target | `operations/` readiness 和 release artifacts | verify not green、target 不明确、ops artifact 缺失 | archive/writeback |
+| 运维 | `/specnav-release`、`/specnav-archive` | green verification、git/docs/release target | `operations/` readiness/release artifacts、archive receipt | verify not green、target 不明确、ops artifact 缺失 | archive/writeback |
 
 完整命令和 skill 矩阵见 [docs/command-skill-matrix.md](docs/command-skill-matrix.md)。
+
+`/specnav-archive` 是归档动作，不只是检查门。它会标准化 `tasks.md`，
+要求 operations archive gate 为 green，执行 `openspec validate` 和
+`openspec archive`，更新 SpecNav 的 change focus，重写归档后的 evidence
+路径，并在归档后的 change 里写入 `operations/archive-receipt.json`。
 
 ## Spec Discovery
 

@@ -4,7 +4,7 @@ This document describes the current Claude Code implementation of SpecNav. The l
 
 ## 1. Current Shape
 
-SpecNav is currently a Claude Code marketplace repository containing six installable plugins. Current implementation version: `0.4.4`.
+SpecNav is currently a Claude Code marketplace repository containing six installable plugins. Current implementation version: `0.4.5`.
 
 The accepted target is now the current implementation shape: one marketplace root, one core runtime plugin, and one plugin for each major lifecycle stage.
 
@@ -2209,6 +2209,22 @@ Completed in `0.4.4`:
 2. Normalize plain task bullets into standard checkbox syntax before archive.
 3. Keep archive blocked until normalized tasks have explicit `- [x]`
    completion evidence.
+
+Completed in `0.4.5`:
+
+1. Add a SpecNav change registry so multiple active OpenSpec changes can
+   coexist while explicit focus remains file-backed.
+2. Rename the public lifecycle action from proposal/propose to requirements,
+   while still allowing user wording about proposals to route to the SpecNav
+   requirements workflow.
+3. Detect native OpenSpec and OPSX workflow entrypoints as legacy conflicts,
+   while allowing SpecNav scripts to use the `openspec` CLI directly.
+4. Add `scripts/archive-change.js` so `/specnav-archive` executes the full
+   archive sequence: task normalization, archive gate, `openspec validate`,
+   `openspec archive`, registry/focus update, evidence path rewrite, and
+   archived receipt generation.
+5. Require scaffold scripts that write change artifacts to use explicit
+   active-change evidence instead of single-change inference.
 
 Next:
 

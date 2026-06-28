@@ -63,6 +63,9 @@ function writeRuntimeArtifacts(root, result = workflowState(root)) {
   lib.ensureSpecNavMarker(root);
   const specnavDir = lib.specnavDir(root);
   lib.writeJson(path.join(specnavDir, 'workflow-state.json'), result);
+  const registry = result.change_registry || lib.buildChangeRegistry(root);
+  registry.current_focus = result.active_change || registry.current_focus || null;
+  lib.writeChangeRegistry(root, registry);
 
   for (const [stage, fileName] of CONTEXT_MANIFESTS) {
     appendJsonl(path.join(specnavDir, 'context', fileName), {

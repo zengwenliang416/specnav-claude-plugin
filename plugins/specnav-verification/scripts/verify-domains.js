@@ -644,14 +644,17 @@ function staleMarkerUnresolved(changeDir, verifyDir) {
 function validateVerify(root = lib.projectRoot()) {
   const projectRoot = path.resolve(root);
   const development = validateDevelopment(projectRoot, { mode: 'handoff' });
-  const change = development.active_change || lib.activeChange(projectRoot);
+  const changeState = lib.activeChangeState(projectRoot);
+  const change = development.active_change || changeState.change;
   const changeDir = change ? lib.changeDir(projectRoot, change) : null;
   const verifyDir = changeDir ? path.join(changeDir, 'verify') : null;
   const artifacts = [];
   const blockers = [];
 
   if (!development.ok) blockers.push('development-blocked', ...development.blockers.map((blocker) => `development:${blocker}`));
-  if (!change || !changeDir || !fs.existsSync(changeDir)) blockers.push('active-change');
+  if (!change || !changeDir || !fs.existsSync(changeDir)) {
+    blockers.push(...(changeState.blockers && changeState.blockers.length ? changeState.blockers : ['active-change']));
+  }
 
   if (verifyDir) {
     artifacts.push(validateTextHeadings(verifyDir, change, 'plan.md', ['Verification Scope', 'Required Domains', 'Evidence Plan'], 'invalid-verify-plan-md'));
@@ -678,6 +681,11 @@ function validateVerify(root = lib.projectRoot()) {
     ok: blockers.length === 0,
     project_root: projectRoot,
     active_change: change || null,
+    change_resolution: {
+      source: changeState.source,
+      candidates: changeState.candidates || [],
+      blockers: changeState.blockers || []
+    },
     change_dir: changeDir,
     verify_dir: verifyDir,
     blockers: unique(blockers),

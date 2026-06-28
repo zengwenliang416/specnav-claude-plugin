@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.4.5
+
+- Add SpecNav change registry support so multiple active OpenSpec changes can
+  coexist without falling back to stale `workflow-state.json` active-change
+  values.
+- Rename the public lifecycle action from `propose` to `requirements` while
+  still routing user proposal intent to `/specnav-requirements`.
+- Detect native OpenSpec/OPSX workflow entrypoints as legacy conflicts while
+  still allowing SpecNav scripts to use the `openspec` CLI as the artifact
+  engine.
+- Report `ambiguous-change` when multiple changes exist and no explicit
+  `SPECNAV_CHANGE`, registry focus, or active-change file selects one.
+- Add `specnav-operations/scripts/archive-change.js` so `/specnav-archive`
+  performs the full archive sequence: tasks checkbox normalization, operations
+  archive gate, `openspec validate`, `openspec archive`, registry/focus update,
+  evidence-index path rewrite, and archived receipt generation.
+
 ## 0.4.4
 
 - Add `specnav-core/scripts/tasks-md.js` to normalize existing OpenSpec
