@@ -1,6 +1,6 @@
 {
   "name": "specnav-operations",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Operations and archive plugin for the SpecNav OpenSpec lifecycle suite.",
   "author": {
     "name": "Wenliang Zeng"

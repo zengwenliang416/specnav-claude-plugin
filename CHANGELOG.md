@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.1
+
+- Rebuild the six-plugin cache release after hardening slash commands to avoid
+  Claude Code positional placeholder substitution in plugin root resolution.
+- Prevent user requirement text from being interpreted as a SpecNav plugin name
+  during `/specnav-requirements` suite checks.
+
 ## 0.4.0
 
 - Rename the repository, marketplace, plugins, commands, skills, runtime
