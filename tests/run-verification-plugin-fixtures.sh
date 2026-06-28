@@ -246,7 +246,7 @@ JSON
 JSON
   cat >"$change_dir/tasks.md" <<'MD'
 # Development Tasks
-- user can view dashboard summary with loading empty and error states
+- [x] user can view dashboard summary with loading empty and error states
 MD
   cat >"$dev/before-dev-check.json" <<'JSON'
 {"schema_version":1,"active_change":"add-dashboard","status":"passed","ok":true}

@@ -1,6 +1,6 @@
 {
   "name": "specnav-verification",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Six-domain verification plugin for the SpecNav OpenSpec lifecycle suite.",
   "author": {
     "name": "Wenliang Zeng"

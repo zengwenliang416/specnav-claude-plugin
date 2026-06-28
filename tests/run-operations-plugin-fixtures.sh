@@ -39,6 +39,12 @@ write_verified_project() {
   mkdir -p "$project/openspec/.specnav" "$change_dir/development" "$change_dir/verify"
   printf '%s\n' "$change" >"$project/openspec/.specnav/active-change"
 
+  cat >"$change_dir/tasks.md" <<'MD'
+# Development Tasks
+
+- [x] user can view dashboard summary with loading empty and error states
+MD
+
   cat >"$change_dir/development/handoff-to-verify.md" <<'MD'
 # Development Handoff
 ## Implemented Slices
@@ -204,6 +210,29 @@ run_gate archive-gate.js "$PROJECT" "$TMP_DIR/archive-green.json" 0
 jq -e '.verdict == "green"' "$TMP_DIR/archive-green.json" >/dev/null
 test -f "$PROJECT/openspec/changes/add-dashboard/operations/archive-gate.json"
 test -s "$PROJECT/openspec/changes/add-dashboard/operations/archive-log.jsonl"
+
+NO_CHECKBOX="$TMP_DIR/no-checkbox"
+cp -R "$PROJECT" "$NO_CHECKBOX"
+cat >"$NO_CHECKBOX/openspec/changes/add-dashboard/tasks.md" <<'MD'
+# Development Tasks
+
+- user can view dashboard summary with loading empty and error states
+MD
+run_gate operations-gate.js "$NO_CHECKBOX" "$TMP_DIR/no-checkbox.json" 2
+assert_blocker "$TMP_DIR/no-checkbox.json" 'tasks-md:no-checkboxes'
+run_gate archive-gate.js "$NO_CHECKBOX" "$TMP_DIR/no-checkbox-archive.json" 2
+jq -e '.verdict == "red" and (.blockers[] == "tasks-md:no-checkboxes")' "$TMP_DIR/no-checkbox-archive.json" >/dev/null
+
+INCOMPLETE_TASKS="$TMP_DIR/incomplete-tasks"
+cp -R "$PROJECT" "$INCOMPLETE_TASKS"
+cat >"$INCOMPLETE_TASKS/openspec/changes/add-dashboard/tasks.md" <<'MD'
+# Development Tasks
+
+- [ ] user can view dashboard summary with loading empty and error states
+MD
+run_gate operations-gate.js "$INCOMPLETE_TASKS" "$TMP_DIR/incomplete-tasks.json" 2
+assert_blocker "$TMP_DIR/incomplete-tasks.json" 'tasks-md:incomplete-checkboxes'
+assert_blocker "$TMP_DIR/incomplete-tasks.json" 'tasks-md:no-completed-checkboxes'
 
 VERIFY_FAIL="$TMP_DIR/verify-fail"
 cp -R "$PROJECT" "$VERIFY_FAIL"

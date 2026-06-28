@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.2
+
+- Require `tasks.md` to use checkbox task evidence before development handoff
+  and archive readiness.
+- Block archive when `tasks.md` has plain bullets, mixed checkbox/plain bullets,
+  or unchecked tasks, instead of treating "no incomplete checkbox" as completion
+  evidence.
+
 ## 0.4.1
 
 - Rebuild the six-plugin cache release after hardening slash commands to avoid

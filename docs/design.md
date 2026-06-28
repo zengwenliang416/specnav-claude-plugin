@@ -4,7 +4,7 @@ This document describes the current Claude Code implementation of SpecNav. The l
 
 ## 1. Current Shape
 
-SpecNav is currently a Claude Code marketplace repository containing six installable plugins. Current implementation version: `0.4.1`.
+SpecNav is currently a Claude Code marketplace repository containing six installable plugins. Current implementation version: `0.4.2`.
 
 The accepted target is now the current implementation shape: one marketplace root, one core runtime plugin, and one plugin for each major lifecycle stage.
 
@@ -558,7 +558,10 @@ The PreToolUse guard enforces these at edit time for file tools (Write/Edit/Mult
 
 ### 6.4 Vertical Slice Tasking
 
-`tasks.md` must describe tracer-bullet vertical slices, not layer tasks.
+`tasks.md` must describe tracer-bullet vertical slices as checkbox tasks, not
+layer tasks. Plain bullets are not completion evidence. During handoff and
+archive, every task item must use `- [ ]` or `- [x]`; archive requires all task
+checkboxes to be checked.
 
 Bad:
 
@@ -571,9 +574,9 @@ Bad:
 Good:
 
 ```markdown
-- user can view checkout summary
-- user can submit checkout form
-- user sees payment failure state
+- [x] user can view checkout summary
+- [x] user can submit checkout form
+- [x] user sees payment failure state
 ```
 
 Each slice must be:
@@ -1116,6 +1119,8 @@ Blocks archive if:
 - no active change exists;
 - verify is missing or red;
 - verify report is stale;
+- `tasks.md` is missing, has plain bullets, mixes checkbox and plain bullets, or
+  contains unchecked tasks;
 - high-risk sign-off is missing.
 
 ### `scripts/specnav-guard.js`
@@ -2174,6 +2179,21 @@ Completed in `0.4.0`:
 1. Rename the repository, marketplace, plugins, commands, skills, runtime variables, schemas, and generated state to the SpecNav product surface.
 2. Move project-local runtime state to `openspec/.specnav/` plus project-root `.specnav.json`.
 3. Update docs, review artifacts, install commands, and fixture coverage for `specnav-claude-plugin`, `specnav-marketplace`, and `specnav-*` public identifiers.
+
+Completed in `0.4.1`:
+
+1. Harden slash command plugin root resolution so user prompt text cannot be
+   interpreted as a SpecNav plugin name.
+2. Rebuild the installed-cache release after command argument hardening.
+
+Completed in `0.4.2`:
+
+1. Require `tasks.md` to use checkbox task evidence before development handoff
+   and archive readiness.
+2. Block archive when `tasks.md` has plain bullets, mixed checkbox/plain
+   bullets, or unchecked tasks.
+3. Update vertical-slice templates and fixtures so new task files start as
+   checkbox tasks.
 
 Next:
 

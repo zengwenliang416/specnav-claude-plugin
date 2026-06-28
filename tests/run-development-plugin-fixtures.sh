@@ -329,7 +329,7 @@ JSON
   cat >"$change_dir/tasks.md" <<'MD'
 # Development Tasks
 
-- user can view dashboard summary with loading empty and error states
+- [x] user can view dashboard summary with loading empty and error states
 MD
 
   cat >"$development/before-dev-check.json" <<'JSON'
@@ -983,11 +983,32 @@ cp -R "$HAPPY_PROJECT" "$LAYER_TASK_PROJECT"
 cat >"$LAYER_TASK_PROJECT/openspec/changes/add-dashboard/tasks.md" <<'MD'
 # Development Tasks
 
-- build api
+- [x] build api
 MD
 run_json "$LAYER_TASK_PROJECT" "$TMP_DIR/layer-task.json" 2
 assert_blocker "$TMP_DIR/layer-task.json" 'tasks-md:layer-only:build api'
 assert_blocker "$TMP_DIR/layer-task.json" 'tasks-md:no-vertical-slice'
+
+NO_CHECKBOX_TASK_PROJECT="$TMP_DIR/no-checkbox-task-project"
+cp -R "$HAPPY_PROJECT" "$NO_CHECKBOX_TASK_PROJECT"
+cat >"$NO_CHECKBOX_TASK_PROJECT/openspec/changes/add-dashboard/tasks.md" <<'MD'
+# Development Tasks
+
+- user can view dashboard summary with loading empty and error states
+MD
+run_json "$NO_CHECKBOX_TASK_PROJECT" "$TMP_DIR/no-checkbox-task.json" 2
+assert_blocker "$TMP_DIR/no-checkbox-task.json" 'tasks-md:no-checkboxes'
+
+INCOMPLETE_TASK_PROJECT="$TMP_DIR/incomplete-task-project"
+cp -R "$HAPPY_PROJECT" "$INCOMPLETE_TASK_PROJECT"
+cat >"$INCOMPLETE_TASK_PROJECT/openspec/changes/add-dashboard/tasks.md" <<'MD'
+# Development Tasks
+
+- [ ] user can view dashboard summary with loading empty and error states
+MD
+run_json "$INCOMPLETE_TASK_PROJECT" "$TMP_DIR/incomplete-task.json" 2
+assert_blocker "$TMP_DIR/incomplete-task.json" 'tasks-md:incomplete-checkboxes'
+assert_blocker "$TMP_DIR/incomplete-task.json" 'tasks-md:no-completed-checkboxes'
 
 MISSING_PROMOTION_PROJECT="$TMP_DIR/missing-promotion-project"
 cp -R "$HAPPY_PROJECT" "$MISSING_PROMOTION_PROJECT"
