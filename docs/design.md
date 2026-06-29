@@ -4,7 +4,7 @@ This document describes the current Claude Code implementation of SpecNav. The l
 
 ## 1. Current Shape
 
-SpecNav is currently a Claude Code marketplace repository containing six installable plugins. Current implementation version: `0.4.5`.
+SpecNav is currently a Claude Code marketplace repository containing six installable plugins. Current implementation version: `0.4.6`.
 
 The accepted target is now the current implementation shape: one marketplace root, one core runtime plugin, and one plugin for each major lifecycle stage.
 
@@ -140,9 +140,17 @@ Required Markdown sections:
 - `## Shapes`
 - `## Components`
 - `## Voice & Content`
+- `## Theme & Internationalization`
 - `## Do's and Don'ts`
 
 If the project uses light and dark theme documents, both documents must use the same token keys and component contract shape. SpecNav must validate YAML parseability, required sections, token references, and light/dark key parity before requirements work continues.
+
+`## Theme & Internationalization` must explicitly record supported theme modes
+(`none`, `light-only`, `dark-only`, `light-dark`, or `system`), whether a
+theme toggle exists or must be omitted, whether i18n exists, supported locales,
+default locale, and whether prototypes should show theme or locale controls.
+Projects may have i18n without dark/light switching; SpecNav must preserve that
+distinction instead of inventing a theme toggle.
 
 If the UI design spec is missing, SpecNav asks whether the user already has a design-system document. If yes, the user supplies it in this exact structure. If no, SpecNav guides creation section by section in the same format.
 
@@ -246,7 +254,7 @@ openspec/changes/<change>/
   component-impact-map.json
 ```
 
-`spec-map.json` records which UI rules, architecture modules, API contracts, database entities, permissions, operational constraints, and data flows are touched by the change. `component-impact-map.json` records new components, reused components, extraction triggers, forbidden dependencies, hooks/utilities/services to extract, and required component tests.
+`spec-map.json` records which UI rules, architecture modules, API contracts, database entities, permissions, operational constraints, data flows, theme modes, and locale policy are touched by the change. `component-impact-map.json` records new components, reused components, extraction triggers, forbidden dependencies, hooks/utilities/services to extract, and required component tests.
 
 If either map contains unresolved gaps, SpecNav blocks development and guides the user to update the relevant foundation spec first.
 
@@ -282,6 +290,12 @@ Entering `/specnav-prototype` requires:
 - any required project-level spec updates from requirements are complete.
 
 If prototype work needs design context, SpecNav must locate the relevant design system, UI kit, existing components, screenshots, brand assets, routes, state models, API examples, or domain docs before writing prototype code. If required context cannot be found, prototype work is blocked and SpecNav asks for the missing material. There is no fallback to generic design.
+
+Prototype entry also requires the approved theme and locale policy from
+requirements. If the project does not support dark mode, the prototype must not
+show a dark/light switch. If the project supports i18n, the prototype must name
+supported locales, default locale, and whether the review artifact includes a
+locale switcher.
 
 ### 5.2 Question Classification
 
@@ -348,6 +362,10 @@ Only the branch-specific directories required by the prototype question must exi
 - referenced foundation specs;
 - referenced requirements;
 - whether it may be promoted;
+- `ui_capabilities.theme`: support level, modes, toggle-in-prototype decision,
+  and source spec reference;
+- `ui_capabilities.i18n`: enabled flag, supported locales, default locale,
+  locale-switch-in-prototype decision, and source spec reference;
 - cleanup or promotion requirement.
 
 ### 5.4 Variants and Tweaks
@@ -2225,6 +2243,17 @@ Completed in `0.4.5`:
    archived receipt generation.
 5. Require scaffold scripts that write change artifacts to use explicit
    active-change evidence instead of single-change inference.
+
+Completed in `0.4.6`:
+
+1. Require the UI design foundation spec to state theme capability, theme toggle
+   policy, i18n capability, supported locales, and default locale.
+2. Require requirements `spec-map.json` to include non-empty `theme_modes` and
+   `locale_policy` fields.
+3. Require prototype manifests, screen maps, and handoffs to bind review
+   artifacts to approved theme and locale policy.
+4. Extend repository discovery so i18n and theme folders, configs, and
+   dependencies become evidence for foundation spec negotiation.
 
 Next:
 

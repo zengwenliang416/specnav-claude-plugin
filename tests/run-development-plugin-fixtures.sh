@@ -73,6 +73,13 @@ components: []
 ## Shapes
 ## Components
 ## Voice & Content
+## Theme & Internationalization
+
+- Theme capability: light-only.
+- Theme toggle: none.
+- Internationalization: none.
+- Supported locales: none.
+- Default locale: none.
 ## Do's and Don'ts
 MD
 
@@ -146,6 +153,8 @@ MD
   "permissions": [],
   "operational_constraints": [],
   "data_flows": [],
+  "theme_modes": ["light-only", "theme-toggle:none"],
+  "locale_policy": ["i18n:disabled", "locales:none", "default-locale:none"],
   "unresolved_gaps": []
 }
 JSON
@@ -203,6 +212,8 @@ HTML
       "acceptance": ["Dashboard renders with loading, empty, and error states covered."],
       "components": ["DashboardView", "DashboardSummary"],
       "data_flows": ["Dashboard summary API response populates dashboard view state"],
+      "theme_modes": ["light"],
+      "locales": ["none"],
       "implementation_files": ["src/dashboard/DashboardView.tsx", "src/dashboard/useDashboardState.ts"]
     }
   ]
@@ -221,7 +232,22 @@ JSON
   "referenced_foundation_specs": ["ui-design", "system-architecture"],
   "referenced_requirements": ["requirements.md", "acceptance.md"],
   "may_promote": false,
-  "promotion_requirement": "Prototype decisions must enter development through scope.json and tasks.md."
+  "promotion_requirement": "Prototype decisions must enter development through scope.json and tasks.md.",
+  "ui_capabilities": {
+    "theme": {
+      "support": "light-only",
+      "modes": ["light"],
+      "toggle_in_prototype": false,
+      "source": "openspec/specs/ui-design/design.md#Theme & Internationalization"
+    },
+    "i18n": {
+      "enabled": false,
+      "locales": ["none"],
+      "default_locale": "none",
+      "locale_switch_in_prototype": false,
+      "source": "openspec/specs/ui-design/design.md#Theme & Internationalization"
+    }
+  }
 }
 JSON
 
@@ -272,6 +298,15 @@ JSON
 ## State, loading, empty, error, disabled, and permission behavior
 
 - Required states cover loading, empty, error, disabled refresh, and permission denied views.
+
+## Theme and locale policy
+
+- Theme support: light-only.
+- Theme modes shown in prototype: light.
+- Theme toggle: omitted because the project does not require one for this prototype.
+- Internationalization: disabled.
+- Locales shown in prototype: none.
+- Locale switcher: omitted.
 
 ## Out-of-scope items
 

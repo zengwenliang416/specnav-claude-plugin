@@ -5,7 +5,7 @@ description: Use this skill when the user wants to define, clarify, or continue 
 
 ## Runtime Paths
 
-Resolve every `SPECNAV_*_ROOT` variable with the owning SpecNav command's installed-cache resolver before running Bash. Do not rely on `CLAUDE_PLUGIN_ROOT`; it is only guaranteed inside Claude Code hook processes. If a required installed plugin root cannot be resolved, report the exact blocker and stop.
+Resolve every `SPECNAV_*_ROOT` variable with the owning SpecNav Codex plugin resolver before running Bash. Codex plugin code must use `PLUGIN_ROOT` and explicit `SPECNAV_*_ROOT` overrides. If a required installed plugin root cannot be resolved, report the exact blocker and stop.
 
 # SpecNav Requirements
 
@@ -22,10 +22,11 @@ Discover change requirements after foundation spec validation passes.
 5. Read `references/interview-philosophy.md` before asking product questions.
 6. Read `references/requirements-artifacts.md` before creating or repairing requirements artifacts.
 7. If required change artifacts are missing, run `node "$SPECNAV_REQUIREMENTS_ROOT/skills/specnav-requirements/scripts/create-requirements-artifacts.js" --json` to scaffold templates from `assets/change/`.
-8. Ask one focused question at a time with a recommended answer and tradeoff.
-9. Do not ask information already answered by foundation spec, discovery evidence, OpenSpec artifacts, or previous answers.
-10. Close each decision branch before opening the next: record the answer, update maps, rerun contracts, and resolve blockers.
-11. Write unknowns in `unresolved_gaps` instead of inventing answers.
+8. Before feature questioning, confirm the UI design spec's theme modes, theme toggle policy, i18n capability, supported locales, default locale, and prototype coverage expectation.
+9. Ask one focused question at a time with a recommended answer and tradeoff.
+10. Do not ask information already answered by foundation spec, discovery evidence, OpenSpec artifacts, or previous answers.
+11. Close each decision branch before opening the next: record the answer, update maps, rerun contracts, and resolve blockers.
+12. Write unknowns in `unresolved_gaps` instead of inventing answers.
 
 ## Required Outputs
 

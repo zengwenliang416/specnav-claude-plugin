@@ -70,6 +70,13 @@ components: []
 ## Shapes
 ## Components
 ## Voice & Content
+## Theme & Internationalization
+
+- Theme capability: light-only.
+- Theme toggle: none.
+- Internationalization: none.
+- Supported locales: none.
+- Default locale: none.
 ## Do's and Don'ts
 MD
   cat >"$project/openspec/specs/system-architecture/design.md" <<'MD'
@@ -133,6 +140,8 @@ MD
   "permissions": [],
   "operational_constraints": [],
   "data_flows": [],
+  "theme_modes": ["light-only", "theme-toggle:none"],
+  "locale_policy": ["i18n:disabled", "locales:none", "default-locale:none"],
   "unresolved_gaps": []
 }
 JSON
@@ -167,6 +176,8 @@ HTML
     "acceptance": ["Dashboard renders loading, empty, and error states."],
     "components": ["DashboardView"],
     "data_flows": ["Dashboard API to view state"],
+    "theme_modes": ["light"],
+    "locales": ["none"],
     "implementation_files": ["src/dashboard/DashboardView.tsx"]
   }]
 }
@@ -183,7 +194,22 @@ JSON
   "referenced_foundation_specs": ["ui-design"],
   "referenced_requirements": ["requirements.md"],
   "may_promote": false,
-  "promotion_requirement": "development gate"
+  "promotion_requirement": "development gate",
+  "ui_capabilities": {
+    "theme": {
+      "support": "light-only",
+      "modes": ["light"],
+      "toggle_in_prototype": false,
+      "source": "openspec/specs/ui-design/design.md#Theme & Internationalization"
+    },
+    "i18n": {
+      "enabled": false,
+      "locales": ["none"],
+      "default_locale": "none",
+      "locale_switch_in_prototype": false,
+      "source": "openspec/specs/ui-design/design.md#Theme & Internationalization"
+    }
+  }
 }
 JSON
   cat >"$proto/verifier-report.json" <<'JSON'
@@ -213,6 +239,13 @@ JSON
 - API response populates dashboard view state.
 ## State, loading, empty, error, disabled, and permission behavior
 - Loading, empty, error, disabled, permission states.
+## Theme and locale policy
+- Theme support: light-only.
+- Theme modes shown in prototype: light.
+- Theme toggle: omitted.
+- Internationalization: disabled.
+- Locales shown in prototype: none.
+- Locale switcher: omitted.
 ## Out-of-scope items
 - Export.
 ## Required tests

@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.4.6
+
+- Require the UI design foundation spec to state theme capability, theme toggle
+  policy, i18n capability, supported locales, and default locale.
+- Require change-level `spec-map.json` to record non-empty `theme_modes` and
+  `locale_policy` entries.
+- Require prototype manifests, screen maps, and handoffs to bind prototypes to
+  the approved theme and locale policy, including explicit omission of theme or
+  locale switchers when unsupported.
+- Extend repository discovery to detect common i18n and theme evidence such as
+  dictionaries, locale folders, theme folders, i18n configs, Tailwind configs,
+  and i18n/theme dependencies.
+
 ## 0.4.5
 
 - Add SpecNav change registry support so multiple active OpenSpec changes can

@@ -27,6 +27,8 @@ Skills, plugin hooks, and deterministic scripts to decide what is legal next,
 what is blocked, and what evidence must exist before the agent can move
 forward.
 
+SpecNav means navigating development through file-backed OpenSpec contracts.
+
 This repository is a Claude Code marketplace that ships six installable plugins:
 
 | Plugin | Responsibility |

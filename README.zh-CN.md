@@ -23,6 +23,8 @@
 
 SpecNav 把 AI 编码从开放式聊天，收束成有文件证据、有阶段边界、有下一步判断的工程交付流程。它通过 OpenSpec 产物、Claude Code commands、Agent Skills、插件 hooks 和确定性脚本判断：现在什么动作合法、什么动作被阻塞、继续前必须补齐什么证据。
 
+SpecNav 的含义是通过文件化 OpenSpec 契约导航开发过程。
+
 这个仓库是一个 Claude Code marketplace，里面包含六个可安装插件：
 
 | 插件 | 职责 |

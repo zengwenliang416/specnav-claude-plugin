@@ -152,6 +152,13 @@ components: []
 ## Shapes
 ## Components
 ## Voice & Content
+## Theme & Internationalization
+
+- Theme capability: light-only.
+- Theme toggle: none.
+- Internationalization: none.
+- Supported locales: none.
+- Default locale: none.
 ## Do's and Don'ts
 MD
 
@@ -177,6 +184,13 @@ components: []
 ## Shapes
 ## Components
 ## Voice & Content
+## Theme & Internationalization
+
+- Theme capability: light-only.
+- Theme toggle: none.
+- Internationalization: none.
+- Supported locales: none.
+- Default locale: none.
 ## Do's and Don'ts
 MD
 
@@ -204,6 +218,13 @@ components:
 ## Shapes
 ## Components
 ## Voice & Content
+## Theme & Internationalization
+
+- Theme capability: light-only.
+- Theme toggle: none.
+- Internationalization: none.
+- Supported locales: none.
+- Default locale: none.
 ## Do's and Don'ts
 MD
 
@@ -304,6 +325,8 @@ MD
   "permissions": [],
   "operational_constraints": [],
   "data_flows": [],
+  "theme_modes": ["light-only", "theme-toggle:none"],
+  "locale_policy": ["i18n:disabled", "locales:none", "default-locale:none"],
   "unresolved_gaps": []
 }
 JSON
@@ -475,6 +498,13 @@ components: []
 ## Shapes
 ## Components
 ## Voice & Content
+## Theme & Internationalization
+
+- Theme capability: light-only.
+- Theme toggle: none.
+- Internationalization: none.
+- Supported locales: none.
+- Default locale: none.
 ## Do's and Don'ts
 MD
 run_json "$PLAIN_SCALAR_SUFFIX_FRONTMATTER_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/plain-scalar-suffix-frontmatter.json" 0
@@ -505,6 +535,13 @@ components: []
 ## Shapes
 ## Components
 ## Voice & Content
+## Theme & Internationalization
+
+- Theme capability: light-only.
+- Theme toggle: none.
+- Internationalization: none.
+- Supported locales: none.
+- Default locale: none.
 ## Do's and Don'ts
 MD
 cat >"$MULTI_COMPANION_PROJECT/openspec/specs/ui-design/marketing.dark.md" <<'MD'
@@ -529,6 +566,13 @@ components: []
 ## Shapes
 ## Components
 ## Voice & Content
+## Theme & Internationalization
+
+- Theme capability: light-only.
+- Theme toggle: none.
+- Internationalization: none.
+- Supported locales: none.
+- Default locale: none.
 ## Do's and Don'ts
 MD
 cat >"$MULTI_COMPANION_PROJECT/openspec/specs/ui-design/light.marketing.md" <<'MD'
@@ -555,6 +599,13 @@ components:
 ## Shapes
 ## Components
 ## Voice & Content
+## Theme & Internationalization
+
+- Theme capability: light-only.
+- Theme toggle: none.
+- Internationalization: none.
+- Supported locales: none.
+- Default locale: none.
 ## Do's and Don'ts
 MD
 cat >"$MULTI_COMPANION_PROJECT/openspec/specs/ui-design/dark.marketing.md" <<'MD'
@@ -581,6 +632,13 @@ components:
 ## Shapes
 ## Components
 ## Voice & Content
+## Theme & Internationalization
+
+- Theme capability: light-only.
+- Theme toggle: none.
+- Internationalization: none.
+- Supported locales: none.
+- Default locale: none.
 ## Do's and Don'ts
 MD
 run_json "$MULTI_COMPANION_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/multi-companion.json" 0
@@ -628,6 +686,13 @@ components:
 ## Shapes
 ## Components
 ## Voice & Content
+## Theme & Internationalization
+
+- Theme capability: light-only.
+- Theme toggle: none.
+- Internationalization: none.
+- Supported locales: none.
+- Default locale: none.
 ## Do's and Don'ts
 MD
 run_json "$BLOCK_FRONTMATTER_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/block-frontmatter.json" 0
@@ -658,6 +723,13 @@ components: ['Bob''s #1, component note', {name: Button, note: 'Bob''s #1, inlin
 ## Shapes
 ## Components
 ## Voice & Content
+## Theme & Internationalization
+
+- Theme capability: light-only.
+- Theme toggle: none.
+- Internationalization: none.
+- Supported locales: none.
+- Default locale: none.
 ## Do's and Don'ts
 MD
 run_json "$SINGLE_QUOTE_ESCAPE_FRONTMATTER_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/single-quote-escape-frontmatter.json" 0
@@ -689,6 +761,13 @@ components: [{name: Button, note: "Escaped quote: \"primary\""}]
 ## Shapes
 ## Components
 ## Voice & Content
+## Theme & Internationalization
+
+- Theme capability: light-only.
+- Theme toggle: none.
+- Internationalization: none.
+- Supported locales: none.
+- Default locale: none.
 ## Do's and Don'ts
 MD
 run_json "$DOUBLE_QUOTE_ESCAPE_FRONTMATTER_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/double-quote-escape-frontmatter.json" 0
@@ -719,6 +798,13 @@ components: []
 ## Shapes
 ## Components
 ## Voice & Content
+## Theme & Internationalization
+
+- Theme capability: light-only.
+- Theme toggle: none.
+- Internationalization: none.
+- Supported locales: none.
+- Default locale: none.
 ## Do's and Don'ts
 MD
 run_json "$SURROGATE_DOUBLE_ESCAPE_FRONTMATTER_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/surrogate-double-escape-frontmatter.json" 2
@@ -748,6 +834,13 @@ components: []
 ## Shapes
 ## Components
 ## Voice & Content
+## Theme & Internationalization
+
+- Theme capability: light-only.
+- Theme toggle: none.
+- Internationalization: none.
+- Supported locales: none.
+- Default locale: none.
 ## Do's and Don'ts
 MD
 run_json "$SINGLE_QUOTE_BACKSLASH_COMMENT_FRONTMATTER_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/single-quote-backslash-comment-frontmatter.json" 0
@@ -778,6 +871,13 @@ components: []
 ## Shapes
 ## Components
 ## Voice & Content
+## Theme & Internationalization
+
+- Theme capability: light-only.
+- Theme toggle: none.
+- Internationalization: none.
+- Supported locales: none.
+- Default locale: none.
 ## Do's and Don'ts
 MD
 run_json "$INVALID_DOUBLE_ESCAPE_FRONTMATTER_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/invalid-double-escape-frontmatter.json" 2
@@ -807,6 +907,13 @@ components: []
 ## Shapes
 ## Components
 ## Voice & Content
+## Theme & Internationalization
+
+- Theme capability: light-only.
+- Theme toggle: none.
+- Internationalization: none.
+- Supported locales: none.
+- Default locale: none.
 ## Do's and Don'ts
 MD
 run_json "$UNESCAPED_DOUBLE_QUOTE_FRONTMATTER_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/unescaped-double-quote-frontmatter.json" 2
@@ -836,6 +943,13 @@ components: []
 ## Shapes
 ## Components
 ## Voice & Content
+## Theme & Internationalization
+
+- Theme capability: light-only.
+- Theme toggle: none.
+- Internationalization: none.
+- Supported locales: none.
+- Default locale: none.
 ## Do's and Don'ts
 MD
 run_json "$UNESCAPED_SINGLE_QUOTE_FRONTMATTER_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/unescaped-single-quote-frontmatter.json" 2
@@ -865,6 +979,13 @@ components: [{name: Button, note: 'Bob's inline component'}]
 ## Shapes
 ## Components
 ## Voice & Content
+## Theme & Internationalization
+
+- Theme capability: light-only.
+- Theme toggle: none.
+- Internationalization: none.
+- Supported locales: none.
+- Default locale: none.
 ## Do's and Don'ts
 MD
 run_json "$INLINE_UNESCAPED_SINGLE_QUOTE_FRONTMATTER_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/inline-unescaped-single-quote-frontmatter.json" 2
@@ -894,6 +1015,13 @@ components: []
 ## Shapes
 ## Components
 ## Voice & Content
+## Theme & Internationalization
+
+- Theme capability: light-only.
+- Theme toggle: none.
+- Internationalization: none.
+- Supported locales: none.
+- Default locale: none.
 ## Do's and Don'ts
 MD
 run_json "$UNCLOSED_INLINE_FRONTMATTER_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/unclosed-inline-frontmatter.json" 2
@@ -928,6 +1056,13 @@ components: []
 ## Shapes
 ## Components
 ## Voice & Content
+## Theme & Internationalization
+
+- Theme capability: light-only.
+- Theme toggle: none.
+- Internationalization: none.
+- Supported locales: none.
+- Default locale: none.
 ## Do's and Don'ts
 MD
 run_json "$HEX_LITERAL_FRONTMATTER_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/hex-literal-frontmatter.json" 0
@@ -957,6 +1092,13 @@ components: []
 ## Shapes
 ## Components
 ## Voice & Content
+## Theme & Internationalization
+
+- Theme capability: light-only.
+- Theme toggle: none.
+- Internationalization: none.
+- Supported locales: none.
+- Default locale: none.
 ## Do's and Don'ts
 MD
 run_json "$INLINE_HEX_ARRAY_FRONTMATTER_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/inline-hex-array-frontmatter.json" 0
@@ -986,6 +1128,13 @@ components: []
 ## Shapes
 ## Components
 ## Voice & Content
+## Theme & Internationalization
+
+- Theme capability: light-only.
+- Theme toggle: none.
+- Internationalization: none.
+- Supported locales: none.
+- Default locale: none.
 ## Do's and Don'ts
 MD
 run_json "$INLINE_HEX_OBJECT_FRONTMATTER_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/inline-hex-object-frontmatter.json" 0
@@ -1030,6 +1179,13 @@ components:
 ## Shapes
 ## Components
 ## Voice & Content
+## Theme & Internationalization
+
+- Theme capability: light-only.
+- Theme toggle: none.
+- Internationalization: none.
+- Supported locales: none.
+- Default locale: none.
 ## Do's and Don'ts
 MD
 run_json "$THEME_MISMATCH_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/theme-mismatch.json" 2
@@ -1059,6 +1215,13 @@ components: []
 ## Shapes
 ## Components
 ## Voice & Content
+## Theme & Internationalization
+
+- Theme capability: light-only.
+- Theme toggle: none.
+- Internationalization: none.
+- Supported locales: none.
+- Default locale: none.
 ## Do's and Don'ts
 MD
 run_json "$COMPANION_BAD_FRONTMATTER_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/companion-bad-frontmatter.json" 2
@@ -1106,6 +1269,13 @@ components:
 ## Shapes
 ## Components
 ## Voice & Content
+## Theme & Internationalization
+
+- Theme capability: light-only.
+- Theme toggle: none.
+- Internationalization: none.
+- Supported locales: none.
+- Default locale: none.
 ## Do's and Don'ts
 MD
 run_json "$NAMED_THEME_MISMATCH_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/named-theme-mismatch.json" 2
@@ -1270,6 +1440,8 @@ cat >"$EMPTY_SPEC_MAP_MEMBER_PROJECT/openspec/changes/add-dashboard/spec-map.jso
   "permissions": [],
   "operational_constraints": [],
   "data_flows": [],
+  "theme_modes": ["light-only", "theme-toggle:none"],
+  "locale_policy": ["i18n:disabled", "locales:none", "default-locale:none"],
   "unresolved_gaps": []
 }
 JSON
@@ -1288,6 +1460,8 @@ cat >"$PADDED_TOUCHED_SPEC_PROJECT/openspec/changes/add-dashboard/spec-map.json"
   "permissions": [],
   "operational_constraints": [],
   "data_flows": [],
+  "theme_modes": ["light-only", "theme-toggle:none"],
+  "locale_policy": ["i18n:disabled", "locales:none", "default-locale:none"],
   "unresolved_gaps": []
 }
 JSON
@@ -1306,6 +1480,8 @@ cat >"$PADDED_SPEC_MAP_MEMBER_PROJECT/openspec/changes/add-dashboard/spec-map.js
   "permissions": [],
   "operational_constraints": [],
   "data_flows": [],
+  "theme_modes": ["light-only", "theme-toggle:none"],
+  "locale_policy": ["i18n:disabled", "locales:none", "default-locale:none"],
   "unresolved_gaps": []
 }
 JSON
@@ -1324,6 +1500,8 @@ cat >"$UNKNOWN_TOUCHED_SPEC_PROJECT/openspec/changes/add-dashboard/spec-map.json
   "permissions": [],
   "operational_constraints": [],
   "data_flows": [],
+  "theme_modes": ["light-only", "theme-toggle:none"],
+  "locale_policy": ["i18n:disabled", "locales:none", "default-locale:none"],
   "unresolved_gaps": []
 }
 JSON
@@ -1371,6 +1549,8 @@ cat >"$EMPTY_SPEC_MAP_FIELDS_PROJECT/openspec/changes/add-dashboard/spec-map.jso
   "permissions": [],
   "operational_constraints": [],
   "data_flows": [],
+  "theme_modes": ["light-only", "theme-toggle:none"],
+  "locale_policy": ["i18n:disabled", "locales:none", "default-locale:none"],
   "unresolved_gaps": []
 }
 JSON
@@ -1583,6 +1763,13 @@ components: [
 ## Shapes
 ## Components
 ## Voice & Content
+## Theme & Internationalization
+
+- Theme capability: light-only.
+- Theme toggle: none.
+- Internationalization: none.
+- Supported locales: none.
+- Default locale: none.
 ## Do's and Don'ts
 MD
 run_json "$BAD_FRONTMATTER_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/bad-frontmatter.json" 2
@@ -1612,6 +1799,13 @@ components: []
 ## Shapes
 ## Components
 ## Voice & Content
+## Theme & Internationalization
+
+- Theme capability: light-only.
+- Theme toggle: none.
+- Internationalization: none.
+- Supported locales: none.
+- Default locale: none.
 ## Do's and Don'ts
 MD
 run_json "$NULLISH_FRONTMATTER_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/nullish-frontmatter.json" 2
@@ -1642,6 +1836,13 @@ components: []
 ## Shapes
 ## Components
 ## Voice & Content
+## Theme & Internationalization
+
+- Theme capability: light-only.
+- Theme toggle: none.
+- Internationalization: none.
+- Supported locales: none.
+- Default locale: none.
 ## Do's and Don'ts
 MD
 run_json "$NESTED_NULL_FRONTMATTER_PROJECT" "$REQ/scripts/foundation-specs.js" "$TMP_DIR/nested-null-frontmatter.json" 2
