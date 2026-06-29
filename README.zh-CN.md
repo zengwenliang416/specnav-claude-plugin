@@ -42,6 +42,7 @@ SpecNav 的含义是通过文件化 OpenSpec 契约导航开发过程。
 
 后续新增 SpecNav 图像时，应先遵循项目视觉记忆：
 [docs/memory/specnav-visual-style.md](docs/memory/specnav-visual-style.md)。
+中英文图像从同一份源布局渲染，只允许本地化文字层不同。
 
 <p align="center">
   <img src="docs/assets/readme/zh-CN/specnav-overview-bd-2k.png" alt="SpecNav 生命周期总览图" width="100%">
