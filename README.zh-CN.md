@@ -1,29 +1,103 @@
-# SpecNav Claude Code 插件套件
+<p align="center">
+  <img src="docs/assets/specnav-logo-readme.png" alt="SpecNav logo" width="148" height="148">
+</p>
 
-SpecNav 是一个基于 OpenSpec 的 Claude Code 多插件工作流套件，用来约束从需求到运维的完整工程过程：
+<h1 align="center">SpecNav Claude Code 插件套件</h1>
 
-```text
-初始化 -> 规范发现 -> 需求 -> 原型 -> 开发 -> 测试验证 -> 运维
-```
+<p align="center">
+  <strong>面向 Claude Code 的 OpenSpec 约束型交付流程。</strong>
+</p>
 
-SpecNav 的含义是通过文件化 OpenSpec 契约导航开发过程：Claude 负责理解、解释和提出候选方案，Hook 和确定性脚本负责判断下一步是否合法。
+<p align="center">
+  <a href="README.md">English</a> ·
+  <a href="#从-github-安装">安装</a> ·
+  <a href="#流程如何运行">流程</a> ·
+  <a href="#阶段图谱">阶段图谱</a> ·
+  <a href="#skills">Skills</a> ·
+  <a href="docs/design.md">设计文档</a>
+</p>
 
-这个仓库本身就是一个本地 Claude Code marketplace。每个生命周期阶段都是独立插件，`specnav-core` 负责启动、路由、Hook、状态、诊断和跨插件依赖检查。
+<p align="center">
+  <code>初始化</code> -> <code>规范发现</code> -> <code>需求</code> -> <code>原型</code> -> <code>开发</code> -> <code>验证</code> -> <code>运维</code>
+</p>
 
-English documentation: [README.md](README.md)
+SpecNav 把 AI 编码从开放式聊天，收束成有文件证据、有阶段边界、有下一步判断的工程交付流程。它通过 OpenSpec 产物、Claude Code commands、Agent Skills、插件 hooks 和确定性脚本判断：现在什么动作合法、什么动作被阻塞、继续前必须补齐什么证据。
 
-## 本地安装
+这个仓库是一个 Claude Code marketplace，里面包含六个可安装插件：
 
-在仓库根目录执行：
+| 插件 | 职责 |
+| --- | --- |
+| `specnav-core` | 运行时、hooks、bootstrap、status、doctor、route、recovery |
+| `specnav-requirements` | 仓库发现、foundation specs、需求问需 |
+| `specnav-prototype` | 可运行原型、原型验证、开发交接 |
+| `specnav-development` | Scope lock、垂直切片、fix/debug/break-loop 流程 |
+| `specnav-verification` | 六域验证和面向审阅人的 HTML 报告 |
+| `specnav-operations` | 发布准备、部署、回滚、监控、归档动作 |
+
+## 阶段图谱
+
+整个生命周期不是一组松散提示词，而是一条带 gate、产物合同和下一步边界的路线。
+
+后续新增 SpecNav 图像时，应先遵循项目视觉记忆：
+[docs/memory/specnav-visual-style.md](docs/memory/specnav-visual-style.md)。
+
+<p align="center">
+  <img src="docs/assets/readme/specnav-overview-bd-2k.png" alt="SpecNav 生命周期总览图" width="100%">
+</p>
+
+<table>
+  <tr>
+    <td width="50%">
+      <strong>1. 初始化</strong><br>
+      <img src="docs/assets/readme/stage-1-bootstrap-bd-2k.png" alt="SpecNav 初始化阶段">
+    </td>
+    <td width="50%">
+      <strong>2. 规范发现</strong><br>
+      <img src="docs/assets/readme/stage-2-discovery-bd-2k.png" alt="SpecNav 规范发现阶段">
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <strong>3. 需求问需</strong><br>
+      <img src="docs/assets/readme/stage-3-requirements-bd-2k.png" alt="SpecNav 需求阶段">
+    </td>
+    <td width="50%">
+      <strong>4. 原型验证</strong><br>
+      <img src="docs/assets/readme/stage-4-prototype-bd-2k.png" alt="SpecNav 原型阶段">
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <strong>5. 垂直开发</strong><br>
+      <img src="docs/assets/readme/stage-5-development-bd-2k.png" alt="SpecNav 开发阶段">
+    </td>
+    <td width="50%">
+      <strong>6. 六域验证</strong><br>
+      <img src="docs/assets/readme/stage-6-verification-bd-2k.png" alt="SpecNav 验证阶段">
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2">
+      <strong>7. 运维归档</strong><br>
+      <img src="docs/assets/readme/stage-7-operations-bd-2k.png" alt="SpecNav 运维阶段">
+    </td>
+  </tr>
+</table>
+
+## 从 GitHub 安装
+
+把本仓库添加为 Claude Code marketplace，然后安装并启用六个阶段插件：
 
 ```bash
-claude plugin marketplace add "$PWD"
+claude plugin marketplace add zengwenliang416/specnav-claude-plugin
+
 claude plugin install specnav-core@specnav-marketplace
 claude plugin install specnav-requirements@specnav-marketplace
 claude plugin install specnav-prototype@specnav-marketplace
 claude plugin install specnav-development@specnav-marketplace
 claude plugin install specnav-verification@specnav-marketplace
 claude plugin install specnav-operations@specnav-marketplace
+
 claude plugin enable specnav-core@specnav-marketplace
 claude plugin enable specnav-requirements@specnav-marketplace
 claude plugin enable specnav-prototype@specnav-marketplace
@@ -32,92 +106,224 @@ claude plugin enable specnav-verification@specnav-marketplace
 claude plugin enable specnav-operations@specnav-marketplace
 ```
 
-如果当前 Claude Code 版本的插件命令名称不同，只安装包含 `.claude-plugin/marketplace.json` 的本地 marketplace 根目录，并以 `claude plugin validate "$PWD"` 和 `claude plugin list --json` 验证。
+如果你在本地 checkout 中开发，可以验证 marketplace：
 
-安装或更新 commands、skills、hooks、agents 后，请启动新的 Claude Code 会话。
+```bash
+claude plugin validate "$PWD"
+```
+
+安装或更新 commands、skills、hooks、agents、scripts 后，请启动新的 Claude Code 会话。旧会话不一定能看到刚安装的能力。
+
+## 本地开发安装
+
+从本地 checkout 安装：
+
+```bash
+git clone https://github.com/zengwenliang416/specnav-claude-plugin.git
+cd specnav-claude-plugin
+
+claude plugin marketplace add "$PWD"
+
+claude plugin install specnav-core@specnav-marketplace
+claude plugin install specnav-requirements@specnav-marketplace
+claude plugin install specnav-prototype@specnav-marketplace
+claude plugin install specnav-development@specnav-marketplace
+claude plugin install specnav-verification@specnav-marketplace
+claude plugin install specnav-operations@specnav-marketplace
+```
 
 ## 第一次使用
 
-安装后要在目标项目里使用 SpecNav，不是在这个插件仓库里继续操作。
+SpecNav 要在目标项目里运行，不是在这个插件仓库里继续操作。
 
 ```text
-1. 运行 /specnav-doctor
-   确认六个插件、Hook、commands、skills、OpenSpec CLI 和 installed cache 都可见。
+1. /specnav-doctor
+   检查六个插件、hooks、commands、skills、OpenSpec CLI 和 cache 是否可见。
 
-2. 运行 /specnav
+2. /specnav
    读取当前 affordance table，报告下一步合法命令。
 
-3. 如果项目没有 OpenSpec 状态，运行 /specnav-bootstrap
-   这会创建 openspec/、openspec/.specnav/workflow-state.json、context manifests 和项目根目录 .specnav.json 标记。
+3. /specnav-bootstrap
+   只在目标项目没有 OpenSpec 状态时使用。
 
-4. 运行 /specnav-status
-   确认 active change、ready actions、blockers、risk tier 和 stale verification 状态。
+4. /specnav-status
+   查看 active change、ready actions、blockers、risk tier 和 stale verification 状态。
 
-5. 运行 /specnav-requirements
-   如果 foundation specs 缺失，SpecNav 会先路由到仓库规范发现和 foundation spec 修复，然后才能开始功能问需。
+5. /specnav-requirements
+   只有 OpenSpec 和必要 foundation specs 存在后，才进入需求问需。
 ```
 
-完整 walkthrough 见 [docs/user-journey.md](docs/user-journey.md)。
+## 流程如何运行
 
-## 工作流模型
+| 阶段 | 入口 | 必要证据 | 下一道 gate |
+| --- | --- | --- | --- |
+| 初始化 | `/specnav-bootstrap` | `openspec/`、`.specnav/`、`.specnav.json`、workflow state | 项目能报告合法命令 |
+| 规范发现 | `/specnav-requirements` 加 `specnav-repository-discovery` | 只读仓库证据和 context manifest | 可以创建或修复 foundation specs |
+| 需求 | `specnav-foundation-specs`、`/specnav-requirements` | 四类 foundation specs、requirements、acceptance、spec map、component impact map | 允许进入原型 |
+| 原型 | `/specnav-prototype`、`specnav-prototype-verify`、`specnav-prototype-handoff` | 可运行原型、验证报告、批准/交接说明 | 允许进入开发 |
+| 开发 | `/specnav-implement`、`specnav-scope-lock`、`specnav-vertical-slices` | scope lock、checkbox tasks、实现证据、review/fix loop | 允许进入验证 |
+| 验证 | `/specnav-verify` 加六个 domain skills | 真实性、静态、单元、红队、E2E、体感证据，聚合报告，HTML 报告 | 允许进入发布计划 |
+| 运维 | `/specnav-release`、`/specnav-archive`、deploy/rollback/archive skills | release target、readiness、rollback、monitor、archive receipt | 允许归档 change |
 
-| 阶段 | 命令 | 读取 | 写入 | 常见 blocker | 下一步 |
-| --- | --- | --- | --- | --- | --- |
-| 初始化 | `/specnav-bootstrap` | 插件缓存、OpenSpec CLI | `openspec/`、`.specnav/`、`.specnav.json` | `missing-openspec-cli`、初始化失败 | `/specnav-status` |
-| 规范发现 | `/specnav-requirements` + `specnav-repository-discovery` | 仓库文件、已有 specs | `openspec/.specnav/context/repository-discovery.json` | 证据缺失、问题未确认 | `specnav-foundation-specs` |
-| 需求 | `/specnav-requirements` | foundation specs、active change | `requirements.md`、`acceptance.md`、`spec-map.json`、`component-impact-map.json` | specs 缺失/非法、unresolved gaps | `/specnav-prototype` |
-| 原型 | `/specnav-prototype` | requirements artifacts、设计上下文 | `prototype/` artifacts、verifier report、handoff | 上下文缺失、verifier red、未批准 | `/specnav-implement` |
-| 开发 | `/specnav-implement` | requirements、prototype handoff、scope | `scope.json`、任务 artifacts、生产代码改动 | scope 非法、上游漂移、review 失败 | `/specnav-verify` |
-| 验证 | `/specnav-verify` | development handoff、specs、tests | 六域 `verify/` 证据、aggregate report、可给同事审阅的 HTML 报告 | stale report、domain red、证据缺失 | `/specnav-release` |
-| 运维 | `/specnav-release`、`/specnav-archive` | green verification、git/docs/release target | `operations/` readiness/release artifacts、archive receipt | verify not green、target 不明确、ops artifact 缺失 | archive/writeback |
+## Foundation Spec Gate
 
-完整命令和 skill 矩阵见 [docs/command-skill-matrix.md](docs/command-skill-matrix.md)。
+需求阶段不从功能畅想开始。SpecNav 会先检查四类项目级 foundation specs：
 
-`/specnav-archive` 是归档动作，不只是检查门。它会标准化 `tasks.md`，
-要求 operations archive gate 为 green，执行 `openspec validate` 和
-`openspec archive`，更新 SpecNav 的 change focus，重写归档后的 evidence
-路径，并在归档后的 change 里写入 `operations/archive-receipt.json`。
+1. UI 设计 spec，遵循项目 design system 格式。
+2. 前后端架构和数据库设计 spec。
+3. 前后端交互逻辑和数据流向 spec。
+4. 组件架构约束 spec。
 
-## Spec Discovery
+第四类 spec 明确约束高内聚、低耦合。当重复 UI、重复逻辑、领域工具或跨功能行为形成稳定复用单元时，必须抽离为共享组件。共享组件必须声明 ownership、props/contracts、状态边界和允许依赖。
 
-需求阶段不能从空 prompt 开始。SpecNav 会先检查四个 foundation specs：
+如果任何 foundation spec 缺失，SpecNav 会阻塞功能问需，并引导用户创建或修复缺失 spec。这里没有 fallback。
 
-- `openspec/specs/ui-design/design.md`
-- `openspec/specs/system-architecture/design.md`
-- `openspec/specs/frontend-backend-data-flow/design.md`
-- `openspec/specs/component-architecture/design.md`
+## 验证模型
 
-如果它们缺失或不完整，SpecNav 必须先发现仓库事实、列出推断约定、向用户确认缺口，然后才能写入或修复 foundation specs。Discovery 证据不能绕过 `foundation-specs.js` gate。详见 [docs/spec-discovery.md](docs/spec-discovery.md)。
+验证阶段包含六个独立测试域：
 
-## 插件职责
+| 测试域 | 目的 |
+| --- | --- |
+| 真实性 / authenticity | 对照 specs、声明、生成产物和真实系统状态 |
+| 静态检查 | 在运行时测试前执行 lint/type/style/structure 检查 |
+| 单元测试 | 验证最小行为单元和边界条件 |
+| 红队破坏 | 探测破坏性、对抗性、不安全或畸形路径 |
+| E2E 测试 | 验证跨 UI、服务和持久化的真实用户流程 |
+| 体感 / UX 审计 | 人工审阅可读性、交互、性能和整体体验 |
 
-- `specnav-core`：核心运行时、路由、Hook、状态、诊断、跨插件依赖检查。
-- `specnav-requirements`：四个 foundation specs、问需、验收标准、`spec-map.json`、`component-impact-map.json`。
-- `specnav-prototype`：可运行原型、原型验证、用户确认、开发交接。
-- `specnav-development`：开发入口、scope lock、垂直切片任务、开发交接。
-- `specnav-verification`：六类测试验证：真实性、静态、单元、红队、E2E、体感审计。
-- `specnav-operations`：发布、安装验证、更新策略、兼容性、分支收尾、部署、回滚、监控、复盘、归档前检查。
+`specnav-html-report` 会把验证证据生成面向审阅人的 HTML 报告。Green 报告必须有证据、保持新鲜，并链接到被验证的产物。
 
-## Public Skills
+## 无 Fallback 合同
 
-所有公开 skills 都采用 Agent Skills 严格子集：
+SpecNav 不会在必要状态缺失时悄悄继续。如果 required dependency、plugin、OpenSpec command、artifact、state file、context manifest 或 verification tool 不可用，依赖动作会被明确 blocker 阻断。
 
-- frontmatter 只保留 `name` 和 `description`；
-- `name` 必须使用 `specnav-*` 前缀；
-- `description` 必须写明触发场景；
-- 不使用 `allowed-tools`、`metadata` 或 `compatibility`；
-- 缺少 OpenSpec、插件、状态文件或 required artifact 时直接报告 blocker，不走 fallback。
+阻塞态允许的动作：
 
-主要 skills：
+- `/specnav-doctor`
+- `/specnav-status`
+- `/specnav-bootstrap`
+- read-only discovery
+- OpenSpec artifact repair
+- 不触碰生产代码的 docs-only edits
 
-- Core：`specnav-workflow`、`specnav-bootstrap`、`specnav-route`、`specnav-status`、`specnav-doctor`、`specnav-debug`、`specnav-recovery`
-- Requirements：`specnav-repository-discovery`、`specnav-foundation-specs`、`specnav-requirements`
-- Prototype：`specnav-prototype`、`specnav-prototype-verify`、`specnav-prototype-handoff`
-- Development：`specnav-development-entry`、`specnav-scope-lock`、`specnav-vertical-slices`
-- Verification：`specnav-verify-plan`、`specnav-verify-facticity`、`specnav-verify-static`、`specnav-verify-unit`、`specnav-verify-redteam`、`specnav-verify-e2e`、`specnav-verify-sensory`
-- Operations：`specnav-ops-readiness`、`specnav-release-plan`、`specnav-install-verify`、`specnav-update-policy`、`specnav-compatibility-matrix`、`specnav-branch-finish`、`specnav-deploy`、`specnav-rollback`、`specnav-monitor`、`specnav-postmortem`、`specnav-update-spec`
+## 归档合同
 
-## 常用检查
+归档是明确动作，不是被动状态。
+
+readiness 为 green 后，运行 `/specnav-archive`。归档动作会标准化
+`tasks.md`，要求已完成 checkbox tasks，执行 `openspec validate`，执行
+`openspec archive`，更新 SpecNav change focus，重写归档后的 evidence
+路径，并在归档后的 change 中写入 `operations/archive-receipt.json`。
+
+`tasks.md` 里的普通 bullet 不是完成证据。任务必须使用：
+
+```markdown
+- [ ] 未完成
+- [x] 已完成且有证据
+```
+
+## Skills
+
+Core:
+
+```text
+specnav-workflow
+specnav-bootstrap
+specnav-route
+specnav-status
+specnav-doctor
+specnav-debug
+specnav-recovery
+```
+
+Requirements:
+
+```text
+specnav-repository-discovery
+specnav-foundation-specs
+specnav-requirements
+```
+
+Prototype:
+
+```text
+specnav-prototype
+specnav-prototype-verify
+specnav-prototype-handoff
+```
+
+Development:
+
+```text
+specnav-development-entry
+specnav-scope-lock
+specnav-vertical-slices
+specnav-fix
+specnav-debug
+specnav-break-loop
+```
+
+Verification:
+
+```text
+specnav-verify-plan
+specnav-verify-facticity
+specnav-verify-static
+specnav-verify-unit
+specnav-verify-redteam
+specnav-verify-e2e
+specnav-verify-sensory
+specnav-verify-rerun
+specnav-html-report
+```
+
+Operations:
+
+```text
+specnav-ops-readiness
+specnav-release-plan
+specnav-install-verify
+specnav-update-policy
+specnav-compatibility-matrix
+specnav-branch-finish
+specnav-deploy
+specnav-rollback
+specnav-monitor
+specnav-postmortem
+specnav-update-spec
+```
+
+## 仓库结构
+
+```text
+.claude-plugin/marketplace.json           Claude Code marketplace manifest
+plugins/specnav-core/                     runtime、router、hooks、commands、status、doctor
+plugins/specnav-requirements/             discovery、foundation specs、requirements
+plugins/specnav-prototype/                runnable prototype 和 handoff
+plugins/specnav-development/              scope lock 和 vertical-slice implementation
+plugins/specnav-verification/             six-domain verification 和 HTML report
+plugins/specnav-operations/               release、deploy、rollback、archive
+docs/design.md                            系统设计文档
+docs/assets/readme/                       README 阶段图
+docs/memory/specnav-visual-style.md       图像风格提示词记忆
+tests/                                    fixture 和 smoke tests
+```
+
+## 检查
+
+验证 marketplace：
+
+```bash
+claude plugin validate "$PWD"
+```
+
+运行 smoke check：
+
+```bash
+bash tests/run-smoke.sh
+```
+
+定向检查：
 
 ```bash
 bash tests/run-plugin-validate-fixtures.sh
@@ -128,24 +334,14 @@ bash tests/run-plugin-suite-resolver-fixtures.sh
 bash tests/run-public-hygiene-fixtures.sh
 bash tests/run-core-runtime-fixtures.sh
 bash tests/run-installed-cache-runtime-fixtures.sh
-bash tests/run-smoke.sh
 ```
 
-每个阶段还有独立 fixture：`requirements`、`prototype`、`development`、`verification`、`operations`。
+## 参考
 
-验证阶段的 aggregate 会同时输出机器可读和人工审阅产物：
-`verify/aggregate-report.json`、`verify/aggregate-report.md`、
-`verify/aggregate-report.html`，以及 change 根目录下的 `verify-report.json`、
-`verify-report.md`、`verify-report.html`。HTML 报告使用 Claude warm editorial
-风格，方便直接拿给同事或干系人审阅。
-
-## 设计文档
-
-- 主工程契约：[docs/design.md](docs/design.md)
-- 首次使用路径：[docs/user-journey.md](docs/user-journey.md)
-- Spec Discovery 契约：[docs/spec-discovery.md](docs/spec-discovery.md)
-- Command / Skill 矩阵：[docs/command-skill-matrix.md](docs/command-skill-matrix.md)
-- 兼容性矩阵：[docs/compatibility.md](docs/compatibility.md)
-- 发布检查清单：[docs/release-checklist.md](docs/release-checklist.md)
-- Skill 套件重构：[docs/skill-suite-redesign.md](docs/skill-suite-redesign.md)
-- Skill 资源矩阵：[docs/skill-resource-matrix.md](docs/skill-resource-matrix.md)
+- [系统设计](docs/design.md)
+- [首次使用路径](docs/user-journey.md)
+- [Spec discovery contract](docs/spec-discovery.md)
+- [Command / Skill 矩阵](docs/command-skill-matrix.md)
+- [视觉风格记忆](docs/memory/specnav-visual-style.md)
+- [Claude Code marketplace manifest](.claude-plugin/marketplace.json)
+- [4K 透明 logo](docs/assets/specnav-logo-4k.png)
