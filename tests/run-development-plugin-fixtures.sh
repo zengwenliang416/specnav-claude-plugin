@@ -775,6 +775,31 @@ jq -e '.tasks[] | select(.task_id == "001-dashboard-summary" and .ok == true)' "
 run_json "$HAPPY_PROJECT" "$TMP_DIR/happy-entry.json" 0 entry
 jq -e '.ok == true and .mode == "entry"' "$TMP_DIR/happy-entry.json" >/dev/null
 
+SLICE_SCRIPT_PROJECT="$TMP_DIR/slice-script-project"
+cp -R "$HAPPY_PROJECT" "$SLICE_SCRIPT_PROJECT"
+cat >"$SLICE_SCRIPT_PROJECT/openspec/changes/add-dashboard/development/task-context.jsonl" <<'JSONL'
+{"status":"pending-vertical-slices","source":"development-entry-scaffold","note":"No task is planned until specnav-vertical-slices creates task packets."}
+JSONL
+PROJECT_DIR="$SLICE_SCRIPT_PROJECT" node "$DEV/skills/specnav-vertical-slices/scripts/create-vertical-slice.js" --task-id=002-dashboard-detail --json >"$TMP_DIR/slice-script.json"
+jq -e '.ok == true' "$TMP_DIR/slice-script.json" >/dev/null
+grep -Fq '"task_id":"002-dashboard-detail"' "$SLICE_SCRIPT_PROJECT/openspec/changes/add-dashboard/development/task-context.jsonl"
+grep -Fq '"status":"task-ready"' "$SLICE_SCRIPT_PROJECT/openspec/changes/add-dashboard/development/task-context.jsonl"
+if grep -Fq 'development-entry-scaffold' "$SLICE_SCRIPT_PROJECT/openspec/changes/add-dashboard/development/task-context.jsonl"; then
+  echo "create-vertical-slice left development-entry-scaffold in task-context.jsonl" >&2
+  exit 1
+fi
+if grep -Fq 'pending-vertical-slices' "$SLICE_SCRIPT_PROJECT/openspec/changes/add-dashboard/development/task-context.jsonl"; then
+  echo "create-vertical-slice left pending-vertical-slices in task-context.jsonl" >&2
+  exit 1
+fi
+run_json "$SLICE_SCRIPT_PROJECT" "$TMP_DIR/slice-script-entry.json" 2 entry
+if jq -e '.blockers[] | select(. == "scaffold-placeholder:task-context.jsonl:development-entry-scaffold" or . == "scaffold-placeholder:task-context.jsonl:pending-vertical-slices")' "$TMP_DIR/slice-script-entry.json" >/dev/null; then
+  echo "entry contract still reports task-context scaffold blockers after create-vertical-slice" >&2
+  cat "$TMP_DIR/slice-script-entry.json" >&2
+  exit 1
+fi
+assert_blocker "$TMP_DIR/slice-script-entry.json" 'scaffold-placeholder:brief.md:decision-required'
+
 ENTRY_ONLY_PROJECT="$TMP_DIR/entry-only-project"
 cp -R "$HAPPY_PROJECT" "$ENTRY_ONLY_PROJECT"
 rm \
@@ -794,6 +819,70 @@ assert_blocker "$TMP_DIR/entry-only-default.json" 'missing-development-artifact:
 run_json "$ENTRY_ONLY_PROJECT" "$TMP_DIR/entry-only-handoff.json" 2 handoff
 assert_blocker "$TMP_DIR/entry-only-handoff.json" 'missing-task-artifact:spec-review.md'
 assert_blocker "$TMP_DIR/entry-only-handoff.json" 'missing-development-artifact:handoff-to-verify.md'
+
+TASK_CONTEXT_SCAFFOLD_PROJECT="$TMP_DIR/task-context-scaffold-project"
+cp -R "$HAPPY_PROJECT" "$TASK_CONTEXT_SCAFFOLD_PROJECT"
+cat >"$TASK_CONTEXT_SCAFFOLD_PROJECT/openspec/changes/add-dashboard/development/task-context.jsonl" <<'JSONL'
+{"status":"pending-vertical-slices","source":"development-entry-scaffold","note":"No task is planned until specnav-vertical-slices creates task packets."}
+JSONL
+run_json "$TASK_CONTEXT_SCAFFOLD_PROJECT" "$TMP_DIR/task-context-scaffold.json" 2 entry
+assert_blocker "$TMP_DIR/task-context-scaffold.json" 'scaffold-placeholder:task-context.jsonl:development-entry-scaffold'
+assert_blocker "$TMP_DIR/task-context-scaffold.json" 'scaffold-placeholder:task-context.jsonl:pending-vertical-slices'
+
+REPORT_SCAFFOLD_PROJECT="$TMP_DIR/report-scaffold-project"
+cp -R "$HAPPY_PROJECT" "$REPORT_SCAFFOLD_PROJECT"
+cat >"$REPORT_SCAFFOLD_PROJECT/openspec/changes/add-dashboard/development/tasks/001-dashboard-summary/report.md" <<'MD'
+# Task Report: 001-dashboard-summary
+
+## Status
+
+DONE_WITH_CONCERNS
+
+## Files Changed
+
+- `<decision-required>`
+
+## What Changed
+
+- `<decision-required>`
+
+## TDD Evidence
+
+- `<decision-required>`
+
+## Verification Commands
+
+- `<decision-required>`
+
+## Concerns
+
+- Replace this scaffold before handoff.
+
+## Scope Deviations
+
+- None recorded.
+
+## Follow-up Needed
+
+- Replace this scaffold before handoff.
+
+## Adjudication
+
+Controller must adjudicate scaffold concerns before verification handoff.
+MD
+run_json "$REPORT_SCAFFOLD_PROJECT" "$TMP_DIR/report-scaffold.json" 2
+assert_blocker "$TMP_DIR/report-scaffold.json" 'scaffold-placeholder:report.md:decision-required'
+assert_blocker "$TMP_DIR/report-scaffold.json" 'scaffold-placeholder:report.md:replace-scaffold'
+
+VALIDATION_SCAFFOLD_PROJECT="$TMP_DIR/validation-scaffold-project"
+cp -R "$HAPPY_PROJECT" "$VALIDATION_SCAFFOLD_PROJECT"
+cat >"$VALIDATION_SCAFFOLD_PROJECT/openspec/changes/add-dashboard/development/validation-log.jsonl" <<'JSONL'
+{"task_id":"001-dashboard-summary","status":"blocked","command":"<decision-required>","reason":"Replace scaffold with actual validation before handoff."}
+JSONL
+run_json "$VALIDATION_SCAFFOLD_PROJECT" "$TMP_DIR/validation-scaffold.json" 2
+assert_blocker "$TMP_DIR/validation-scaffold.json" 'scaffold-placeholder:validation-log.jsonl:decision-required'
+assert_blocker "$TMP_DIR/validation-scaffold.json" 'scaffold-placeholder:validation-log.jsonl:replace-scaffold'
+assert_blocker "$TMP_DIR/validation-scaffold.json" 'validation-log:no-pass'
 
 ENTRY_REVIEW_FIX_PROJECT="$TMP_DIR/entry-review-fix-project"
 cp -R "$HAPPY_PROJECT" "$ENTRY_REVIEW_FIX_PROJECT"
@@ -1041,6 +1130,8 @@ cat >"$INCOMPLETE_TASK_PROJECT/openspec/changes/add-dashboard/tasks.md" <<'MD'
 
 - [ ] user can view dashboard summary with loading empty and error states
 MD
+run_json "$INCOMPLETE_TASK_PROJECT" "$TMP_DIR/incomplete-task-entry.json" 0 entry
+jq -e '.ok == true and .mode == "entry"' "$TMP_DIR/incomplete-task-entry.json" >/dev/null
 run_json "$INCOMPLETE_TASK_PROJECT" "$TMP_DIR/incomplete-task.json" 2
 assert_blocker "$TMP_DIR/incomplete-task.json" 'tasks-md:incomplete-checkboxes'
 assert_blocker "$TMP_DIR/incomplete-task.json" 'tasks-md:no-completed-checkboxes'

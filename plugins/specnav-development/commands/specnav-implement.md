@@ -52,6 +52,11 @@ If the suite check exits non-zero, report the emitted blockers and stop. If it p
 node "$SPECNAV_DEVELOPMENT_ROOT/scripts/development-contract.js" --mode entry --json
 ```
 
+Entry mode proves that upstream requirements, prototype approval, scope, task
+packets, and standard checkbox syntax exist. It does not require all `tasks.md`
+checkboxes to be complete; unchecked vertical slices are expected before their
+implementation evidence exists.
+
 If the entry contract is blocked, read the exact owning skill path and repair
 only the allowed development artifacts:
 
@@ -72,4 +77,9 @@ Before handoff to verification, run the handoff gate:
 node "$SPECNAV_DEVELOPMENT_ROOT/scripts/development-contract.js" --mode handoff --json
 ```
 
-Handoff to verification only after this handoff gate returns `"ok": true`.
+Handoff mode requires every completed slice to have real task reports, spec
+review, quality review, ledger entries, drift checks, validation logs, and
+`tasks.md` completion evidence. Any `<decision-required>`, "Replace this
+scaffold", scaffold source marker, unchecked checkbox, blocking drift, failed
+review, or missing validation pass is a blocker. Handoff to verification only
+after this handoff gate returns `"ok": true`.

@@ -34,12 +34,16 @@ function main() {
   }
 
   const state = workflow.writeRuntimeArtifacts(root);
+  const legacyEntrypoints = lib.detectLegacyOpenSpecEntrypoints(root);
   lib.event(root, 'session.start', { cwd: root, status: state.status });
   process.stdout.write(`${JSON.stringify({
     schema: 'specnav.sessionStart.v1',
     status: state.status,
     project_root: root,
     blockers: state.blockers,
+    legacy_openspec_entrypoints: legacyEntrypoints,
+    native_openspec_skills: 'disabled when SpecNav is active; use OpenSpec CLI only as commanded by SpecNav contracts',
+    completion_rule: 'do not claim a stage complete or hand off until the owning SpecNav contract returns ok:true',
     workflow_state: 'openspec/.specnav/workflow-state.json'
   })}\n`);
 }
