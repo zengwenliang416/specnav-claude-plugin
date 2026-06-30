@@ -35,7 +35,7 @@ assert_no_bash_placeholders() {
   fi
 }
 
-jq -e '.plugins | length == 6' "$ROOT/.claude-plugin/marketplace.json" >/dev/null
+jq -e '.plugins | length == 7' "$ROOT/.claude-plugin/marketplace.json" >/dev/null
 jq -e '.plugins[].name' "$ROOT/.claude-plugin/marketplace.json" >/tmp/specnav-plugin-names.txt
 jq -e 'all(.plugins[].source; startswith("./plugins/"))' "$ROOT/.claude-plugin/marketplace.json" >/dev/null
 grep -q '"specnav-core"' /tmp/specnav-plugin-names.txt
@@ -44,11 +44,12 @@ grep -q '"specnav-prototype"' /tmp/specnav-plugin-names.txt
 grep -q '"specnav-development"' /tmp/specnav-plugin-names.txt
 grep -q '"specnav-verification"' /tmp/specnav-plugin-names.txt
 grep -q '"specnav-operations"' /tmp/specnav-plugin-names.txt
+grep -q '"specnav-codegraph"' /tmp/specnav-plugin-names.txt
 
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
 
-for plugin in specnav-core specnav-requirements specnav-prototype specnav-development specnav-verification specnav-operations; do
+for plugin in specnav-core specnav-requirements specnav-prototype specnav-development specnav-verification specnav-operations specnav-codegraph; do
   test -d "$ROOT/plugins/$plugin/skills"
   test -d "$ROOT/plugins/$plugin/scripts"
   test -f "$ROOT/plugins/$plugin/.claude-plugin/plugin.json"

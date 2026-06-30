@@ -109,6 +109,10 @@ grep -Fq -- '- [ ] User can complete the primary approved flow from the prototyp
 assert_file "openspec/changes/$CHANGE/development/tasks/slice-001/brief.md"
 assert_file "openspec/changes/$CHANGE/development/tasks/slice-001/context.json"
 assert_file "openspec/changes/$CHANGE/development/handoff-to-verify.md"
+assert_file "openspec/changes/$CHANGE/codegraph/claims-map.json"
+assert_file "openspec/changes/$CHANGE/codegraph/evidence-query-plan.json"
+jq -e '.claims[] | select(.stage == "development" and .task_id == "slice-001")' "$PROJECT/openspec/changes/$CHANGE/codegraph/claims-map.json" >/dev/null
+jq -e '.queries[] | select(.stage == "development" and .claim_id == "development:task-slice-001")' "$PROJECT/openspec/changes/$CHANGE/codegraph/evidence-query-plan.json" >/dev/null
 
 cat >"$PROJECT/openspec/changes/$CHANGE/tasks.md" <<'MD'
 # Tasks
@@ -128,6 +132,8 @@ grep -Fq '## Required Domains' "$PROJECT/openspec/changes/$CHANGE/verify/plan.md
 grep -Fq '## Evidence Plan' "$PROJECT/openspec/changes/$CHANGE/verify/plan.md"
 assert_file "openspec/changes/$CHANGE/verify/traceability-matrix.json"
 assert_file "openspec/changes/$CHANGE/verify/receipt.json"
+jq -e '.claims[] | select(.stage == "verification")' "$PROJECT/openspec/changes/$CHANGE/codegraph/claims-map.json" >/dev/null
+jq -e '.queries[] | select(.stage == "verification")' "$PROJECT/openspec/changes/$CHANGE/codegraph/evidence-query-plan.json" >/dev/null
 
 run_json "$RELEASE" --release-target=local-only
 assert_blocks_with invalid-release-target node "$RELEASE"

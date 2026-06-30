@@ -7,7 +7,7 @@ TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 PROJECT="$TMP_DIR/simple-project"
 cp -R "$ROOT/tests/fixtures/simple-project" "$PROJECT"
-PLUGINS=(specnav-core specnav-requirements specnav-prototype specnav-development specnav-verification specnav-operations)
+PLUGINS=(specnav-core specnav-requirements specnav-prototype specnav-development specnav-verification specnav-operations specnav-codegraph)
 for plugin in "${PLUGINS[@]}"; do
   jq -n \
     --arg id "$plugin@specnav-marketplace" \
@@ -36,7 +36,7 @@ jq -e '.actions[] | select(.id == "archive") | .required_plugins[] | select(. ==
 SPECNAV_PLUGIN_LIST_JSON="$(cat "$TMP_DIR/plugin-list.json")" node "$CORE/scripts/specnav-doctor.js" --marketplace-root "$ROOT" --json >"$TMP_DIR/specnav-cross-doctor.json"
 jq -e '.ok == true' "$TMP_DIR/specnav-cross-doctor.json" >/dev/null
 jq -e '.suite.ok == true' "$TMP_DIR/specnav-cross-doctor.json" >/dev/null
-jq -e '.suite.plugins | length == 6' "$TMP_DIR/specnav-cross-doctor.json" >/dev/null
+jq -e '.suite.plugins | length == 7' "$TMP_DIR/specnav-cross-doctor.json" >/dev/null
 
 SPECNAV_PLUGIN_LIST_JSON="$(cat "$TMP_DIR/plugin-list.json")" PROJECT_DIR="$PROJECT" node "$CORE/scripts/specnav-doctor.js" --marketplace-root "$ROOT" --json >"$TMP_DIR/specnav-cross-project-doctor.json"
 jq -e '.ok == true' "$TMP_DIR/specnav-cross-project-doctor.json" >/dev/null

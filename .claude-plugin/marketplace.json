@@ -46,6 +46,13 @@
       "description": "SpecNav operations stage: release, install/update policy, deploy, rollback, monitor, and archive.",
       "version": "0.4.6",
       "category": "productivity"
+    },
+    {
+      "name": "specnav-codegraph",
+      "source": "./plugins/specnav-codegraph",
+      "description": "SpecNav CodeGraph evidence layer: policy, status, context, claims, impact, and drift contracts.",
+      "version": "0.4.6",
+      "category": "productivity"
     }
   ]
 }

@@ -639,6 +639,8 @@ test -f "$PROJECT/openspec/changes/add-dashboard/verify-report.html"
 grep -Fq '#faf9f5' "$PROJECT/openspec/changes/add-dashboard/verify-report.html"
 grep -Fq '#cc785c' "$PROJECT/openspec/changes/add-dashboard/verify-report.html"
 grep -Fq 'Six-domain verification' "$PROJECT/openspec/changes/add-dashboard/verify-report.html"
+grep -Fq 'CodeGraph Evidence' "$PROJECT/openspec/changes/add-dashboard/verify-report.html"
+grep -Fq 'codegraph/guard-report.json' "$PROJECT/openspec/changes/add-dashboard/verify-report.html"
 
 # Stale marker unresolved: a production edit after green verification (domain reports predate the marker)
 # must block validation and force the aggregate red without re-running domains.

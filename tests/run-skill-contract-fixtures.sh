@@ -156,7 +156,8 @@ function extractSpecNavRootScriptRefs(body) {
     SPECNAV_PROTOTYPE_ROOT: 'specnav-prototype',
     SPECNAV_DEVELOPMENT_ROOT: 'specnav-development',
     SPECNAV_VERIFICATION_ROOT: 'specnav-verification',
-    SPECNAV_OPERATIONS_ROOT: 'specnav-operations'
+    SPECNAV_OPERATIONS_ROOT: 'specnav-operations',
+    SPECNAV_CODEGRAPH_ROOT: 'specnav-codegraph'
   };
   const pattern = /\$(SPECNAV_[A-Z_]+_ROOT)\/[^"'\s`)]+\.js/g;
   for (const match of body.matchAll(pattern)) {

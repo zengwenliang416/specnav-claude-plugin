@@ -16,7 +16,8 @@ for plugin in \
   specnav-prototype \
   specnav-development \
   specnav-verification \
-  specnav-operations; do
+  specnav-operations \
+  specnav-codegraph; do
   claude plugin validate "$ROOT/plugins/$plugin" >"/tmp/specnav-validate-$plugin.out"
 done
 

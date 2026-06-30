@@ -33,9 +33,10 @@ run_runtime_failure() {
 
 node "$ROOT/plugins/specnav-core/scripts/plugin-suite.js" list --marketplace-root "$ROOT" --json >/tmp/specnav-suite-list.json
 jq -e '.ok == true' /tmp/specnav-suite-list.json >/dev/null
-jq -e '.plugins | length == 6' /tmp/specnav-suite-list.json >/dev/null
+jq -e '.plugins | length == 7' /tmp/specnav-suite-list.json >/dev/null
 jq -e '.plugins[] | select(.name == "specnav-core" and .stage == "core")' /tmp/specnav-suite-list.json >/dev/null
 jq -e '.plugins[] | select(.name == "specnav-verification" and .stage == "verification")' /tmp/specnav-suite-list.json >/dev/null
+jq -e '.plugins[] | select(.name == "specnav-codegraph" and .stage == "codegraph")' /tmp/specnav-suite-list.json >/dev/null
 
 node "$ROOT/plugins/specnav-core/scripts/plugin-suite.js" resolve --marketplace-root "$ROOT" --plugin specnav-requirements --json >/tmp/specnav-suite-requirements.json
 jq -e '.ok == true' /tmp/specnav-suite-requirements.json >/dev/null

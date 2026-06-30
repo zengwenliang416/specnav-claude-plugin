@@ -118,7 +118,7 @@ assert_jq '.blockers | index("tasks-md:incomplete-checkboxes")' "$tasks_normaliz
 
 INSTALLED_CACHE="$TMP_DIR/installed-cache/specnav-marketplace"
 mkdir -p "$INSTALLED_CACHE"
-SPECNAV_PLUGINS=(specnav-core specnav-requirements specnav-prototype specnav-development specnav-verification specnav-operations)
+SPECNAV_PLUGINS=(specnav-core specnav-requirements specnav-prototype specnav-development specnav-verification specnav-operations specnav-codegraph)
 for plugin in "${SPECNAV_PLUGINS[@]}"; do
   installed_plugin="$INSTALLED_CACHE/$plugin/9.9.9"
   mkdir -p "$installed_plugin"
@@ -149,7 +149,7 @@ if [ "$installed_suite_status" -ne 0 ]; then
 fi
 assert_jq '.ok == true' "$installed_suite_json" "plugin-suite installed-cache list did not return ok true"
 assert_jq '.discovery == "claude-plugin-list"' "$installed_suite_json" "plugin-suite installed-cache list did not use claude-plugin-list discovery"
-assert_jq '.plugins | length == 6' "$installed_suite_json" "plugin-suite installed-cache list did not include all six plugins"
+assert_jq '.plugins | length == 7' "$installed_suite_json" "plugin-suite installed-cache list did not include all seven plugins"
 
 disabled_inventory="$TMP_DIR/installed-disabled-inventory.json"
 jq 'map(if .id == "specnav-core@specnav-marketplace" then .enabled = false else . end)' "$installed_inventory" >"$disabled_inventory"

@@ -8,7 +8,7 @@ trap 'rm -rf "$TMP_DIR"' EXIT
 CACHE="$TMP_DIR/.claude/plugins/cache/specnav-marketplace"
 VERSION="9.9.9"
 PROJECT="$TMP_DIR/project"
-PLUGINS=(specnav-core specnav-requirements specnav-prototype specnav-development specnav-verification specnav-operations)
+PLUGINS=(specnav-core specnav-requirements specnav-prototype specnav-development specnav-verification specnav-operations specnav-codegraph)
 
 mkdir -p "$CACHE"
 cp -R "$ROOT/tests/fixtures/simple-project/." "$PROJECT/"
@@ -36,7 +36,8 @@ PROTO="$CACHE/specnav-prototype/$VERSION"
 DEV="$CACHE/specnav-development/$VERSION"
 VERIFY="$CACHE/specnav-verification/$VERSION"
 OPS="$CACHE/specnav-operations/$VERSION"
-export CORE REQ PROTO DEV VERIFY OPS VERSION
+CODEGRAPH="$CACHE/specnav-codegraph/$VERSION"
+export CORE REQ PROTO DEV VERIFY OPS CODEGRAPH VERSION
 
 resolve_runtime_json="$TMP_DIR/resolve-runtime.json"
 node "$CORE/scripts/resolve-runtime.js" resolve --plugin specnav-core --plugin specnav-requirements --json >"$resolve_runtime_json"
@@ -122,6 +123,7 @@ for script in \
   "$DEV/skills/specnav-development-entry/scripts/create-development-entry.js" \
   "$DEV/skills/specnav-scope-lock/scripts/create-scope-lock.js" \
   "$DEV/skills/specnav-vertical-slices/scripts/create-vertical-slice.js" \
+  "$CODEGRAPH/scripts/codegraph-plan.js" \
   "$VERIFY/skills/specnav-verify-plan/scripts/create-verify-plan.js" \
   "$OPS/skills/specnav-ops-readiness/scripts/create-readiness.js" \
   "$OPS/skills/specnav-release-plan/scripts/create-release-plan.js"; do
