@@ -45,6 +45,7 @@ write_base_project() {
     "$project/openspec/specs/system-architecture" \
     "$project/openspec/specs/frontend-backend-data-flow" \
     "$project/openspec/specs/component-architecture" \
+    "$dev/migrations" \
     "$proto/artifact" \
     "$task"
   printf '%s\n' "$change" >"$project/openspec/.specnav/active-change"
@@ -328,6 +329,30 @@ JSONL
   cat >"$dev/validation-log.jsonl" <<'JSONL'
 {"task":"001-dashboard-summary","command":"npm test","status":"passed","ok":true}
 JSONL
+  cat >"$dev/migrations/manifest.json" <<'JSON'
+{
+  "schema_version": 1,
+  "change_id": "add-dashboard",
+  "required": false,
+  "status": "not_required",
+  "migrations": [],
+  "verification": {
+    "commands": ["No database migration required for this change."],
+    "evidence": ["requirements.md and development handoff do not describe SQL or schema changes."]
+  },
+  "rollback": [],
+  "rollback_strategy": "No migration rollback required because no database changes are included."
+}
+JSON
+  cat >"$dev/migrations/README.md" <<'MD'
+# Migration Notes
+## Execution Order
+No database migration is required for this dashboard-only change.
+## Validation
+Confirm requirements, task report, and handoff do not describe SQL, seed, DDL, or DML changes.
+## Rollback
+No migration rollback is required.
+MD
   cat >"$task/brief.md" <<'MD'
 # Task 001
 ## Goal
@@ -493,6 +518,11 @@ MD
     "signoff": "verify/user-test-case-signoff.json",
     "domain_matrix": "verify/domain-case-matrix.json"
   },
+  "runtime_evidence_gate": {
+    "required": true,
+    "evidence": "verify/runtime-evidence.json",
+    "required_surfaces": ["runtime", "browser"]
+  },
   "changed_files": ["src/dashboard/DashboardView.tsx"],
   "commands": ["npm test"],
   "manual_reviews": ["sensory"]
@@ -559,7 +589,32 @@ JSON
   cat >"$verify/evidence-index.jsonl" <<'JSONL'
 {"id":"ev-static","kind":"command","domain":"static","result":"pass"}
 {"id":"ev-unit","kind":"command","domain":"unit","result":"pass"}
+{"id":"ev-runtime","kind":"command","domain":"e2e","result":"pass","path":"verify/runtime-evidence.json"}
 JSONL
+  cat >"$verify/runtime-evidence.json" <<'JSON'
+{
+  "schema_version": 1,
+  "change_id": "add-dashboard",
+  "status": "green",
+  "surfaces": [
+    {
+      "surface": "runtime",
+      "required": true,
+      "status": "pass",
+      "command": "npm run dev -- --host 127.0.0.1",
+      "evidence_refs": ["verify/e2e/runtime-server.log"]
+    },
+    {
+      "surface": "browser",
+      "required": true,
+      "status": "pass",
+      "command": "npx playwright test tests/dashboard.spec.ts",
+      "evidence_refs": ["verify/e2e/playwright-report.json"],
+      "artifact_refs": ["verify/e2e/screenshots/dashboard-summary.png"]
+    }
+  ]
+}
+JSON
   cat >"$verify/traceability-matrix.json" <<'JSON'
 {
   "schema_version": 1,
@@ -692,6 +747,8 @@ run_json "$PROJECT" validate "$TMP_DIR/valid-verify.json" 0
 jq -e '.ok == true' "$TMP_DIR/valid-verify.json" >/dev/null
 jq -e '.artifacts[] | select(.name == "user-test-case-signoff.json" and .ok == true)' "$TMP_DIR/valid-verify.json" >/dev/null
 jq -e '.artifacts[] | select(.name == "domain-case-matrix.json" and .ok == true)' "$TMP_DIR/valid-verify.json" >/dev/null
+jq -e '.artifacts[] | select(.name == "runtime-evidence.json" and .ok == true)' "$TMP_DIR/valid-verify.json" >/dev/null
+jq -e '.artifacts[] | select(.name == "diff-traceability" and .ok == true)' "$TMP_DIR/valid-verify.json" >/dev/null
 jq -e '.artifacts[] | select(.name == "facticity/report.json" and .ok == true)' "$TMP_DIR/valid-verify.json" >/dev/null
 run_json "$PROJECT" aggregate "$TMP_DIR/aggregate-green.json" 0
 jq -e '.verdict == "green"' "$TMP_DIR/aggregate-green.json" >/dev/null
@@ -752,6 +809,69 @@ jq '.unmapped_changes = ["src/unmapped.ts"]' \
 mv "$TMP_DIR/trace-fail.json.tmp" "$TRACE_FAIL_PROJECT/openspec/changes/add-dashboard/verify/traceability-matrix.json"
 run_json "$TRACE_FAIL_PROJECT" validate "$TMP_DIR/trace-fail.json" 2
 assert_blocker "$TMP_DIR/trace-fail.json" 'traceability-unmapped-changes'
+
+DIFF_TRACE_FAIL_PROJECT="$TMP_DIR/diff-trace-fail-project"
+cp -R "$PROJECT" "$DIFF_TRACE_FAIL_PROJECT"
+jq '.changed_files = ["src/dashboard/DashboardView.tsx", "src/dashboard/DashboardService.ts"]' \
+  "$DIFF_TRACE_FAIL_PROJECT/openspec/changes/add-dashboard/verify/plan.json" \
+  >"$TMP_DIR/diff-trace-fail.json.tmp"
+mv "$TMP_DIR/diff-trace-fail.json.tmp" "$DIFF_TRACE_FAIL_PROJECT/openspec/changes/add-dashboard/verify/plan.json"
+run_json "$DIFF_TRACE_FAIL_PROJECT" validate "$TMP_DIR/diff-trace-fail.json" 2
+assert_blocker "$TMP_DIR/diff-trace-fail.json" 'diff-traceability:unmapped:src/dashboard/DashboardService.ts'
+
+RUNTIME_FAIL_PROJECT="$TMP_DIR/runtime-fail-project"
+cp -R "$PROJECT" "$RUNTIME_FAIL_PROJECT"
+jq '.status = "blocked" | .surfaces[] |= if .surface == "browser" then (.status = "blocked") else . end' \
+  "$RUNTIME_FAIL_PROJECT/openspec/changes/add-dashboard/verify/runtime-evidence.json" \
+  >"$TMP_DIR/runtime-fail.json.tmp"
+mv "$TMP_DIR/runtime-fail.json.tmp" "$RUNTIME_FAIL_PROJECT/openspec/changes/add-dashboard/verify/runtime-evidence.json"
+run_json "$RUNTIME_FAIL_PROJECT" validate "$TMP_DIR/runtime-fail.json" 2
+assert_blocker "$TMP_DIR/runtime-fail.json" 'runtime-evidence-not-green'
+assert_blocker "$TMP_DIR/runtime-fail.json" 'runtime-evidence-surface-not-pass:browser'
+
+SQL_MIGRATION_FAIL_PROJECT="$TMP_DIR/sql-migration-fail-project"
+cp -R "$PROJECT" "$SQL_MIGRATION_FAIL_PROJECT"
+cat >>"$SQL_MIGRATION_FAIL_PROJECT/openspec/changes/add-dashboard/development/handoff-to-verify.md" <<'MD'
+
+## Database Changes
+ALTER TABLE dashboard_summary ADD COLUMN reviewed_at TIMESTAMP NULL.
+MD
+run_json "$SQL_MIGRATION_FAIL_PROJECT" validate "$TMP_DIR/sql-migration-fail.json" 2
+assert_blocker "$TMP_DIR/sql-migration-fail.json" 'development:migration-manifest-sql-mentioned-but-not-required'
+
+SQL_DATABASE_EVIDENCE_FAIL_PROJECT="$TMP_DIR/sql-database-evidence-fail-project"
+cp -R "$PROJECT" "$SQL_DATABASE_EVIDENCE_FAIL_PROJECT"
+cat >"$SQL_DATABASE_EVIDENCE_FAIL_PROJECT/openspec/changes/add-dashboard/development/migrations/manifest.json" <<'JSON'
+{
+  "schema_version": 1,
+  "change_id": "add-dashboard",
+  "required": true,
+  "status": "ready",
+  "migrations": [{
+    "id": "001-schema",
+    "kind": "ddl",
+    "order": 1,
+    "path": "development/migrations/001-schema.sql"
+  }],
+  "verification": {
+    "commands": ["psql -f openspec/changes/add-dashboard/development/migrations/001-schema.sql"],
+    "evidence": ["verify/runtime-evidence.json"]
+  },
+  "rollback": [{
+    "id": "001-schema-rollback",
+    "path": "development/migrations/001-schema-rollback.sql"
+  }],
+  "rollback_strategy": "Run the rollback SQL before reverting application code."
+}
+JSON
+cat >"$SQL_DATABASE_EVIDENCE_FAIL_PROJECT/openspec/changes/add-dashboard/development/migrations/001-schema.sql" <<'SQL'
+ALTER TABLE dashboard_summary ADD COLUMN reviewed_at TIMESTAMP NULL;
+SQL
+cat >"$SQL_DATABASE_EVIDENCE_FAIL_PROJECT/openspec/changes/add-dashboard/development/migrations/001-schema-rollback.sql" <<'SQL'
+ALTER TABLE dashboard_summary DROP COLUMN reviewed_at;
+SQL
+run_json "$SQL_DATABASE_EVIDENCE_FAIL_PROJECT" validate "$TMP_DIR/sql-database-evidence-fail.json" 2
+assert_blocker "$TMP_DIR/sql-database-evidence-fail.json" 'runtime-evidence-missing-surface:database'
 
 UNIT_FAIL_PROJECT="$TMP_DIR/unit-fail-project"
 cp -R "$PROJECT" "$UNIT_FAIL_PROJECT"

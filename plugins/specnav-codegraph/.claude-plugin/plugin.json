@@ -1,6 +1,6 @@
 {
   "name": "specnav-codegraph",
-  "version": "0.4.7",
+  "version": "0.4.8",
   "description": "CodeGraph evidence layer for the SpecNav OpenSpec lifecycle suite.",
   "author": {
     "name": "Wenliang Zeng"

@@ -340,7 +340,7 @@ write_development_artifacts() {
   local development="$change_dir/development"
   local task="$development/tasks/001-dashboard-summary"
 
-  mkdir -p "$task"
+  mkdir -p "$task" "$development/migrations"
 
   cat >"$change_dir/scope.json" <<'JSON'
 {
@@ -463,6 +463,38 @@ JSONL
   cat >"$development/validation-log.jsonl" <<'JSONL'
 {"task":"001-dashboard-summary","command":"npm test dashboard-summary.test.tsx","status":"passed","ok":true}
 JSONL
+
+  cat >"$development/migrations/manifest.json" <<'JSON'
+{
+  "schema_version": 1,
+  "change_id": "add-dashboard",
+  "required": false,
+  "status": "not_required",
+  "migrations": [],
+  "verification": {
+    "commands": ["No database migration required for this change."],
+    "evidence": ["requirements.md and development handoff do not describe SQL or schema changes."]
+  },
+  "rollback": [],
+  "rollback_strategy": "No migration rollback required because no database changes are included."
+}
+JSON
+
+  cat >"$development/migrations/README.md" <<'MD'
+# Migration Notes
+
+## Execution Order
+
+No database migration is required for this dashboard-only change.
+
+## Validation
+
+Confirm requirements, task report, and handoff do not describe SQL, seed, DDL, or DML changes.
+
+## Rollback
+
+No migration rollback is required.
+MD
 
   cat >"$task/brief.md" <<'MD'
 # Task 001: Dashboard Summary Slice
@@ -1161,7 +1193,67 @@ cat >"$BAD_BRIEF_PROJECT/openspec/changes/add-dashboard/development/tasks/001-da
 Implement the dashboard summary slice.
 MD
 run_json "$BAD_BRIEF_PROJECT" "$TMP_DIR/bad-brief.json" 2
-assert_blocker "$TMP_DIR/bad-brief.json" 'invalid-task-brief:missing-heading:TDD Requirement'
+assert_blocker "$TMP_DIR/bad-brief.json" 'invalid-task-brief:missing-heading:Vertical Slice'
+
+SQL_MIGRATION_FAIL_PROJECT="$TMP_DIR/sql-migration-fail-project"
+cp -R "$HAPPY_PROJECT" "$SQL_MIGRATION_FAIL_PROJECT"
+cat >>"$SQL_MIGRATION_FAIL_PROJECT/openspec/changes/add-dashboard/development/handoff-to-verify.md" <<'MD'
+
+## Database Changes
+
+ALTER TABLE dashboard_summary ADD COLUMN reviewed_at TIMESTAMP NULL.
+MD
+run_json "$SQL_MIGRATION_FAIL_PROJECT" "$TMP_DIR/sql-migration-fail.json" 2
+assert_blocker "$TMP_DIR/sql-migration-fail.json" 'migration-manifest-sql-mentioned-but-not-required'
+
+SQL_MIGRATION_OK_PROJECT="$TMP_DIR/sql-migration-ok-project"
+cp -R "$SQL_MIGRATION_FAIL_PROJECT" "$SQL_MIGRATION_OK_PROJECT"
+cat >"$SQL_MIGRATION_OK_PROJECT/openspec/changes/add-dashboard/development/migrations/manifest.json" <<'JSON'
+{
+  "schema_version": 1,
+  "change_id": "add-dashboard",
+  "required": true,
+  "status": "ready",
+  "migrations": [{
+    "id": "001-schema",
+    "kind": "ddl",
+    "order": 1,
+    "path": "development/migrations/001-schema.sql"
+  }],
+  "verification": {
+    "commands": ["psql -f openspec/changes/add-dashboard/development/migrations/001-schema.sql"],
+    "evidence": ["psql schema query confirms reviewed_at exists"]
+  },
+  "rollback": [{
+    "id": "001-schema-rollback",
+    "path": "development/migrations/001-schema-rollback.sql"
+  }],
+  "rollback_strategy": "Run rollback SQL before reverting application code."
+}
+JSON
+cat >"$SQL_MIGRATION_OK_PROJECT/openspec/changes/add-dashboard/development/migrations/README.md" <<'MD'
+# Migration Notes
+
+## Execution Order
+
+Run `001-schema.sql` before deploying application code that reads `reviewed_at`.
+
+## Validation
+
+Run a schema query to confirm `dashboard_summary.reviewed_at` exists.
+
+## Rollback
+
+Run `001-schema-rollback.sql`, then revert application code.
+MD
+cat >"$SQL_MIGRATION_OK_PROJECT/openspec/changes/add-dashboard/development/migrations/001-schema.sql" <<'SQL'
+ALTER TABLE dashboard_summary ADD COLUMN reviewed_at TIMESTAMP NULL;
+SQL
+cat >"$SQL_MIGRATION_OK_PROJECT/openspec/changes/add-dashboard/development/migrations/001-schema-rollback.sql" <<'SQL'
+ALTER TABLE dashboard_summary DROP COLUMN reviewed_at;
+SQL
+run_json "$SQL_MIGRATION_OK_PROJECT" "$TMP_DIR/sql-migration-ok.json" 0
+jq -e '.ok == true' "$TMP_DIR/sql-migration-ok.json" >/dev/null
 
 SPEC_REVIEW_PROJECT="$TMP_DIR/spec-review-project"
 cp -R "$HAPPY_PROJECT" "$SPEC_REVIEW_PROJECT"

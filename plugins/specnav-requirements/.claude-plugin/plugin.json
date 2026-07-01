@@ -1,6 +1,6 @@
 {
   "name": "specnav-requirements",
-  "version": "0.4.7",
+  "version": "0.4.8",
   "description": "Requirements stage plugin for the SpecNav OpenSpec lifecycle suite.",
   "author": {
     "name": "Wenliang Zeng"

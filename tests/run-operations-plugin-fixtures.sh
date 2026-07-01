@@ -450,6 +450,91 @@ MD
 run_gate operations-gate.js "$DEPLOY_FAIL" "$TMP_DIR/deploy-fail.json" 2
 assert_blocker "$TMP_DIR/deploy-fail.json" 'project-deploy-rollback-plan'
 
+MIGRATION_FAIL="$TMP_DIR/migration-fail"
+cp -R "$PROJECT" "$MIGRATION_FAIL"
+mkdir -p "$MIGRATION_FAIL/openspec/changes/add-dashboard/development/migrations"
+cat >"$MIGRATION_FAIL/openspec/changes/add-dashboard/development/migrations/manifest.json" <<'JSON'
+{
+  "schema_version": 1,
+  "change_id": "add-dashboard",
+  "required": true,
+  "status": "ready",
+  "migrations": [{
+    "id": "001-schema",
+    "kind": "ddl",
+    "order": 1,
+    "path": "development/migrations/001-schema.sql"
+  }],
+  "verification": {
+    "commands": ["psql -f openspec/changes/add-dashboard/development/migrations/001-schema.sql"],
+    "evidence": ["verify/runtime-evidence.json"]
+  },
+  "rollback": [{
+    "id": "001-schema-rollback",
+    "path": "development/migrations/001-schema-rollback.sql"
+  }]
+}
+JSON
+cat >"$MIGRATION_FAIL/openspec/changes/add-dashboard/development/migrations/001-schema.sql" <<'SQL'
+ALTER TABLE dashboard_summary ADD COLUMN reviewed_at TIMESTAMP NULL;
+SQL
+cat >"$MIGRATION_FAIL/openspec/changes/add-dashboard/development/migrations/001-schema-rollback.sql" <<'SQL'
+ALTER TABLE dashboard_summary DROP COLUMN reviewed_at;
+SQL
+jq '.release_target = "project-deploy" | .ops.rollback_plan = "pass" | .ops.monitor_plan = "pass" | .ops.migrations = "pass"' \
+  "$MIGRATION_FAIL/openspec/changes/add-dashboard/operations/readiness.json" >"$TMP_DIR/migration-readiness.tmp"
+mv "$TMP_DIR/migration-readiness.tmp" "$MIGRATION_FAIL/openspec/changes/add-dashboard/operations/readiness.json"
+jq '.release_target = "project-deploy"' "$MIGRATION_FAIL/openspec/changes/add-dashboard/operations/release-checklist.json" >"$TMP_DIR/migration-checklist.tmp"
+mv "$TMP_DIR/migration-checklist.tmp" "$MIGRATION_FAIL/openspec/changes/add-dashboard/operations/release-checklist.json"
+cat >"$MIGRATION_FAIL/openspec/changes/add-dashboard/operations/deploy-plan.md" <<'MD'
+# Deploy Plan
+## Environment
+staging
+## Command
+npm run deploy
+## Smoke Checks
+GET /health and apply development/migrations/manifest.json in order.
+## Owner
+release owner
+MD
+cat >"$MIGRATION_FAIL/openspec/changes/add-dashboard/operations/rollback-plan.md" <<'MD'
+# Rollback Plan
+## Triggers
+Failed migration smoke checks.
+## Rollback Command
+Run migration rollback SQL, then revert application deployment.
+## Verification
+Confirm migration rollback and application health.
+MD
+cat >"$MIGRATION_FAIL/openspec/changes/add-dashboard/operations/monitor-plan.md" <<'MD'
+# Monitor Plan
+## Signals
+health check and migration query results
+## Observation Window
+30 minutes
+## Escalation
+release owner
+MD
+run_gate operations-gate.js "$MIGRATION_FAIL" "$TMP_DIR/migration-fail.json" 2
+assert_blocker "$TMP_DIR/migration-fail.json" 'missing-operations-artifact:migration-deployment.json'
+
+MIGRATION_OK="$TMP_DIR/migration-ok"
+cp -R "$MIGRATION_FAIL" "$MIGRATION_OK"
+cat >"$MIGRATION_OK/openspec/changes/add-dashboard/operations/migration-deployment.json" <<'JSON'
+{
+  "schema": "specnav.ops.migrationDeployment.v1",
+  "change": "add-dashboard",
+  "status": "pass",
+  "source_manifest": "development/migrations/manifest.json",
+  "applied_migrations": ["001-schema"],
+  "evidence_refs": ["verify/runtime-evidence.json", "operations/deploy-plan.md"],
+  "rollback_refs": ["development/migrations/001-schema-rollback.sql"],
+  "rollback_strategy": "Run migration rollback SQL before reverting application code."
+}
+JSON
+run_gate operations-gate.js "$MIGRATION_OK" "$TMP_DIR/migration-ok.json" 0
+jq -e '.ok == true and .release_target == "project-deploy"' "$TMP_DIR/migration-ok.json" >/dev/null
+
 HIGH_RISK="$TMP_DIR/high-risk"
 cp -R "$PROJECT" "$HIGH_RISK"
 cat >"$HIGH_RISK/openspec/changes/add-dashboard/risk-tier.json" <<'JSON'
