@@ -130,6 +130,12 @@ assert_file "openspec/changes/$CHANGE/verify/plan.json"
 grep -Fq '## Verification Scope' "$PROJECT/openspec/changes/$CHANGE/verify/plan.md"
 grep -Fq '## Required Domains' "$PROJECT/openspec/changes/$CHANGE/verify/plan.md"
 grep -Fq '## Evidence Plan' "$PROJECT/openspec/changes/$CHANGE/verify/plan.md"
+assert_file "openspec/changes/$CHANGE/verify/user-test-cases.md"
+assert_file "openspec/changes/$CHANGE/verify/user-test-cases.json"
+assert_file "openspec/changes/$CHANGE/verify/user-test-case-signoff.json"
+assert_file "openspec/changes/$CHANGE/verify/domain-case-matrix.json"
+jq -e '.status == "pending-user-review"' "$PROJECT/openspec/changes/$CHANGE/verify/user-test-cases.json" >/dev/null
+jq -e '.status == "pending"' "$PROJECT/openspec/changes/$CHANGE/verify/user-test-case-signoff.json" >/dev/null
 assert_file "openspec/changes/$CHANGE/verify/traceability-matrix.json"
 assert_file "openspec/changes/$CHANGE/verify/receipt.json"
 jq -e '.claims[] | select(.stage == "verification")' "$PROJECT/openspec/changes/$CHANGE/codegraph/claims-map.json" >/dev/null

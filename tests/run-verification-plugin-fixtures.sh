@@ -487,9 +487,73 @@ MD
   "risk_tier": "medium",
   "required_domains": ["facticity", "static", "unit", "redteam", "e2e", "sensory"],
   "inputs": ["requirements.md", "acceptance.md", "prototype/handoff.md", "development/handoff-to-verify.md", "spec-map.json", "component-impact-map.json"],
+  "user_test_case_gate": {
+    "required": true,
+    "cases": "verify/user-test-cases.json",
+    "signoff": "verify/user-test-case-signoff.json",
+    "domain_matrix": "verify/domain-case-matrix.json"
+  },
   "changed_files": ["src/dashboard/DashboardView.tsx"],
   "commands": ["npm test"],
   "manual_reviews": ["sensory"]
+}
+JSON
+  cat >"$verify/user-test-cases.md" <<'MD'
+# User Test Cases
+## User Test Case Scope
+Dashboard summary.
+## Aligned Test Cases
+utc-dashboard-summary.
+## User Signoff
+Approved.
+## Domain Mapping
+All six domains.
+MD
+  cat >"$verify/user-test-cases.json" <<'JSON'
+{
+  "schema_version": 1,
+  "change_id": "add-dashboard",
+  "status": "approved",
+  "cases": [{
+    "id": "utc-dashboard-summary",
+    "title": "User can view dashboard summary with loading empty and error states",
+    "actor": "dashboard user",
+    "user_goal": "View dashboard summary",
+    "preconditions": ["dashboard access exists"],
+    "steps": ["open dashboard", "wait for summary"],
+    "expected_results": ["summary, loading, empty, and error states are handled"],
+    "boundary_cases": ["empty state", "error state"],
+    "acceptance_refs": ["acceptance.md#dashboard"],
+    "source_refs": ["requirements.md", "prototype/handoff.md", "development/handoff-to-verify.md"]
+  }]
+}
+JSON
+  cat >"$verify/user-test-case-signoff.json" <<'JSON'
+{
+  "schema_version": 1,
+  "change_id": "add-dashboard",
+  "status": "approved",
+  "user_decision": "Approved dashboard summary test case coverage.",
+  "approved_case_ids": ["utc-dashboard-summary"],
+  "rejected_case_ids": [],
+  "notes": []
+}
+JSON
+  cat >"$verify/domain-case-matrix.json" <<'JSON'
+{
+  "schema_version": 1,
+  "change_id": "add-dashboard",
+  "cases": [{
+    "case_id": "utc-dashboard-summary",
+    "domains": {
+      "facticity": ["trace to requirements and handoff"],
+      "static": ["validate static dashboard contracts"],
+      "unit": ["cover dashboard state behavior"],
+      "redteam": ["probe invalid summary states"],
+      "e2e": ["execute dashboard user flow"],
+      "sensory": ["review dashboard user experience"]
+    }
+  }]
 }
 JSON
   cat >"$verify/evidence-index.jsonl" <<'JSONL'
@@ -626,6 +690,8 @@ assert_blocker "$TMP_DIR/missing-verify.json" 'missing-verify-artifact:plan.json
 write_verify_artifacts "$PROJECT"
 run_json "$PROJECT" validate "$TMP_DIR/valid-verify.json" 0
 jq -e '.ok == true' "$TMP_DIR/valid-verify.json" >/dev/null
+jq -e '.artifacts[] | select(.name == "user-test-case-signoff.json" and .ok == true)' "$TMP_DIR/valid-verify.json" >/dev/null
+jq -e '.artifacts[] | select(.name == "domain-case-matrix.json" and .ok == true)' "$TMP_DIR/valid-verify.json" >/dev/null
 jq -e '.artifacts[] | select(.name == "facticity/report.json" and .ok == true)' "$TMP_DIR/valid-verify.json" >/dev/null
 run_json "$PROJECT" aggregate "$TMP_DIR/aggregate-green.json" 0
 jq -e '.verdict == "green"' "$TMP_DIR/aggregate-green.json" >/dev/null
@@ -710,6 +776,24 @@ cp -R "$PROJECT" "$BEHAVIOR_FAIL_PROJECT"
 rm "$BEHAVIOR_FAIL_PROJECT/openspec/changes/add-dashboard/verify/behavior-evals/transcripts/verify-runs-six-domains.md"
 run_json "$BEHAVIOR_FAIL_PROJECT" validate "$TMP_DIR/behavior-fail.json" 2
 assert_blocker "$TMP_DIR/behavior-fail.json" 'missing-behavior-eval-transcript:verify-runs-six-domains'
+
+USER_CASE_FAIL_PROJECT="$TMP_DIR/user-case-fail-project"
+cp -R "$PROJECT" "$USER_CASE_FAIL_PROJECT"
+jq '.status = "pending" | .approved_case_ids = [] | .user_decision = "<decision-required>"' \
+  "$USER_CASE_FAIL_PROJECT/openspec/changes/add-dashboard/verify/user-test-case-signoff.json" \
+  >"$TMP_DIR/user-case-fail.json.tmp"
+mv "$TMP_DIR/user-case-fail.json.tmp" "$USER_CASE_FAIL_PROJECT/openspec/changes/add-dashboard/verify/user-test-case-signoff.json"
+run_json "$USER_CASE_FAIL_PROJECT" validate "$TMP_DIR/user-case-fail.json" 2
+assert_blocker "$TMP_DIR/user-case-fail.json" 'verify:user-test-cases-unapproved'
+
+USER_DECISION_FAIL_PROJECT="$TMP_DIR/user-decision-fail-project"
+cp -R "$PROJECT" "$USER_DECISION_FAIL_PROJECT"
+jq '.user_decision = "<decision-required>"' \
+  "$USER_DECISION_FAIL_PROJECT/openspec/changes/add-dashboard/verify/user-test-case-signoff.json" \
+  >"$TMP_DIR/user-decision-fail.json.tmp"
+mv "$TMP_DIR/user-decision-fail.json.tmp" "$USER_DECISION_FAIL_PROJECT/openspec/changes/add-dashboard/verify/user-test-case-signoff.json"
+run_json "$USER_DECISION_FAIL_PROJECT" validate "$TMP_DIR/user-decision-fail.json" 2
+assert_blocker "$TMP_DIR/user-decision-fail.json" 'invalid-user-test-case-signoff:user_decision'
 
 SENSORY_FAIL_PROJECT="$TMP_DIR/sensory-fail-project"
 cp -R "$PROJECT" "$SENSORY_FAIL_PROJECT"
