@@ -186,8 +186,9 @@ MD
     <title>Dashboard Prototype</title>
   </head>
   <body>
-    <main data-specnav-screen="dashboard" data-specnav-variant="balanced">
-      <section data-specnav-component="dashboard-summary">Dashboard summary</section>
+    <main data-specnav-project-shell="existing-dashboard-shell" data-specnav-screen="dashboard" data-specnav-variant="balanced">
+      <nav data-specnav-component="app-sidebar">Dashboard</nav>
+      <section data-specnav-component="dashboard-summary" data-specnav-state="populated">Dashboard summary</section>
     </main>
   </body>
 </html>
@@ -201,12 +202,49 @@ HTML
       "requirements": ["requirements.md#dashboard-view"],
       "acceptance": ["Dashboard renders with loading, empty, and error states covered."],
       "components": ["DashboardView", "DashboardSummary"],
+      "visual_evidence": ["visual-inventory.json#project_shell"],
       "data_flows": ["Dashboard summary API response populates dashboard view state"],
       "theme_modes": ["light"],
       "locales": ["none"],
       "implementation_files": ["src/dashboard/DashboardView.tsx", "src/dashboard/useDashboardState.ts"]
     }
   ]
+}
+JSON
+
+  cat >"$prototype/visual-inventory.json" <<'JSON'
+{
+  "schema": "specnav.prototype.visualInventory.v1",
+  "version": "1",
+  "discovery_status": "complete",
+  "source_project": "dashboard-fixture",
+  "evidence": {
+    "screenshots": ["openspec/specs/ui-design/design.md#Current Screenshots"],
+    "routes": ["src/app/routes.tsx"],
+    "design_specs": ["openspec/specs/ui-design/design.md"],
+    "component_sources": ["openspec/changes/add-dashboard/component-impact-map.json"],
+    "codegraph_claims": []
+  },
+  "project_shell": {
+    "source": "src/app/AppShell.tsx",
+    "required_elements": ["sidebar navigation", "page title", "primary content region"],
+    "omitted_elements": [],
+    "theme_policy": "light-only from ui-design spec",
+    "i18n_policy": "i18n disabled from ui-design spec"
+  },
+  "business_surface": {
+    "screens": ["dashboard"],
+    "fields": ["summary metric", "last updated", "status"],
+    "actions": ["refresh summary"],
+    "states": ["loading", "empty", "error", "disabled", "permission", "populated"]
+  },
+  "verification_matrix": {
+    "viewports": ["desktop", "mobile"],
+    "theme_modes": ["light"],
+    "locales": ["none"],
+    "states": ["loading", "empty", "error", "disabled", "permission", "populated"]
+  },
+  "unsupported_capabilities": []
 }
 JSON
 
@@ -223,6 +261,12 @@ JSON
   "referenced_requirements": ["requirements.md", "acceptance.md"],
   "may_promote": false,
   "promotion_requirement": "Prototype decisions must enter development through scope.json and tasks.md.",
+  "visual_context": {
+    "required_for_ui_html": true,
+    "inventory": "visual-inventory.json",
+    "project_shell_required": true,
+    "generic_shell_allowed": false
+  },
   "ui_capabilities": {
     "theme": {
       "support": "light-only",
@@ -246,6 +290,19 @@ JSON
   "schema": "specnav.prototype.verifier.v1",
   "status": "green",
   "checked_entry": "artifact/index.html",
+  "project_fidelity": {
+    "status": "green",
+    "inventory": "visual-inventory.json",
+    "shell_checked": true,
+    "generic_shell_detected": false,
+    "notes": ["project shell anchor and dashboard visual inventory reviewed"]
+  },
+  "visual_matrix": {
+    "viewports": ["desktop", "mobile"],
+    "theme_modes": ["light"],
+    "locales": ["none"],
+    "states": ["loading", "empty", "error", "disabled", "permission", "populated"]
+  },
   "checks": ["entry exists", "desktop viewport reviewed", "mobile viewport reviewed"]
 }
 JSON
@@ -586,6 +643,25 @@ cat >"$MISSING_REVIEW_ANCHORS_PROJECT/openspec/changes/add-dashboard/prototype/a
 HTML
 run_json "$MISSING_REVIEW_ANCHORS_PROJECT" "$TMP_DIR/missing-review-anchors.json" 2
 assert_blocker "$TMP_DIR/missing-review-anchors.json" 'missing-review-anchors:artifact/index.html'
+
+MISSING_PROJECT_SHELL_PROJECT="$TMP_DIR/missing-project-shell-project"
+cp -R "$HAPPY_PROJECT" "$MISSING_PROJECT_SHELL_PROJECT"
+cat >"$MISSING_PROJECT_SHELL_PROJECT/openspec/changes/add-dashboard/prototype/artifact/index.html" <<'HTML'
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Dashboard Prototype</title>
+  </head>
+  <body>
+    <main data-specnav-screen="dashboard" data-specnav-variant="balanced">
+      <section data-specnav-component="dashboard-summary" data-specnav-state="populated">Dashboard summary</section>
+    </main>
+  </body>
+</html>
+HTML
+run_json "$MISSING_PROJECT_SHELL_PROJECT" "$TMP_DIR/missing-project-shell.json" 2
+assert_blocker "$TMP_DIR/missing-project-shell.json" 'missing-project-shell-anchor:artifact/index.html'
 
 GAP_TEXT_PROJECT="$TMP_DIR/gap-text-project"
 cp -R "$HAPPY_PROJECT" "$GAP_TEXT_PROJECT"
