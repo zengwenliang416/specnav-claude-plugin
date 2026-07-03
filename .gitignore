@@ -16,8 +16,14 @@ tests/fixtures/**/openspec/changes/*/verify-report.stale
 
 # Local/editor noise
 .DS_Store
+._*
 *.log
+*_副本.*
 node_modules/
 tmp/
 dist/
 coverage/
+
+# Local reference clones (archived outside the working tree)
+reference-repos/
+logs/
