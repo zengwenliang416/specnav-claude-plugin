@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "change_id": "upgrade-c0-repo-hygiene-and-ci",
+  "stage": "development",
+  "allowed_roots": [
+    ".gitignore",
+    ".github/**",
+    "tests/**",
+    "docs/assets/**",
+    "reference-repos/**",
+    "logs/**",
+    "docs/specnav-codegraph-design_副本.md"
+  ],
+  "denied_roots": [
+    "plugins/**"
+  ],
+  "allowed_operations": {
+    "create": true,
+    "modify": true,
+    "delete": true,
+    "rename": true
+  },
+  "requires_review_on": [
+    ".github/**"
+  ],
+  "prototype_sources": [],
+  "expires_when": "verification_started"
+}

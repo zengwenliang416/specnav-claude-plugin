@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "change_id": "fix-doc-version-and-skill-refs",
+  "stage": "development",
+  "scope_note": "Widened after user direction: fixes must propagate to installed plugin caches on both hosts, so release version bumps (claude 0.4.9, codex 0.1.8) are in scope. Plugin scripts and tests stay denied.",
+  "allowed_roots": [
+    "CHANGELOG.md",
+    "docs/design.md",
+    "plugins/specnav-development/skills/specnav-vertical-slices/SKILL.md",
+    "plugins/specnav-prototype/skills/specnav-prototype/SKILL.md",
+    "plugins/specnav-verification/skills/specnav-verify-plan/SKILL.md",
+    ".claude-plugin/marketplace.json",
+    "plugins/*/.claude-plugin/plugin.json"
+  ],
+  "denied_roots": [
+    "plugins/**/scripts/**",
+    "tests/**"
+  ],
+  "allowed_operations": {
+    "create": false,
+    "modify": true,
+    "delete": false,
+    "rename": false
+  },
+  "requires_review_on": [],
+  "prototype_sources": [],
+  "expires_when": "verification_started"
+}
