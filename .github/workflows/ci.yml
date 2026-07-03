@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  fixtures:
+    name: Fixture suites
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install OpenSpec CLI (version verified locally)
+        run: npm install -g @fission-ai/openspec@1.2.0
+
+      - name: Syntax-check all plugin scripts
+        run: |
+          set -euo pipefail
+          find plugins -name '*.js' -print0 | xargs -0 -n1 node --check
+
+      - name: Run fixture suites
+        run: |
+          set -euo pipefail
+          # run-plugin-validate-fixtures.sh hard-requires the Claude CLI,
+          # which is not installable on CI runners; it stays a local/release
+          # gate per docs/release-checklist.md.
+          for suite in tests/run-*.sh; do
+            if [[ "$suite" == "tests/run-plugin-validate-fixtures.sh" ]]; then
+              echo "SKIP $suite (requires claude CLI; local release gate)"
+              continue
+            fi
+            echo "RUN $suite"
+            bash "$suite"
+          done
+
+  core-drift:
+    name: Shared-core drift guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: specnav-claude-plugin
+
+      - uses: actions/checkout@v4
+        with:
+          repository: zengwenliang416/specnav-codex-plugin
+          path: specnav-codex-plugin
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check shared core against sibling
+        run: |
+          cd specnav-claude-plugin
+          SPECNAV_SIBLING_ROOT="$GITHUB_WORKSPACE/specnav-codex-plugin" bash tests/run-core-drift-check.sh
