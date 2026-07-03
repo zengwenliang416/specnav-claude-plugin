@@ -2,6 +2,11 @@
 openspec/.specnav/affordances.json
 openspec/.specnav/events.jsonl
 openspec/.specnav/overrides/
+openspec/.specnav/workflow-state.json
+openspec/.specnav/active-change
+openspec/.specnav/change-registry.json
+openspec/.specnav/journal/
+openspec/.specnav/context/
 openspec/changes/*/verify-report.json
 openspec/changes/*/verify-report.md
 openspec/changes/*/verify-report.stale
