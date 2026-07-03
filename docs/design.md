@@ -4,7 +4,7 @@ This document describes the current Claude Code implementation of SpecNav. The l
 
 ## 1. Current Shape
 
-SpecNav is currently a Claude Code marketplace repository containing six installable plugins. Current implementation version: `0.4.6`.
+SpecNav is currently a Claude Code marketplace repository containing seven installable plugins. Current implementation version: `0.4.9`.
 
 The accepted target is now the current implementation shape: one marketplace root, one core runtime plugin, and one plugin for each major lifecycle stage.
 
@@ -2254,6 +2254,35 @@ Completed in `0.4.6`:
    artifacts to approved theme and locale policy.
 4. Extend repository discovery so i18n and theme folders, configs, and
    dependencies become evidence for foundation spec negotiation.
+
+Completed in `0.4.7`:
+
+1. Add the user-aligned test case gate: `user-test-cases.md`,
+   `user-test-cases.json`, and `user-test-case-signoff.json` with `approved`
+   status required before six-domain verification runs.
+2. Require `domain-case-matrix.json` to map every approved test case across
+   all six verification domains.
+3. Extend `verify-domains.js` and the verify-plan, e2e, and facticity skills
+   to consume approved user test cases.
+
+Completed in `0.4.8`:
+
+1. Require executable migration evidence for SQL/DDL/DML, seed-data, menu, or
+   permission work: `development/migrations/` with `manifest.json` and
+   execution/rollback/validation notes before development handoff.
+2. Add `migration-deployment.json` and deploy-plan migration gates to
+   operations readiness.
+3. Add `runtime-evidence.json` to the verification plan with required runtime
+   and browser surfaces, plus database evidence when migrations are declared.
+4. Extend development, operations, and verification fixture suites for the
+   executable-evidence blockers.
+
+Completed in `0.4.9`:
+
+1. Backfill changelog and design release notes for 0.4.7 and 0.4.8.
+2. Reference every shipped skill asset explicitly from its SKILL.md.
+3. Align the verify-plan runtime-evidence Stop Condition wording with the
+   Codex edition.
 
 Next:
 

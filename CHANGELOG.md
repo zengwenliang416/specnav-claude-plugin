@@ -1,5 +1,39 @@
 # Changelog
 
+## 0.4.9
+
+- Backfill `CHANGELOG.md` and `docs/design.md` release notes for 0.4.7 and
+  0.4.8 so public hygiene checks pass against the released version.
+- Reference every shipped skill asset explicitly from its SKILL.md
+  (vertical-slices migration shells, prototype `assets/visual-inventory.json`).
+- Reword the verify-plan runtime-evidence Stop Condition to name the artifact
+  and required surfaces directly, aligning with the Codex edition wording.
+
+## 0.4.8
+
+- Require executable evidence gates before development handoff and release:
+  SQL/DDL/DML, seed-data, menu, or permission work must ship executable
+  migrations under `development/migrations/` with `manifest.json` and
+  execution/rollback/validation notes in `README.md`.
+- Add `migration-deployment.json` and deploy-plan migration gates to the
+  operations stage; readiness records migration deployment state.
+- Add `runtime-evidence.json` to the verification plan: runtime and browser
+  surfaces are always required, database evidence is required when a change
+  declares migrations; unverified stand-in evidence blocks the aggregate.
+- Extend development, operations, and verification fixture suites to cover
+  the new executable-evidence blockers.
+
+## 0.4.7
+
+- Add the user-aligned test case gate to verification: `user-test-cases.md`
+  and `user-test-cases.json` capture user-goal test cases, and
+  `user-test-case-signoff.json` must reach `approved` before the six domains
+  may run.
+- Require `domain-case-matrix.json` to map every approved test case across
+  all six verification domains.
+- Extend `verify-domains.js` validation and the verify-plan, e2e, and
+  facticity skills to consume the approved user test cases.
+
 ## 0.4.6
 
 - Require the UI design foundation spec to state theme capability, theme toggle

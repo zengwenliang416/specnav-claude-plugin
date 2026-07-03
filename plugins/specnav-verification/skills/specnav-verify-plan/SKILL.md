@@ -44,7 +44,7 @@ Create shared verification plan and evidence contracts.
 - Development handoff is blocked.
 - Active change is unclear.
 - User-aligned test cases are missing or not approved by the user.
-- Runtime, browser, or required database evidence is missing, blocked, or placeholder-only.
+- `verify/runtime-evidence.json` is missing, blocked, or lacks the runtime, browser, or database surfaces required by the change.
 - `plan.changed_files` is empty or not mapped in `traceability-matrix.json`.
 - Any required domain is omitted.
 

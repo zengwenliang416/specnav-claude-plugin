@@ -1,6 +1,6 @@
 {
   "name": "specnav-verification",
-  "version": "0.4.8",
+  "version": "0.4.9",
   "description": "Six-domain verification plugin for the SpecNav OpenSpec lifecycle suite.",
   "author": {
     "name": "Wenliang Zeng"
@@ -8,6 +8,11 @@
   "homepage": "https://github.com/zengwenliang416/specnav-claude-plugin",
   "repository": "https://github.com/zengwenliang416/specnav-claude-plugin",
   "license": "MIT",
-  "keywords": ["claude-code", "openspec", "verification", "testing"],
+  "keywords": [
+    "claude-code",
+    "openspec",
+    "verification",
+    "testing"
+  ],
   "skills": "./skills/"
 }
