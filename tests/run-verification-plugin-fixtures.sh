@@ -383,6 +383,7 @@ JSONL
 JSONL
   cat >"$dev/validation-log.jsonl" <<'JSONL'
 {"task":"001-dashboard-summary","command":"npm test","status":"passed","ok":true}
+{"schema":"specnav.validationLog.v2","task":"001-dashboard-summary","command":"npm test","status":"pass","ok":true,"exit_status":0,"attestation":"system-executed","recorded_by":"specnav-evidence-runner","recorded_at":"2026-07-03T00:00:00.000Z","evidence_log":"development/evidence/001-dashboard-summary.log"}
 JSONL
   cat >"$dev/migrations/manifest.json" <<'JSON'
 {

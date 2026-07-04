@@ -39,24 +39,15 @@ jobs:
             bash "$suite"
           done
 
-  core-drift:
-    name: Shared-core drift guard
+  unit-tests:
+    name: Unit tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          path: specnav-claude-plugin
-
-      - uses: actions/checkout@v4
-        with:
-          repository: zengwenliang416/specnav-codex-plugin
-          path: specnav-codex-plugin
 
       - uses: actions/setup-node@v4
         with:
           node-version: 22
 
-      - name: Check shared core against sibling
-        run: |
-          cd specnav-claude-plugin
-          SPECNAV_SIBLING_ROOT="$GITHUB_WORKSPACE/specnav-codex-plugin" bash tests/run-core-drift-check.sh
+      - name: Run unit tests
+        run: bash tests/run-unit-tests.sh

@@ -14,7 +14,7 @@ jq -e '.active_change == "add-dark-mode"' /tmp/specnav-affordances.json >/dev/nu
 node "$CORE/scripts/risk-tier.js" --paths src/ui/theme.ts >/tmp/specnav-risk.json
 jq -e '.tier == "standard"' /tmp/specnav-risk.json >/dev/null
 
-PROJECT_DIR="$FIXTURE" node "$CORE/scripts/verify.js" >/tmp/specnav-verify.md
+PROJECT_DIR="$FIXTURE" SPECNAV_TEST_COMMAND=true node "$CORE/scripts/verify.js" >/tmp/specnav-verify.md
 jq -e '.status == "green"' "$FIXTURE/openspec/changes/add-dark-mode/verify-report.json" >/dev/null
 
 PROJECT_DIR="$FIXTURE" node "$CORE/scripts/archive-gate.js" >/tmp/specnav-archive.txt

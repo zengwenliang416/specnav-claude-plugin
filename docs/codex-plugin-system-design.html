@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>SpecNav Codex Plugin System Design</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for syntax highlighting */
+    html { -webkit-text-size-adjust: 100%; }
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { color: #008000; } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { color: #008000; font-weight: bold; } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  <style>:root{--cream:#faf9f5;--ink:#181715;--muted:#5f5a52;--coral:#cc785c;--navy:#141926;--line:#e7dece;--code:#efe9de}*{box-sizing:border-box}body{margin:0;background:var(--cream);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.65}main{max-width:1120px;margin:0 auto;padding:64px 28px 96px}h1{font-family:Georgia,"Times New Roman",serif;font-size:48px;line-height:1.05;margin:0 0 18px;color:var(--navy)}h2{font-family:Georgia,"Times New Roman",serif;font-size:30px;line-height:1.2;margin:48px 0 14px;color:var(--navy)}h3{font-size:18px;margin:30px 0 10px;color:var(--ink)}p{margin:12px 0}a{color:var(--coral);text-decoration:none}a:hover{text-decoration:underline}ul,ol{padding-left:24px}li{margin:6px 0}pre{background:var(--navy);color:#f7efe3;border-radius:8px;padding:18px;overflow:auto;font-size:13px;line-height:1.5}code{background:var(--code);border-radius:5px;padding:2px 5px;font-size:.92em}pre code{background:transparent;padding:0;color:inherit}table{border-collapse:collapse;width:100%;margin:20px 0;background:rgba(255,255,255,.45)}th,td{border:1px solid var(--line);padding:10px 12px;text-align:left;vertical-align:top}th{background:#efe9de;color:var(--navy)}blockquote{border-left:4px solid var(--coral);margin:20px 0;padding:8px 18px;background:#fff7ed;color:var(--muted)}hr{border:0;border-top:1px solid var(--line);margin:36px 0}@media(max-width:720px){main{padding:36px 18px 72px}h1{font-size:36px}h2{font-size:25px}pre{font-size:12px}}</style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">SpecNav Codex Plugin System Design</h1>
+</header>
+<h1 id="specnav-codex-plugin-system-design">SpecNav Codex Plugin System
+Design</h1>
+<p>Status: proposed design</p>
+<p>Date: 2026-06-27</p>
+<p>Target repository:</p>
+<pre class="text"><code>/Volumes/zwl/AI/ai-coding/specnav-codex-plugin</code></pre>
+<p>Target GitHub repository:</p>
+<pre class="text"><code>zengwenliang416/specnav-codex-plugin</code></pre>
+<h2 id="design-decision">1. Design Decision</h2>
+<p>The Codex version should be redesigned from the Claude Code plugin
+system, not from the previous single-plugin Codex plan.</p>
+<p>The Claude Code implementation is a marketplace-based plugin
+suite:</p>
+<pre class="text"><code>specnav-claude-plugin/
+├── .claude-plugin/marketplace.json
+└── plugins/
+    ├── specnav-core/
+    ├── specnav-requirements/
+    ├── specnav-prototype/
+    ├── specnav-development/
+    ├── specnav-verification/
+    └── specnav-operations/</code></pre>
+<p>The Codex implementation should preserve that product
+architecture:</p>
+<pre class="text"><code>specnav-codex-plugin/
+├── .agents/plugins/marketplace.json
+└── plugins/
+    ├── specnav-core/
+    ├── specnav-requirements/
+    ├── specnav-prototype/
+    ├── specnav-development/
+    ├── specnav-verification/
+    └── specnav-operations/</code></pre>
+<p>Each lifecycle stage remains a separately installable Codex plugin.
+This keeps the same mental model as Claude Code:</p>
+<ul>
+<li><code>specnav-core</code> is mandatory;</li>
+<li>each stage plugin owns its skills, scripts, templates, and
+contracts;</li>
+<li>cross-stage orchestration goes through core;</li>
+<li>missing stage plugins are reported as exact blockers;</li>
+<li>no fallback is allowed.</li>
+</ul>
+<h2 id="claude-to-codex-mapping">2. Claude-to-Codex Mapping</h2>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th>Claude Code concept</th>
+<th>Current Claude path</th>
+<th>Codex equivalent</th>
+<th>Target Codex path</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Marketplace root</td>
+<td><code>.claude-plugin/marketplace.json</code></td>
+<td>repo/plugin marketplace</td>
+<td><code>.agents/plugins/marketplace.json</code></td>
+</tr>
+<tr>
+<td>Plugin manifest</td>
+<td><code>plugins/*/.claude-plugin/plugin.json</code></td>
+<td>Codex plugin manifest</td>
+<td><code>plugins/*/.codex-plugin/plugin.json</code></td>
+</tr>
+<tr>
+<td>Plugin skills</td>
+<td><code>plugins/*/skills/*/SKILL.md</code></td>
+<td>Codex bundled skills</td>
+<td><code>plugins/*/skills/*/SKILL.md</code></td>
+</tr>
+<tr>
+<td>Slash commands</td>
+<td><code>plugins/*/commands/*.md</code></td>
+<td>entry/routing skills</td>
+<td><code>plugins/*/skills/specnav-*/SKILL.md</code></td>
+</tr>
+<tr>
+<td>Core hooks</td>
+<td><code>plugins/specnav-core/hooks/hooks.json</code></td>
+<td>Codex plugin hooks</td>
+<td><code>plugins/specnav-core/hooks/hooks.json</code></td>
+</tr>
+<tr>
+<td>Hook root env</td>
+<td><code>CLAUDE_PLUGIN_ROOT</code></td>
+<td>Codex plugin root env</td>
+<td><code>PLUGIN_ROOT</code></td>
+</tr>
+<tr>
+<td>Plugin data env</td>
+<td><code>CLAUDE_PLUGIN_DATA</code></td>
+<td>Codex plugin data env</td>
+<td><code>PLUGIN_DATA</code></td>
+</tr>
+<tr>
+<td>Installed cache</td>
+<td><code>~/.claude/plugins/cache/...</code></td>
+<td>Codex cache</td>
+<td><code>~/.codex/plugins/cache/...</code></td>
+</tr>
+<tr>
+<td>Claude validation</td>
+<td><code>claude plugin validate</code></td>
+<td>Codex manifest/smoke fixtures</td>
+<td><code>tests/run-codex-*.sh</code></td>
+</tr>
+</tbody>
+</table>
+<p>The Codex system should not carry Claude command files as first-class
+runtime entry points. Any command behavior must become either a skill or
+a runtime CLI script invoked by a skill.</p>
+<h2 id="target-repository-layout">3. Target Repository Layout</h2>
+<pre class="text"><code>specnav-codex-plugin/
+├── .agents/
+│   └── plugins/
+│       └── marketplace.json
+├── plugins/
+│   ├── specnav-core/
+│   │   ├── .codex-plugin/plugin.json
+│   │   ├── hooks/
+│   │   ├── skills/
+│   │   ├── scripts/
+│   │   ├── templates/
+│   │   └── assets/
+│   ├── specnav-requirements/
+│   │   ├── .codex-plugin/plugin.json
+│   │   ├── skills/
+│   │   ├── scripts/
+│   │   ├── templates/
+│   │   └── assets/
+│   ├── specnav-prototype/
+│   │   ├── .codex-plugin/plugin.json
+│   │   ├── skills/
+│   │   ├── scripts/
+│   │   ├── templates/
+│   │   └── assets/
+│   ├── specnav-development/
+│   │   ├── .codex-plugin/plugin.json
+│   │   ├── skills/
+│   │   ├── scripts/
+│   │   ├── templates/
+│   │   └── assets/
+│   ├── specnav-verification/
+│   │   ├── .codex-plugin/plugin.json
+│   │   ├── skills/
+│   │   ├── scripts/
+│   │   ├── templates/
+│   │   └── assets/
+│   └── specnav-operations/
+│       ├── .codex-plugin/plugin.json
+│       ├── skills/
+│       ├── scripts/
+│       ├── templates/
+│       └── assets/
+├── docs/
+│   ├── design.md
+│   ├── install.md
+│   ├── user-journey.md
+│   ├── command-skill-matrix.md
+│   ├── compatibility.md
+│   └── release-checklist.md
+├── tests/
+│   ├── run-codex-marketplace-fixtures.sh
+│   ├── run-codex-plugin-fixtures.sh
+│   ├── run-codex-skill-fixtures.sh
+│   ├── run-codex-hook-fixtures.sh
+│   ├── run-runtime-fixtures.sh
+│   ├── run-stage-fixtures.sh
+│   ├── run-verification-fixtures.sh
+│   └── run-smoke.sh
+├── README.md
+├── README.zh-CN.md
+├── package.json
+└── LICENSE</code></pre>
+<p>This mirrors the Claude Code suite while using Codex-native install
+surfaces.</p>
+<h2 id="codex-marketplace">4. Codex Marketplace</h2>
+<p>Claude uses:</p>
+<pre class="text"><code>.claude-plugin/marketplace.json</code></pre>
+<p>Codex should use:</p>
+<pre class="text"><code>.agents/plugins/marketplace.json</code></pre>
+<p>Target marketplace:</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;specnav-marketplace&quot;</span><span class="fu">,</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;interface&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;displayName&quot;</span><span class="fu">:</span> <span class="st">&quot;SpecNav Marketplace&quot;</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;plugins&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;specnav-core&quot;</span><span class="fu">,</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;source&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;source&quot;</span><span class="fu">:</span> <span class="st">&quot;local&quot;</span><span class="fu">,</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;path&quot;</span><span class="fu">:</span> <span class="st">&quot;./plugins/specnav-core&quot;</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>      <span class="fu">},</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;policy&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;installation&quot;</span><span class="fu">:</span> <span class="st">&quot;AVAILABLE&quot;</span><span class="fu">,</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;authentication&quot;</span><span class="fu">:</span> <span class="st">&quot;ON_INSTALL&quot;</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>      <span class="fu">},</span></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;category&quot;</span><span class="fu">:</span> <span class="st">&quot;Developer Tools&quot;</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;specnav-requirements&quot;</span><span class="fu">,</span></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;source&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;source&quot;</span><span class="fu">:</span> <span class="st">&quot;local&quot;</span><span class="fu">,</span></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;path&quot;</span><span class="fu">:</span> <span class="st">&quot;./plugins/specnav-requirements&quot;</span></span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>      <span class="fu">},</span></span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;policy&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;installation&quot;</span><span class="fu">:</span> <span class="st">&quot;AVAILABLE&quot;</span><span class="fu">,</span></span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;authentication&quot;</span><span class="fu">:</span> <span class="st">&quot;ON_INSTALL&quot;</span></span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a>      <span class="fu">},</span></span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;category&quot;</span><span class="fu">:</span> <span class="st">&quot;Developer Tools&quot;</span></span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;specnav-prototype&quot;</span><span class="fu">,</span></span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;source&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;source&quot;</span><span class="fu">:</span> <span class="st">&quot;local&quot;</span><span class="fu">,</span></span>
+<span id="cb8-35"><a href="#cb8-35" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;path&quot;</span><span class="fu">:</span> <span class="st">&quot;./plugins/specnav-prototype&quot;</span></span>
+<span id="cb8-36"><a href="#cb8-36" aria-hidden="true" tabindex="-1"></a>      <span class="fu">},</span></span>
+<span id="cb8-37"><a href="#cb8-37" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;policy&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb8-38"><a href="#cb8-38" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;installation&quot;</span><span class="fu">:</span> <span class="st">&quot;AVAILABLE&quot;</span><span class="fu">,</span></span>
+<span id="cb8-39"><a href="#cb8-39" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;authentication&quot;</span><span class="fu">:</span> <span class="st">&quot;ON_INSTALL&quot;</span></span>
+<span id="cb8-40"><a href="#cb8-40" aria-hidden="true" tabindex="-1"></a>      <span class="fu">},</span></span>
+<span id="cb8-41"><a href="#cb8-41" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;category&quot;</span><span class="fu">:</span> <span class="st">&quot;Developer Tools&quot;</span></span>
+<span id="cb8-42"><a href="#cb8-42" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb8-43"><a href="#cb8-43" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb8-44"><a href="#cb8-44" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;specnav-development&quot;</span><span class="fu">,</span></span>
+<span id="cb8-45"><a href="#cb8-45" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;source&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb8-46"><a href="#cb8-46" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;source&quot;</span><span class="fu">:</span> <span class="st">&quot;local&quot;</span><span class="fu">,</span></span>
+<span id="cb8-47"><a href="#cb8-47" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;path&quot;</span><span class="fu">:</span> <span class="st">&quot;./plugins/specnav-development&quot;</span></span>
+<span id="cb8-48"><a href="#cb8-48" aria-hidden="true" tabindex="-1"></a>      <span class="fu">},</span></span>
+<span id="cb8-49"><a href="#cb8-49" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;policy&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb8-50"><a href="#cb8-50" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;installation&quot;</span><span class="fu">:</span> <span class="st">&quot;AVAILABLE&quot;</span><span class="fu">,</span></span>
+<span id="cb8-51"><a href="#cb8-51" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;authentication&quot;</span><span class="fu">:</span> <span class="st">&quot;ON_INSTALL&quot;</span></span>
+<span id="cb8-52"><a href="#cb8-52" aria-hidden="true" tabindex="-1"></a>      <span class="fu">},</span></span>
+<span id="cb8-53"><a href="#cb8-53" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;category&quot;</span><span class="fu">:</span> <span class="st">&quot;Developer Tools&quot;</span></span>
+<span id="cb8-54"><a href="#cb8-54" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb8-55"><a href="#cb8-55" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb8-56"><a href="#cb8-56" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;specnav-verification&quot;</span><span class="fu">,</span></span>
+<span id="cb8-57"><a href="#cb8-57" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;source&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb8-58"><a href="#cb8-58" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;source&quot;</span><span class="fu">:</span> <span class="st">&quot;local&quot;</span><span class="fu">,</span></span>
+<span id="cb8-59"><a href="#cb8-59" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;path&quot;</span><span class="fu">:</span> <span class="st">&quot;./plugins/specnav-verification&quot;</span></span>
+<span id="cb8-60"><a href="#cb8-60" aria-hidden="true" tabindex="-1"></a>      <span class="fu">},</span></span>
+<span id="cb8-61"><a href="#cb8-61" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;policy&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb8-62"><a href="#cb8-62" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;installation&quot;</span><span class="fu">:</span> <span class="st">&quot;AVAILABLE&quot;</span><span class="fu">,</span></span>
+<span id="cb8-63"><a href="#cb8-63" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;authentication&quot;</span><span class="fu">:</span> <span class="st">&quot;ON_INSTALL&quot;</span></span>
+<span id="cb8-64"><a href="#cb8-64" aria-hidden="true" tabindex="-1"></a>      <span class="fu">},</span></span>
+<span id="cb8-65"><a href="#cb8-65" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;category&quot;</span><span class="fu">:</span> <span class="st">&quot;Developer Tools&quot;</span></span>
+<span id="cb8-66"><a href="#cb8-66" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb8-67"><a href="#cb8-67" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb8-68"><a href="#cb8-68" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;specnav-operations&quot;</span><span class="fu">,</span></span>
+<span id="cb8-69"><a href="#cb8-69" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;source&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb8-70"><a href="#cb8-70" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;source&quot;</span><span class="fu">:</span> <span class="st">&quot;local&quot;</span><span class="fu">,</span></span>
+<span id="cb8-71"><a href="#cb8-71" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;path&quot;</span><span class="fu">:</span> <span class="st">&quot;./plugins/specnav-operations&quot;</span></span>
+<span id="cb8-72"><a href="#cb8-72" aria-hidden="true" tabindex="-1"></a>      <span class="fu">},</span></span>
+<span id="cb8-73"><a href="#cb8-73" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;policy&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb8-74"><a href="#cb8-74" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;installation&quot;</span><span class="fu">:</span> <span class="st">&quot;AVAILABLE&quot;</span><span class="fu">,</span></span>
+<span id="cb8-75"><a href="#cb8-75" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;authentication&quot;</span><span class="fu">:</span> <span class="st">&quot;ON_INSTALL&quot;</span></span>
+<span id="cb8-76"><a href="#cb8-76" aria-hidden="true" tabindex="-1"></a>      <span class="fu">},</span></span>
+<span id="cb8-77"><a href="#cb8-77" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;category&quot;</span><span class="fu">:</span> <span class="st">&quot;Developer Tools&quot;</span></span>
+<span id="cb8-78"><a href="#cb8-78" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb8-79"><a href="#cb8-79" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="cb8-80"><a href="#cb8-80" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>Install shape:</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ex">codex</span> plugin marketplace add /Volumes/zwl/AI/ai-coding/specnav-codex-plugin</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="ex">codex</span> plugin add specnav-core@specnav-marketplace</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="ex">codex</span> plugin add specnav-requirements@specnav-marketplace</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="ex">codex</span> plugin add specnav-prototype@specnav-marketplace</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="ex">codex</span> plugin add specnav-development@specnav-marketplace</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="ex">codex</span> plugin add specnav-verification@specnav-marketplace</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="ex">codex</span> plugin add specnav-operations@specnav-marketplace</span></code></pre></div>
+<p>The README should also include a one-line Codex install prompt:</p>
+<pre class="text"><code>Codex: add this repository as a plugin marketplace, install all six SpecNav plugins, trust the core hooks with /hooks, then start with $specnav-workflow.</code></pre>
+<p>Chinese:</p>
+<pre class="text"><code>Codex：把本仓库添加为插件 marketplace，安装六个 SpecNav 插件，用 /hooks 信任 core hook，然后从 $specnav-workflow 开始。</code></pre>
+<h2 id="plugin-manifests">5. Plugin Manifests</h2>
+<p>Each stage has a Codex manifest:</p>
+<pre class="text"><code>plugins/&lt;plugin&gt;/.codex-plugin/plugin.json</code></pre>
+<h3 id="specnav-core"><code>specnav-core</code></h3>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;specnav-core&quot;</span><span class="fu">,</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;version&quot;</span><span class="fu">:</span> <span class="st">&quot;0.1.0&quot;</span><span class="fu">,</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;Core runtime, routing, hooks, status, doctor, and suite dependency checks for SpecNav.&quot;</span><span class="fu">,</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;author&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;SpecNav Maintainers&quot;</span><span class="fu">,</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;url&quot;</span><span class="fu">:</span> <span class="st">&quot;https://github.com/zengwenliang416/specnav-codex-plugin&quot;</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;homepage&quot;</span><span class="fu">:</span> <span class="st">&quot;https://github.com/zengwenliang416/specnav-codex-plugin&quot;</span><span class="fu">,</span></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;repository&quot;</span><span class="fu">:</span> <span class="st">&quot;https://github.com/zengwenliang416/specnav-codex-plugin&quot;</span><span class="fu">,</span></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;license&quot;</span><span class="fu">:</span> <span class="st">&quot;MIT&quot;</span><span class="fu">,</span></span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;keywords&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;codex&quot;</span><span class="ot">,</span></span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;openspec&quot;</span><span class="ot">,</span></span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;workflow&quot;</span><span class="ot">,</span></span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;hooks&quot;</span><span class="ot">,</span></span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;lifecycle&quot;</span></span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;skills&quot;</span><span class="fu">:</span> <span class="st">&quot;./skills/&quot;</span><span class="fu">,</span></span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;hooks&quot;</span><span class="fu">:</span> <span class="st">&quot;./hooks/hooks.json&quot;</span><span class="fu">,</span></span>
+<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;interface&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;displayName&quot;</span><span class="fu">:</span> <span class="st">&quot;SpecNav Core&quot;</span><span class="fu">,</span></span>
+<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;shortDescription&quot;</span><span class="fu">:</span> <span class="st">&quot;OpenSpec lifecycle router and guardrails for Codex&quot;</span><span class="fu">,</span></span>
+<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;longDescription&quot;</span><span class="fu">:</span> <span class="st">&quot;Provides SpecNav routing, bootstrap, status, doctor, recovery, lifecycle hooks, suite dependency checks, and no-fallback OpenSpec guardrails.&quot;</span><span class="fu">,</span></span>
+<span id="cb13-25"><a href="#cb13-25" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;developerName&quot;</span><span class="fu">:</span> <span class="st">&quot;SpecNav Maintainers&quot;</span><span class="fu">,</span></span>
+<span id="cb13-26"><a href="#cb13-26" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;category&quot;</span><span class="fu">:</span> <span class="st">&quot;Developer Tools&quot;</span><span class="fu">,</span></span>
+<span id="cb13-27"><a href="#cb13-27" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;capabilities&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb13-28"><a href="#cb13-28" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;Interactive&quot;</span><span class="ot">,</span></span>
+<span id="cb13-29"><a href="#cb13-29" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;Read&quot;</span><span class="ot">,</span></span>
+<span id="cb13-30"><a href="#cb13-30" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;Write&quot;</span></span>
+<span id="cb13-31"><a href="#cb13-31" aria-hidden="true" tabindex="-1"></a>    <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb13-32"><a href="#cb13-32" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;defaultPrompt&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb13-33"><a href="#cb13-33" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;Use SpecNav to inspect the next legal lifecycle action.&quot;</span><span class="ot">,</span></span>
+<span id="cb13-34"><a href="#cb13-34" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;Use SpecNav to bootstrap this project before requirements.&quot;</span></span>
+<span id="cb13-35"><a href="#cb13-35" aria-hidden="true" tabindex="-1"></a>    <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb13-36"><a href="#cb13-36" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;brandColor&quot;</span><span class="fu">:</span> <span class="st">&quot;#10A37F&quot;</span><span class="fu">,</span></span>
+<span id="cb13-37"><a href="#cb13-37" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;composerIcon&quot;</span><span class="fu">:</span> <span class="st">&quot;./assets/icon.svg&quot;</span><span class="fu">,</span></span>
+<span id="cb13-38"><a href="#cb13-38" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;logo&quot;</span><span class="fu">:</span> <span class="st">&quot;./assets/logo.svg&quot;</span><span class="fu">,</span></span>
+<span id="cb13-39"><a href="#cb13-39" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;screenshots&quot;</span><span class="fu">:</span> <span class="ot">[]</span></span>
+<span id="cb13-40"><a href="#cb13-40" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb13-41"><a href="#cb13-41" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<h3 id="stage-plugins">Stage Plugins</h3>
+<p>Each stage plugin follows the same manifest structure, but only
+<code>specnav-core</code> declares hooks.</p>
+<p>Example:</p>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;specnav-requirements&quot;</span><span class="fu">,</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;version&quot;</span><span class="fu">:</span> <span class="st">&quot;0.1.0&quot;</span><span class="fu">,</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;Requirements and foundation spec stage for the SpecNav OpenSpec lifecycle.&quot;</span><span class="fu">,</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;author&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;SpecNav Maintainers&quot;</span><span class="fu">,</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;url&quot;</span><span class="fu">:</span> <span class="st">&quot;https://github.com/zengwenliang416/specnav-codex-plugin&quot;</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;homepage&quot;</span><span class="fu">:</span> <span class="st">&quot;https://github.com/zengwenliang416/specnav-codex-plugin&quot;</span><span class="fu">,</span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;repository&quot;</span><span class="fu">:</span> <span class="st">&quot;https://github.com/zengwenliang416/specnav-codex-plugin&quot;</span><span class="fu">,</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;license&quot;</span><span class="fu">:</span> <span class="st">&quot;MIT&quot;</span><span class="fu">,</span></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;keywords&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;codex&quot;</span><span class="ot">,</span></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;openspec&quot;</span><span class="ot">,</span></span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;requirements&quot;</span><span class="ot">,</span></span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;specs&quot;</span></span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;skills&quot;</span><span class="fu">:</span> <span class="st">&quot;./skills/&quot;</span><span class="fu">,</span></span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;interface&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;displayName&quot;</span><span class="fu">:</span> <span class="st">&quot;SpecNav Requirements&quot;</span><span class="fu">,</span></span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;shortDescription&quot;</span><span class="fu">:</span> <span class="st">&quot;Foundation specs and requirements negotiation for SpecNav&quot;</span><span class="fu">,</span></span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;longDescription&quot;</span><span class="fu">:</span> <span class="st">&quot;Creates and validates repository discovery, UI design, system architecture, frontend-backend data flow, component architecture, requirements, acceptance criteria, spec maps, and component impact maps.&quot;</span><span class="fu">,</span></span>
+<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;developerName&quot;</span><span class="fu">:</span> <span class="st">&quot;SpecNav Maintainers&quot;</span><span class="fu">,</span></span>
+<span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;category&quot;</span><span class="fu">:</span> <span class="st">&quot;Developer Tools&quot;</span><span class="fu">,</span></span>
+<span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;capabilities&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb14-26"><a href="#cb14-26" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;Interactive&quot;</span><span class="ot">,</span></span>
+<span id="cb14-27"><a href="#cb14-27" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;Read&quot;</span><span class="ot">,</span></span>
+<span id="cb14-28"><a href="#cb14-28" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;Write&quot;</span></span>
+<span id="cb14-29"><a href="#cb14-29" aria-hidden="true" tabindex="-1"></a>    <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb14-30"><a href="#cb14-30" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;defaultPrompt&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb14-31"><a href="#cb14-31" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;Use SpecNav requirements to prepare foundation specs before feature work.&quot;</span></span>
+<span id="cb14-32"><a href="#cb14-32" aria-hidden="true" tabindex="-1"></a>    <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb14-33"><a href="#cb14-33" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;brandColor&quot;</span><span class="fu">:</span> <span class="st">&quot;#10A37F&quot;</span><span class="fu">,</span></span>
+<span id="cb14-34"><a href="#cb14-34" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;composerIcon&quot;</span><span class="fu">:</span> <span class="st">&quot;./assets/icon.svg&quot;</span><span class="fu">,</span></span>
+<span id="cb14-35"><a href="#cb14-35" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;logo&quot;</span><span class="fu">:</span> <span class="st">&quot;./assets/logo.svg&quot;</span><span class="fu">,</span></span>
+<span id="cb14-36"><a href="#cb14-36" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;screenshots&quot;</span><span class="fu">:</span> <span class="ot">[]</span></span>
+<span id="cb14-37"><a href="#cb14-37" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb14-38"><a href="#cb14-38" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<h2 id="plugin-responsibilities">6. Plugin Responsibilities</h2>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Plugin</th>
+<th>Owns</th>
+<th>Must depend on</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>specnav-core</code></td>
+<td>bootstrap, router, status, doctor, recovery, hooks, suite
+resolution, workflow state</td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>specnav-requirements</code></td>
+<td>repository discovery, four foundation specs, requirements,
+acceptance, spec maps, component impact maps</td>
+<td><code>specnav-core</code></td>
+</tr>
+<tr>
+<td><code>specnav-prototype</code></td>
+<td>runnable prototype, prototype verification, decision, handoff</td>
+<td><code>specnav-core</code>, <code>specnav-requirements</code></td>
+</tr>
+<tr>
+<td><code>specnav-development</code></td>
+<td>before-dev gate, scope lock, vertical slices, task ledger, reviews,
+fix loop, break-loop</td>
+<td><code>specnav-core</code>, <code>specnav-requirements</code>,
+<code>specnav-prototype</code></td>
+</tr>
+<tr>
+<td><code>specnav-verification</code></td>
+<td>six-domain verification, evidence index, aggregate
+JSON/Markdown/HTML reports, stale rerun</td>
+<td><code>specnav-core</code>, <code>specnav-development</code></td>
+</tr>
+<tr>
+<td><code>specnav-operations</code></td>
+<td>release, install verification, update policy, compatibility, deploy,
+rollback, monitor, postmortem, archive</td>
+<td><code>specnav-core</code>, <code>specnav-verification</code></td>
+</tr>
+</tbody>
+</table>
+<p>Each plugin must fail with:</p>
+<pre class="text"><code>missing-plugin:&lt;plugin-name&gt;</code></pre>
+<p>when a required plugin is unavailable.</p>
+<h2 id="skill-system">7. Skill System</h2>
+<p>Codex supports Agent Skills directly, so existing Claude skills can
+mostly keep their structure:</p>
+<pre class="text"><code>plugins/&lt;plugin&gt;/skills/&lt;skill&gt;/SKILL.md</code></pre>
+<p>Rules:</p>
+<ul>
+<li>frontmatter contains only <code>name</code> and
+<code>description</code>;</li>
+<li>skill names use <code>specnav-*</code>;</li>
+<li>descriptions start with clear trigger conditions;</li>
+<li>no <code>allowed-tools</code>;</li>
+<li>no Claude slash commands as required steps;</li>
+<li>no host-specific cache path assumptions;</li>
+<li>deterministic actions run scripts under the owning plugin.</li>
+</ul>
+<p>Codex invocation:</p>
+<pre class="text"><code>$specnav-workflow
+$specnav-bootstrap
+$specnav-requirements
+$specnav-prototype
+$specnav-development-entry
+$specnav-verify-plan
+$specnav-ops-readiness</code></pre>
+<p>Claude command mapping:</p>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr>
+<th>Claude command</th>
+<th>Codex skill</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/specnav</code></td>
+<td><code>$specnav-workflow</code></td>
+</tr>
+<tr>
+<td><code>/specnav-bootstrap</code></td>
+<td><code>$specnav-bootstrap</code></td>
+</tr>
+<tr>
+<td><code>/specnav-status</code></td>
+<td><code>$specnav-status</code></td>
+</tr>
+<tr>
+<td><code>/specnav-doctor</code></td>
+<td><code>$specnav-doctor</code></td>
+</tr>
+<tr>
+<td><code>/specnav-requirements</code></td>
+<td><code>$specnav-requirements</code></td>
+</tr>
+<tr>
+<td><code>/specnav-prototype</code></td>
+<td><code>$specnav-prototype</code></td>
+</tr>
+<tr>
+<td><code>/specnav-implement</code></td>
+<td><code>$specnav-development-entry</code> then
+<code>$specnav-vertical-slices</code></td>
+</tr>
+<tr>
+<td><code>/specnav-verify</code></td>
+<td><code>$specnav-verify-plan</code> then six domain skills</td>
+</tr>
+<tr>
+<td><code>/specnav-release</code></td>
+<td><code>$specnav-release-plan</code></td>
+</tr>
+<tr>
+<td><code>/specnav-archive</code></td>
+<td><code>$specnav-branch-finish</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="hook-system">8. Hook System</h2>
+<p>Claude core hook:</p>
+<div class="sourceCode" id="cb18"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;command&quot;</span><span class="fu">:</span> <span class="st">&quot;node </span><span class="ch">\&quot;</span><span class="st">$CLAUDE_PLUGIN_ROOT/scripts/specnav-session-start.js</span><span class="ch">\&quot;</span><span class="st">&quot;</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>Codex core hook:</p>
+<div class="sourceCode" id="cb19"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;command&quot;</span><span class="fu">:</span> <span class="st">&quot;node </span><span class="ch">\&quot;</span><span class="st">${PLUGIN_ROOT}/scripts/specnav-session-start.js</span><span class="ch">\&quot;</span><span class="st">&quot;</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>Target:</p>
+<pre class="text"><code>plugins/specnav-core/hooks/hooks.json</code></pre>
+<p>Codex hook config:</p>
+<div class="sourceCode" id="cb21"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;hooks&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;SessionStart&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>      <span class="fu">{</span></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;matcher&quot;</span><span class="fu">:</span> <span class="st">&quot;startup|resume|clear|compact&quot;</span><span class="fu">,</span></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;hooks&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span></span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;command&quot;</span><span class="fu">,</span></span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;command&quot;</span><span class="fu">:</span> <span class="st">&quot;node </span><span class="ch">\&quot;</span><span class="st">${PLUGIN_ROOT}/scripts/specnav-session-start.js</span><span class="ch">\&quot;</span><span class="st">&quot;</span><span class="fu">,</span></span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;statusMessage&quot;</span><span class="fu">:</span> <span class="st">&quot;Loading SpecNav context&quot;</span></span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>          <span class="fu">}</span></span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>        <span class="ot">]</span></span>
+<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>      <span class="fu">}</span></span>
+<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>    <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;UserPromptSubmit&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a>      <span class="fu">{</span></span>
+<span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;hooks&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb21-18"><a href="#cb21-18" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span></span>
+<span id="cb21-19"><a href="#cb21-19" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;command&quot;</span><span class="fu">,</span></span>
+<span id="cb21-20"><a href="#cb21-20" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;command&quot;</span><span class="fu">:</span> <span class="st">&quot;node </span><span class="ch">\&quot;</span><span class="st">${PLUGIN_ROOT}/scripts/specnav-user-prompt-submit.js</span><span class="ch">\&quot;</span><span class="st">&quot;</span><span class="fu">,</span></span>
+<span id="cb21-21"><a href="#cb21-21" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;timeout&quot;</span><span class="fu">:</span> <span class="dv">15</span></span>
+<span id="cb21-22"><a href="#cb21-22" aria-hidden="true" tabindex="-1"></a>          <span class="fu">}</span></span>
+<span id="cb21-23"><a href="#cb21-23" aria-hidden="true" tabindex="-1"></a>        <span class="ot">]</span></span>
+<span id="cb21-24"><a href="#cb21-24" aria-hidden="true" tabindex="-1"></a>      <span class="fu">}</span></span>
+<span id="cb21-25"><a href="#cb21-25" aria-hidden="true" tabindex="-1"></a>    <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb21-26"><a href="#cb21-26" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;PreToolUse&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb21-27"><a href="#cb21-27" aria-hidden="true" tabindex="-1"></a>      <span class="fu">{</span></span>
+<span id="cb21-28"><a href="#cb21-28" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;matcher&quot;</span><span class="fu">:</span> <span class="st">&quot;Bash|apply_patch|Edit|Write&quot;</span><span class="fu">,</span></span>
+<span id="cb21-29"><a href="#cb21-29" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;hooks&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb21-30"><a href="#cb21-30" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span></span>
+<span id="cb21-31"><a href="#cb21-31" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;command&quot;</span><span class="fu">,</span></span>
+<span id="cb21-32"><a href="#cb21-32" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;command&quot;</span><span class="fu">:</span> <span class="st">&quot;node </span><span class="ch">\&quot;</span><span class="st">${PLUGIN_ROOT}/scripts/specnav-guard.js</span><span class="ch">\&quot;</span><span class="st">&quot;</span><span class="fu">,</span></span>
+<span id="cb21-33"><a href="#cb21-33" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;timeout&quot;</span><span class="fu">:</span> <span class="dv">15</span><span class="fu">,</span></span>
+<span id="cb21-34"><a href="#cb21-34" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;statusMessage&quot;</span><span class="fu">:</span> <span class="st">&quot;Checking SpecNav gates&quot;</span></span>
+<span id="cb21-35"><a href="#cb21-35" aria-hidden="true" tabindex="-1"></a>          <span class="fu">}</span></span>
+<span id="cb21-36"><a href="#cb21-36" aria-hidden="true" tabindex="-1"></a>        <span class="ot">]</span></span>
+<span id="cb21-37"><a href="#cb21-37" aria-hidden="true" tabindex="-1"></a>      <span class="fu">}</span></span>
+<span id="cb21-38"><a href="#cb21-38" aria-hidden="true" tabindex="-1"></a>    <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb21-39"><a href="#cb21-39" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;PostToolUse&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb21-40"><a href="#cb21-40" aria-hidden="true" tabindex="-1"></a>      <span class="fu">{</span></span>
+<span id="cb21-41"><a href="#cb21-41" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;matcher&quot;</span><span class="fu">:</span> <span class="st">&quot;Bash|apply_patch|Edit|Write&quot;</span><span class="fu">,</span></span>
+<span id="cb21-42"><a href="#cb21-42" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;hooks&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb21-43"><a href="#cb21-43" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span></span>
+<span id="cb21-44"><a href="#cb21-44" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;command&quot;</span><span class="fu">,</span></span>
+<span id="cb21-45"><a href="#cb21-45" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;command&quot;</span><span class="fu">:</span> <span class="st">&quot;node </span><span class="ch">\&quot;</span><span class="st">${PLUGIN_ROOT}/scripts/specnav-post-tool.js</span><span class="ch">\&quot;</span><span class="st">&quot;</span><span class="fu">,</span></span>
+<span id="cb21-46"><a href="#cb21-46" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;timeout&quot;</span><span class="fu">:</span> <span class="dv">20</span></span>
+<span id="cb21-47"><a href="#cb21-47" aria-hidden="true" tabindex="-1"></a>          <span class="fu">}</span></span>
+<span id="cb21-48"><a href="#cb21-48" aria-hidden="true" tabindex="-1"></a>        <span class="ot">]</span></span>
+<span id="cb21-49"><a href="#cb21-49" aria-hidden="true" tabindex="-1"></a>      <span class="fu">}</span></span>
+<span id="cb21-50"><a href="#cb21-50" aria-hidden="true" tabindex="-1"></a>    <span class="ot">]</span></span>
+<span id="cb21-51"><a href="#cb21-51" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb21-52"><a href="#cb21-52" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>Hook behavior:</p>
+<ul>
+<li><code>SessionStart</code>: inject SpecNav lifecycle and no-fallback
+policy.</li>
+<li><code>UserPromptSubmit</code>: if <code>openspec/</code> is missing,
+inject bootstrap guidance.</li>
+<li><code>PreToolUse</code>: block production edits in SpecNav-managed
+projects when gates fail.</li>
+<li><code>PostToolUse</code>: update workflow state and stale
+verification markers.</li>
+</ul>
+<p>Codex hook trust is explicit. README must tell users to run:</p>
+<pre class="text"><code>/hooks</code></pre>
+<p>after install and trust the <code>specnav-core</code> hooks.</p>
+<h2 id="runtime-resolution">9. Runtime Resolution</h2>
+<p>The Claude suite resolves sibling plugins from Claude installed
+cache. Codex must resolve from Codex plugin cache.</p>
+<p>Resolution order:</p>
+<ol type="1">
+<li><p>explicit environment variable for tests:</p>
+<pre class="text"><code>SPECNAV_&lt;PLUGIN&gt;_ROOT</code></pre></li>
+<li><p>current plugin root:</p>
+<pre class="text"><code>PLUGIN_ROOT</code></pre></li>
+<li><p>sibling Codex cache roots:</p>
+<pre class="text"><code>~/.codex/plugins/cache/&lt;marketplace&gt;/&lt;plugin&gt;/&lt;version&gt;/</code></pre></li>
+<li><p>source-tree sibling roots:</p>
+<pre class="text"><code>&lt;repo&gt;/plugins/&lt;plugin&gt;/</code></pre></li>
+<li><p>fail with:</p>
+<pre class="text"><code>missing-plugin:&lt;plugin-name&gt;</code></pre></li>
+</ol>
+<p>Do not resolve from:</p>
+<pre class="text"><code>~/.claude/plugins/cache
+CLAUDE_PLUGIN_ROOT
+.claude-plugin/plugin.json</code></pre>
+<p>Codex may set <code>CLAUDE_PLUGIN_ROOT</code> for compatibility, but
+the SpecNav Codex implementation must not depend on it.</p>
+<h2 id="lifecycle-gates">10. Lifecycle Gates</h2>
+<p>The Codex plugin system preserves the Claude lifecycle:</p>
+<pre class="text"><code>bootstrap -&gt; spec discovery -&gt; requirements -&gt; prototype -&gt; development -&gt; verification -&gt; operations</code></pre>
+<h3 id="bootstrap">Bootstrap</h3>
+<p>Owned by <code>specnav-core</code>.</p>
+<p>Creates:</p>
+<pre class="text"><code>openspec/
+.specnav.json
+openspec/.specnav/workflow-state.json</code></pre>
+<h3 id="spec-discovery-and-requirements">Spec Discovery and
+Requirements</h3>
+<p>Owned by <code>specnav-requirements</code>.</p>
+<p>Requires:</p>
+<pre class="text"><code>openspec/specs/ui-design/design.md
+openspec/specs/system-architecture/design.md
+openspec/specs/frontend-backend-data-flow/design.md
+openspec/specs/component-architecture/design.md</code></pre>
+<p>Then writes:</p>
+<pre class="text"><code>openspec/changes/&lt;change&gt;/requirements.md
+openspec/changes/&lt;change&gt;/acceptance.md
+openspec/changes/&lt;change&gt;/spec-map.json
+openspec/changes/&lt;change&gt;/component-impact-map.json</code></pre>
+<h3 id="prototype">Prototype</h3>
+<p>Owned by <code>specnav-prototype</code>.</p>
+<p>Writes runnable prototype artifacts and a user approval handoff:</p>
+<pre class="text"><code>openspec/changes/&lt;change&gt;/prototype/</code></pre>
+<h3 id="development">Development</h3>
+<p>Owned by <code>specnav-development</code>.</p>
+<p>Writes:</p>
+<pre class="text"><code>openspec/changes/&lt;change&gt;/development/</code></pre>
+<p>Includes before-dev, scope lock, vertical slices, task ledger, review
+loop, fix loop, and break-loop.</p>
+<h3 id="verification">Verification</h3>
+<p>Owned by <code>specnav-verification</code>.</p>
+<p>Writes:</p>
+<pre class="text"><code>openspec/changes/&lt;change&gt;/verify/
+openspec/changes/&lt;change&gt;/verify-report.json
+openspec/changes/&lt;change&gt;/verify-report.md
+openspec/changes/&lt;change&gt;/verify-report.html</code></pre>
+<p>Six domains:</p>
+<pre class="text"><code>facticity
+static
+unit
+redteam
+e2e
+sensory</code></pre>
+<p>HTML report style:</p>
+<ul>
+<li>cream canvas;</li>
+<li>coral accent;</li>
+<li>dark navy surfaces;</li>
+<li>serif display headings;</li>
+<li>humanist sans body;</li>
+<li>stakeholder-readable layout.</li>
+</ul>
+<h3 id="operations">Operations</h3>
+<p>Owned by <code>specnav-operations</code>.</p>
+<p>Writes:</p>
+<pre class="text"><code>openspec/changes/&lt;change&gt;/operations/</code></pre>
+<p>Covers release, install verification, update policy, compatibility,
+deploy, rollback, monitor, postmortem, update-spec, branch finish, and
+archive.</p>
+<h2 id="no-fallback-policy">11. No-Fallback Policy</h2>
+<p>Every Codex plugin must keep the same no-fallback policy as the
+Claude suite.</p>
+<p>If a required dependency, OpenSpec command, artifact, state file,
+hook, skill, or plugin is missing, SpecNav reports the exact blocker and
+stops.</p>
+<p>Allowed actions while blocked:</p>
+<ul>
+<li>doctor/status;</li>
+<li>bootstrap;</li>
+<li>OpenSpec artifact repair;</li>
+<li>read-only discovery;</li>
+<li>docs-only edits that do not touch production code.</li>
+</ul>
+<p>Not allowed:</p>
+<ul>
+<li>infer missing specs from chat history;</li>
+<li>continue development without foundation specs;</li>
+<li>mark prototype approved without decision artifact;</li>
+<li>mark development complete with failed review;</li>
+<li>aggregate verification without all six domains;</li>
+<li>release without green verification.</li>
+</ul>
+<h2 id="readme-model">12. README Model</h2>
+<p>Both README files must explain Codex installation in the same
+practical style as the Claude README.</p>
+<p>English:</p>
+<pre class="text"><code>SpecNav for Codex is a six-plugin OpenSpec lifecycle suite. Add this repository as a Codex marketplace, install all six plugins, trust the specnav-core hooks with /hooks, then start from $specnav-workflow in the target project.</code></pre>
+<p>Chinese:</p>
+<pre class="text"><code>SpecNav for Codex 是一个六插件 OpenSpec 生命周期套件。把本仓库添加为 Codex marketplace，安装六个插件，用 /hooks 信任 specnav-core hooks，然后在目标项目里从 $specnav-workflow 开始。</code></pre>
+<p>README sections:</p>
+<ul>
+<li>Overview</li>
+<li>Install Locally</li>
+<li>Install From GitHub</li>
+<li>First Run</li>
+<li>Hook Trust</li>
+<li>Workflow Model</li>
+<li>Plugin Layout</li>
+<li>Public Skills</li>
+<li>Useful Checks</li>
+<li>Design Notes</li>
+</ul>
+<h2 id="tests">13. Tests</h2>
+<p>Codex suite tests:</p>
+<pre class="text"><code>tests/run-codex-marketplace-fixtures.sh
+tests/run-codex-plugin-fixtures.sh
+tests/run-codex-skill-fixtures.sh
+tests/run-codex-hook-fixtures.sh
+tests/run-plugin-suite-resolver-fixtures.sh
+tests/run-core-runtime-fixtures.sh
+tests/run-requirements-plugin-fixtures.sh
+tests/run-prototype-plugin-fixtures.sh
+tests/run-development-plugin-fixtures.sh
+tests/run-verification-plugin-fixtures.sh
+tests/run-operations-plugin-fixtures.sh
+tests/run-public-hygiene-fixtures.sh
+tests/run-smoke.sh</code></pre>
+<p>Required checks:</p>
+<ul>
+<li>marketplace parses;</li>
+<li>all six plugin entries exist;</li>
+<li>every plugin has <code>.codex-plugin/plugin.json</code>;</li>
+<li>every manifest path starts with <code>./</code>;</li>
+<li>every manifest path exists;</li>
+<li>every skill has valid Agent Skills frontmatter;</li>
+<li>no skill requires Claude slash commands;</li>
+<li>no script depends on <code>CLAUDE_PLUGIN_ROOT</code>;</li>
+<li>hooks use <code>PLUGIN_ROOT</code>;</li>
+<li>hook JSON parses;</li>
+<li>hook scripts syntax-check;</li>
+<li>suite resolver finds installed and source sibling plugins;</li>
+<li>all lifecycle contracts fail closed;</li>
+<li>verification writes JSON, Markdown, and HTML.</li>
+</ul>
+<p>Full test:</p>
+<div class="sourceCode" id="cb41"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> test_script <span class="kw">in</span> tests/run-<span class="pp">*</span>.sh<span class="kw">;</span> <span class="cf">do</span></span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bash</span> <span class="st">&quot;</span><span class="va">$test_script</span><span class="st">&quot;</span></span>
+<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a><span class="cf">done</span></span></code></pre></div>
+<h2 id="implementation-plan">14. Implementation Plan</h2>
+<h3 id="phase-0-create-codex-repository">Phase 0: Create Codex
+repository</h3>
+<p>Create:</p>
+<pre class="text"><code>/Volumes/zwl/AI/ai-coding/specnav-codex-plugin</code></pre>
+<p>Initialize:</p>
+<div class="sourceCode" id="cb43"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> init</span></code></pre></div>
+<p>Add:</p>
+<pre class="text"><code>README.md
+README.zh-CN.md
+docs/design.md
+.agents/plugins/marketplace.json</code></pre>
+<h3 id="phase-1-create-six-codex-plugin-manifests">Phase 1: Create six
+Codex plugin manifests</h3>
+<p>Add:</p>
+<pre class="text"><code>plugins/specnav-core/.codex-plugin/plugin.json
+plugins/specnav-requirements/.codex-plugin/plugin.json
+plugins/specnav-prototype/.codex-plugin/plugin.json
+plugins/specnav-development/.codex-plugin/plugin.json
+plugins/specnav-verification/.codex-plugin/plugin.json
+plugins/specnav-operations/.codex-plugin/plugin.json</code></pre>
+<h3 id="phase-2-port-skills">Phase 2: Port skills</h3>
+<p>Copy and revise Claude skills:</p>
+<pre class="text"><code>plugins/&lt;plugin&gt;/skills/</code></pre>
+<p>Remove Claude command assumptions and replace command entry points
+with Codex skill invocation language.</p>
+<h3 id="phase-3-port-runtime-scripts">Phase 3: Port runtime scripts</h3>
+<p>Move deterministic scripts into each owning plugin:</p>
+<pre class="text"><code>plugins/&lt;plugin&gt;/scripts/</code></pre>
+<p>Replace resolver logic with Codex cache/source sibling
+resolution.</p>
+<h3 id="phase-4-port-hooks">Phase 4: Port hooks</h3>
+<p>Only <code>specnav-core</code> owns hooks.</p>
+<p>Rewrite:</p>
+<pre class="text"><code>specnav-session-start.js
+specnav-user-prompt-submit.js
+specnav-guard.js
+specnav-post-tool.js</code></pre>
+<p>Use <code>PLUGIN_ROOT</code> and Codex hook schemas.</p>
+<h3 id="phase-5-port-templates-and-assets">Phase 5: Port templates and
+assets</h3>
+<p>Move stage artifact shells to:</p>
+<pre class="text"><code>plugins/&lt;plugin&gt;/templates/
+plugins/&lt;plugin&gt;/assets/</code></pre>
+<p>Keep skill-local assets under skill folders only when they are
+specific to one skill.</p>
+<h3 id="phase-6-tests-and-local-install-smoke">Phase 6: Tests and local
+install smoke</h3>
+<p>Run:</p>
+<div class="sourceCode" id="cb50"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a><span class="ex">codex</span> plugin marketplace add /Volumes/zwl/AI/ai-coding/specnav-codex-plugin</span>
+<span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a><span class="ex">codex</span> plugin list <span class="at">--marketplace</span> specnav-marketplace <span class="at">--available</span> <span class="at">--json</span></span>
+<span id="cb50-3"><a href="#cb50-3" aria-hidden="true" tabindex="-1"></a><span class="ex">codex</span> plugin add specnav-core@specnav-marketplace <span class="at">--json</span></span></code></pre></div>
+<p>Then install the remaining five plugins and verify
+<code>$specnav-workflow</code> appears in a fresh Codex session.</p>
+<h2 id="release-policy">15. Release Policy</h2>
+<p>Version the Codex suite independently from Claude:</p>
+<pre class="text"><code>0.1.0 Codex marketplace + six plugin manifests + install smoke
+0.2.0 core hooks + bootstrap + doctor + status
+0.3.0 requirements + foundation specs
+0.4.0 prototype + development
+0.5.0 verification + HTML report
+0.6.0 operations
+1.0.0 full lifecycle stable</code></pre>
+<p>Release requirements:</p>
+<ul>
+<li>all tests pass;</li>
+<li>local Codex install smoke passes;</li>
+<li>README and README.zh-CN are updated;</li>
+<li>compatibility doc names exact Codex version tested;</li>
+<li>no Claude primary entry points remain in Codex docs.</li>
+</ul>
+<h2 id="next-action">16. Next Action</h2>
+<p>If this design is accepted, start by creating:</p>
+<pre class="text"><code>/Volumes/zwl/AI/ai-coding/specnav-codex-plugin</code></pre>
+<p>Then implement Phase 0 and Phase 1 before moving any runtime
+logic.</p>
+</body>
+</html>

@@ -14,7 +14,9 @@ const pluginNames = fs.readdirSync(pluginsDir)
   .filter((name) => name.startsWith('specnav-') && fs.statSync(path.join(pluginsDir, name)).isDirectory())
   .sort();
 
-const allowedFrontmatter = new Set(['name', 'description']);
+// context/agent are the official skill-isolation keys (context: fork runs
+// the skill in a subagent); hosts that do not support them ignore them.
+const allowedFrontmatter = new Set(['name', 'description', 'context', 'agent', 'disable-model-invocation']);
 const genericNames = new Set([
   'status',
   'doctor',
@@ -209,7 +211,7 @@ function checkSkill(pluginName, file, declaredSkillNames) {
       fail(`${rel}: frontmatter key not allowed in SpecNav strict subset: ${key}`);
     }
   }
-  for (const key of allowedFrontmatter) {
+  for (const key of ['name', 'description']) {
     if (!keys.includes(key)) {
       fail(`${rel}: missing frontmatter key ${key}`);
     }

@@ -10,7 +10,7 @@ trap 'rm -rf "$TMP"' EXIT
 
 CHANGE_DIR="$TMP/openspec/changes/add-dark-mode"
 
-PROJECT_DIR="$TMP" node "$CORE/scripts/verify.js" >/tmp/specnav-policy-verify.md
+PROJECT_DIR="$TMP" SPECNAV_TEST_COMMAND=true node "$CORE/scripts/verify.js" >/tmp/specnav-policy-verify.md
 PROJECT_DIR="$TMP" node "$CORE/scripts/archive-gate.js" >/tmp/specnav-policy-archive.txt
 
 printf '{"tool_name":"Write","tool_input":{"file_path":"src/ui/theme.ts"}}' | \
@@ -21,7 +21,7 @@ if PROJECT_DIR="$TMP" node "$CORE/scripts/archive-gate.js" >/tmp/specnav-policy-
   exit 1
 fi
 
-PROJECT_DIR="$TMP" node "$CORE/scripts/verify.js" >/tmp/specnav-policy-verify.md
+PROJECT_DIR="$TMP" SPECNAV_TEST_COMMAND=true node "$CORE/scripts/verify.js" >/tmp/specnav-policy-verify.md
 PROJECT_DIR="$TMP" node "$CORE/scripts/archive-gate.js" >/tmp/specnav-policy-archive.txt
 
 cat >"$CHANGE_DIR/risk-tier.json" <<'JSON'
