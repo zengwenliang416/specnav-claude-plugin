@@ -2284,6 +2284,20 @@ Completed in `0.4.9`:
 3. Align the verify-plan runtime-evidence Stop Condition wording with the
    Codex edition.
 
+Completed in `0.5.0`:
+
+1. Harden guard payload handling, session lock, stale-marker soft-fail, and
+   scope matching (`globLikeMatch` segment boundaries).
+2. Require system-executed validation-log evidence before development handoff
+   and for high-confidence verify receipts; add frozen-test tamper guard.
+3. Add machine-checkable `acceptance.json` assertions, `specnav-task-review`
+   generation/evaluation separation, loop circuit breaker, and
+   `rerun-scope.js` minimal verification reruns.
+4. Emit risk-tier lanes, gate-effectiveness analytics, and adopted Stop /
+   PostToolUseFailure hooks; set `defaultEnabled` and `strict` on manifests.
+5. Defer the Codex sibling, retire cross-repo core-drift guard, and add
+   dedicated CI unit-test coverage for kernel scripts.
+
 Next:
 
 1. Automate transcript capture for behavior evals instead of requiring file-backed transcript evidence.
