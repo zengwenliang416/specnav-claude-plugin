@@ -519,6 +519,7 @@ JSONL
 
   cat >"$development/validation-log.jsonl" <<'JSONL'
 {"task":"001-dashboard-summary","command":"npm test dashboard-summary.test.tsx","status":"passed","ok":true}
+{"schema":"specnav.validationLog.v2","task":"001-dashboard-summary","command":"npm test dashboard-summary.test.tsx","status":"pass","ok":true,"exit_status":0,"attestation":"system-executed","recorded_by":"specnav-evidence-runner","recorded_at":"2026-07-03T00:00:00.000Z","evidence_log":"development/evidence/001-dashboard-summary.log"}
 JSONL
 
   cat >"$development/migrations/manifest.json" <<'JSON'
@@ -1359,5 +1360,60 @@ cat >"$VALIDATION_FAIL_PROJECT/openspec/changes/add-dashboard/development/valida
 JSONL
 run_json "$VALIDATION_FAIL_PROJECT" "$TMP_DIR/validation-fail.json" 2
 assert_blocker "$TMP_DIR/validation-fail.json" 'validation-log:no-pass'
+
+# Executed-evidence gate: a replayable self-reported pass without any
+# system-executed receipt must block handoff with no-executed-evidence.
+SELF_REPORTED_PROJECT="$TMP_DIR/self-reported-only-project"
+cp -R "$HAPPY_PROJECT" "$SELF_REPORTED_PROJECT"
+cat >"$SELF_REPORTED_PROJECT/openspec/changes/add-dashboard/development/validation-log.jsonl" <<'JSONL'
+{"task":"001-dashboard-summary","command":"npm test dashboard-summary.test.tsx","status":"passed","ok":true}
+JSONL
+run_json "$SELF_REPORTED_PROJECT" "$TMP_DIR/self-reported-only.json" 2
+assert_blocker "$TMP_DIR/self-reported-only.json" 'validation-log:no-executed-evidence'
+
+# Non-replayable entries need a caveat; with caveat + one executed pass the
+# validation-log artifact itself is clean.
+CAVEAT_PROJECT="$TMP_DIR/caveat-project"
+cp -R "$HAPPY_PROJECT" "$CAVEAT_PROJECT"
+cat >"$CAVEAT_PROJECT/openspec/changes/add-dashboard/development/validation-log.jsonl" <<'JSONL'
+{"task":"001-dashboard-summary","command":"manual UX review","status":"pass","ok":true,"replayable":false}
+{"schema":"specnav.validationLog.v2","task":"001-dashboard-summary","command":"npm test dashboard-summary.test.tsx","status":"pass","ok":true,"exit_status":0,"attestation":"system-executed","recorded_by":"specnav-evidence-runner","recorded_at":"2026-07-03T00:00:00.000Z","evidence_log":"development/evidence/001.log"}
+JSONL
+run_json "$CAVEAT_PROJECT" "$TMP_DIR/caveat-missing.json" 2
+assert_blocker "$TMP_DIR/caveat-missing.json" 'validation-log:non-replayable-missing-caveat:001-dashboard-summary'
+
+# Review/acceptance binding: with acceptance.json present, an approved spec
+# review must cite verified assertion ids.
+REVIEW_BINDING_PROJECT="$TMP_DIR/review-binding-project"
+cp -R "$HAPPY_PROJECT" "$REVIEW_BINDING_PROJECT"
+cat >"$REVIEW_BINDING_PROJECT/openspec/changes/add-dashboard/acceptance.json" <<'JSON'
+{"assertions":[{"id":"A1","statement":"dashboard renders summary","verify_via":"e2e","status":"failing","evidence_ref":null}]}
+JSON
+run_json "$REVIEW_BINDING_PROJECT" "$TMP_DIR/review-binding-unsupported.json" 2
+assert_blocker "$TMP_DIR/review-binding-unsupported.json" 'review:unsupported-verdict'
+
+# Citing an unknown assertion id is rejected by name.
+SPEC_REVIEW_FILE="$REVIEW_BINDING_PROJECT/openspec/changes/add-dashboard/development/tasks/001-dashboard-summary/spec-review.md"
+cat >>"$SPEC_REVIEW_FILE" <<'MD'
+
+## Acceptance Assertions Verified
+
+- A9 verified against dashboard flow.
+MD
+run_json "$REVIEW_BINDING_PROJECT" "$TMP_DIR/review-binding-invalid.json" 2
+assert_blocker "$TMP_DIR/review-binding-invalid.json" 'review:invalid-reference:A9'
+
+# Valid citation clears both review blockers.
+python3 - "$SPEC_REVIEW_FILE" <<'PY'
+import sys
+p = sys.argv[1]
+src = open(p).read()
+src = src.replace('- A9 verified against dashboard flow.', '- A1 verified against dashboard flow.')
+open(p, 'w').write(src)
+PY
+# Valid citation clears the review gate entirely (the underlying happy
+# project is otherwise handoff-clean).
+run_json "$REVIEW_BINDING_PROJECT" "$TMP_DIR/review-binding-valid.json" 0
+jq -e '.ok == true' "$TMP_DIR/review-binding-valid.json" >/dev/null
 
 echo "specnav development plugin fixtures ok"
