@@ -1,6 +1,6 @@
 {
   "name": "specnav-development",
-  "version": "0.4.9",
+  "version": "0.5.0",
   "description": "Development stage plugin for the SpecNav OpenSpec lifecycle suite.",
   "author": {
     "name": "Wenliang Zeng"
@@ -14,5 +14,6 @@
     "implementation",
     "tdd"
   ],
-  "skills": "./skills/"
+  "skills": "./skills/",
+  "defaultEnabled": true
 }

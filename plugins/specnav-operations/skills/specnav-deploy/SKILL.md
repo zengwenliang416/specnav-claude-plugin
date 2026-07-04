@@ -1,6 +1,7 @@
 ---
 name: specnav-deploy
 description: Use this skill when SpecNav release target is project-deploy and deployment mechanics, environment, commands, config, secrets, migrations, smoke checks, owner, or deploy window must be documented.
+disable-model-invocation: true
 ---
 
 ## Runtime Paths
