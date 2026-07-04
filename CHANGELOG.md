@@ -1,5 +1,95 @@
 # Changelog
 
+## 0.5.0 (2026-07-03)
+
+Guard & runtime hardening (P0):
+
+- Guard consumes documented-stable hook payload fields first; fallback field
+  hits are audited as `guard.unknown-payload-shape` events instead of failing
+  silently. Denials emit structured `PreToolUse` `permissionDecision` JSON
+  with blocker ids and fix guidance.
+- SessionStart runs a guard self-check with synthetic payloads; failures
+  surface as a `guard-selfcheck-failed` blocker, a doctor check, and a loud
+  systemMessage.
+- `verify-report.stale` write failures no longer hard-block edits: the hook
+  warns, records `verify.stale-marker-failed`, and doctor gains a
+  `stale-marker-writable` repair check.
+- Fix C4: `globLikeMatch` literal patterns no longer prefix-match unrelated
+  longer paths (scope.json enforcement is segment-boundary exact).
+- Single-writer session lock: `openspec/.specnav/session-lock` lease at
+  SessionStart; a foreign active lease blocks with
+  `session-lock:held-by-other`, expired leases are taken over with an audit
+  event.
+- CI runs `claude plugin validate` (release checklist gate locally).
+
+Executed evidence (P1):
+
+- New `specnav-verification/scripts/evidence-runner.js` replays
+  validation-log commands and appends system-executed receipts
+  (`specnav.validationLog.v2`, `attestation: system-executed`); replayed
+  output is stored under `development/evidence/`.
+- Development handoff requires at least one system-executed pass when
+  replayable entries exist (`validation-log:no-executed-evidence`); executed
+  failures overturn self-reported passes; non-replayable entries need a
+  caveat.
+- Verify receipts with confidence A/B require executed evidence
+  (`receipt-confidence-unexecuted-evidence`); zero executable tests now
+  yields a `blocked` verify report, never green.
+- TDD tamper guard: task `context.json` `test_paths` freeze committed test
+  files during implementation (`frozen-tests` gate with override + audit).
+
+Loop convergence (P2):
+
+- `acceptance.json` machine-checkable assertion list: assertions freeze at
+  development entry (digest pinned in `development/acceptance-freeze.json`,
+  `acceptance:assertions-mutated` on tampering); passing requires
+  `evidence_ref`; verification blocks on failing assertions.
+- Generation/evaluation separation: new `specnav-task-review` skill runs
+  spec/quality reviews in a forked `verifier` agent context; approved spec
+  reviews must cite verified acceptance assertion ids
+  (`review:unsupported-verdict`, `review:invalid-reference:<id>`).
+- Deterministic circuit breaker: three consecutive same-cause task failures
+  in `task-ledger.jsonl` raise `loop-detected:<task>`; a recorded escalation
+  clears it (break-loop skill owns classification, not detection).
+- `rerun-scope.js` computes the minimal verification rerun set from the git
+  diff and traceability matrix; unmapped changes fail conservatively to a
+  full rerun.
+- SessionStart emits a bounded startup ritual (active change, ready actions,
+  failing assertion count, stale flag, journal tail); PreCompact injects a
+  compact workflow-state summary.
+
+Lane routing & scaffold accounting (P3):
+
+- `risk-tier.js` emits a lane (`light`/`standard`/`full`): light lane may
+  record the prototype as `not_required` (reason mandatory), folds quality
+  review into spec review, and verifies static + unit only; cumulative diffs
+  past the escalation threshold raise `lane-escalation-required`.
+- New `gate-effectiveness.js` aggregates events.jsonl into per-gate deny/
+  override/red-after-allow rates with retirement signals; release checklist
+  gains a post-model-upgrade scaffold audit step.
+- Adopted `Stop` (unaccounted-edit ledger check, loop-safe) and
+  `PostToolUseFailure` (blocker classification) hooks; agent-type hooks and
+  UserPromptSubmit injection deliberately not adopted (see compatibility.md).
+- Skill audit: 45 skills pass the strict checklist; `specnav-deploy` and
+  `specnav-rollback` are user-invocable only (`disable-model-invocation`).
+- Plugin manifests: `defaultEnabled: true` everywhere, `strict: true` on
+  marketplace entries; `dependencies` field deliberately deferred.
+
+Codex deferral & kernel hardening (P4):
+
+- Decision recorded (docs/decisions/2026-07-codex-production-gate.md): the
+  Codex sibling is deferred; this repository optimizes standalone.
+- Retired the cross-repo shared-core drift guard
+  (`tests/run-core-drift-check.sh`, `tests/shared-core-manifest.json`, and
+  the CI `core-drift` job); `docs/codex-plugin-system-design.md` remains as
+  the design record.
+- Kernel hardening in place of cross-host extraction: unit tests now cover
+  guard payload normalization and self-check, scope matching, risk-tier lane
+  classification, gate-effectiveness analytics, acceptance assertion
+  parsing/digest freezing, and the session-lock lease (57 tests total); CI
+  gains a dedicated unit-test job. TypeScript migration deferred to a future
+  change.
+
 ## 0.4.9
 
 - Backfill `CHANGELOG.md` and `docs/design.md` release notes for 0.4.7 and
