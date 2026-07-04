@@ -6,6 +6,7 @@ const path = require('path');
 const lib = require('./specnav-lib');
 const suite = require('./plugin-suite');
 const workflow = require('./workflow-state');
+const guard = require('./specnav-guard');
 
 const REQUIRED_PLUGINS = suite.REQUIRED_SPECNAV_PLUGINS;
 
@@ -135,8 +136,36 @@ function doctor(options = {}) {
       });
       checks.push(check('context-manifests', contextOk, 'openspec/.specnav/context/*.jsonl'));
       checks.push(check('journal', fs.existsSync(path.join(specnavDir, 'journal', 'index.md')), 'openspec/.specnav/journal/index.md'));
+
+      const changeDir = lib.changeDir(targetRoot, lib.activeChange(targetRoot));
+      if (changeDir) {
+        let staleWritable = true;
+        const probe = path.join(changeDir, '.specnav-stale-probe');
+        try {
+          fs.writeFileSync(probe, 'probe\n');
+          fs.unlinkSync(probe);
+        } catch {
+          staleWritable = false;
+        }
+        const events = lib.readText(path.join(specnavDir, 'events.jsonl'));
+        const staleMarkerFailed = /"type":"verify\.stale-marker-failed"/.test(events);
+        checks.push(check(
+          'stale-marker-writable',
+          staleWritable,
+          !staleWritable
+            ? `${changeDir} is not writable; verify staleness cannot be tracked`
+            : (staleMarkerFailed ? 'writable now, but verify.stale-marker-failed events were recorded earlier; re-run verification before release' : 'ok')
+        ));
+      }
     }
   }
+
+  const guardSelfCheck = guard.selfCheck();
+  checks.push(check(
+    'guard-selfcheck',
+    guardSelfCheck.ok,
+    guardSelfCheck.ok ? 'ok' : guardSelfCheck.failures.map((failure) => `${failure.case}: ${failure.reason}`).join('; ')
+  ));
 
   const blockers = checks.filter((item) => !item.ok).map((item) => item.name);
   return {

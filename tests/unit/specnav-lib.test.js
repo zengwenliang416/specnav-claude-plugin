@@ -46,15 +46,23 @@ test('globLikeMatch: regex metacharacters in paths are treated literally', () =>
   assert.equal(lib.globLikeMatch('a.b', 'axb'), false);
 });
 
-// KNOWN DEFECT (pinned, not endorsed): the startsWith fallback intended for
-// trailing-** patterns applies to every pattern, so an exact allowed root
-// also admits any path it prefixes. This widens scope.json enforcement in
-// specnav-guard. Fix is out of scope for upgrade-c0 (plugins/** is denied);
-// routed to the guard-hardening change (C4). These assertions pin the
-// current behavior so the fix must consciously flip them.
-test('globLikeMatch: KNOWN DEFECT - exact pattern also prefix-matches longer paths', () => {
-  assert.equal(lib.globLikeMatch('src/app.js', 'src/app.jsx'), true);
-  assert.equal(lib.globLikeMatch('src/ui', 'src/ui-private/secret.ts'), true);
+// C4 fix: literal patterns no longer prefix-match unrelated longer paths.
+// A bare file pattern matches only itself; a bare directory pattern matches
+// itself and its descendants (segment-boundary aware).
+test('globLikeMatch: literal file pattern does not match extended names', () => {
+  assert.equal(lib.globLikeMatch('src/app.js', 'src/app.jsx'), false);
+  assert.equal(lib.globLikeMatch('src/ui', 'src/ui-private/secret.ts'), false);
+});
+
+test('globLikeMatch: literal directory pattern matches its descendants', () => {
+  assert.equal(lib.globLikeMatch('src/ui', 'src/ui/button.tsx'), true);
+  assert.equal(lib.globLikeMatch('src/ui', 'src/ui'), true);
+});
+
+test('globLikeMatch: glob patterns use regex only, no prefix fallback', () => {
+  assert.equal(lib.globLikeMatch('src/*.js', 'src/app.js.bak'), false);
+  assert.equal(lib.globLikeMatch('plugins/*/.claude-plugin/plugin.json', 'plugins/specnav-core/.claude-plugin/plugin.json'), true);
+  assert.equal(lib.globLikeMatch('plugins/*/.claude-plugin/plugin.json', 'plugins/a/b/.claude-plugin/plugin.json'), false);
 });
 
 test('parseScope: extracts bullet entries under the File scope heading only', () => {

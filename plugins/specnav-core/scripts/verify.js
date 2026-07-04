@@ -37,11 +37,15 @@ function verify(root = lib.projectRoot()) {
     testResult = lib.runCommand(command, { cwd: root, timeoutMs: Number(process.env.SPECNAV_TEST_TIMEOUT_MS || 120000) });
     add('tests', testResult.ok ? 'pass' : 'fail', command);
   } else {
-    add('tests', 'warn', 'No SPECNAV_TEST_COMMAND or package.json test script found.');
+    // Zero executed tests must never produce a green report: this is an
+    // environment blocker, not a warning. Set SPECNAV_TEST_COMMAND or add a
+    // package.json test script to unblock.
+    add('tests', 'blocked', 'No SPECNAV_TEST_COMMAND or package.json test script found; a report cannot be green with zero executed tests.');
   }
 
   const failed = checks.filter((check) => check.status === 'fail');
-  const status = failed.length ? 'red' : 'green';
+  const blocked = checks.filter((check) => check.status === 'blocked');
+  const status = failed.length ? 'red' : (blocked.length ? 'blocked' : 'green');
   const report = {
     schema_version: 1,
     generated_at: new Date().toISOString(),
@@ -62,10 +66,12 @@ function verify(root = lib.projectRoot()) {
       stdout_tail: testResult.stdout.slice(-4000),
       stderr_tail: testResult.stderr.slice(-4000)
     },
-    rework: failed.map((check) => ({
+    rework: [...failed, ...blocked].map((check) => ({
       check: check.name,
-      class: check.name === 'design.md' || check.name === 'delta-specs' ? 'design' : 'implementation',
-      recommendation: `Fix ${check.name} and rerun verify.`
+      class: check.status === 'blocked' ? 'environment' : (check.name === 'design.md' || check.name === 'delta-specs' ? 'design' : 'implementation'),
+      recommendation: check.status === 'blocked'
+        ? `Unblock ${check.name}: ${check.detail}`
+        : `Fix ${check.name} and rerun verify.`
     }))
   };
 
@@ -74,7 +80,9 @@ function verify(root = lib.projectRoot()) {
       try {
         const domains = runtime.requirePluginScript('specnav-verification', 'scripts/verify-domains');
         const aggregate = domains.writeAggregate(root);
-        report.status = failed.length === 0 && aggregate.verdict === 'green' ? 'green' : 'red';
+        report.status = failed.length === 0 && aggregate.verdict === 'green'
+          ? (blocked.length ? 'blocked' : 'green')
+          : 'red';
         report.aggregate = aggregate;
         report.rework.push(...aggregate.blockers.map((blocker) => ({
           check: 'six-domain-verification',
