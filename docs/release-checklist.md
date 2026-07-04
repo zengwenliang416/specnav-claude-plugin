@@ -34,6 +34,22 @@ bash tests/run-installed-cache-runtime-fixtures.sh
 bash tests/run-smoke.sh
 ```
 
+## Scaffold audit (after any main-model upgrade)
+
+Every gate encodes an assumption about what the model cannot do reliably;
+those assumptions go stale as models improve. After upgrading the primary
+model (or at least once per release cycle), run the gate-effectiveness report
+against a project with real usage history and review the signals:
+
+```bash
+PROJECT_DIR=<managed-project> node plugins/specnav-core/scripts/gate-effectiveness.js
+```
+
+- `candidate-wrong-gate` (override rate >= 0.5): fix the gate criteria or demote to a warning.
+- `review-criteria` (override rate >= 0.2): inspect recent overrides for a pattern.
+- `never-fired`: candidate for retirement — it costs maintenance and protects nothing.
+- Rising `red-after-allow`: a missing gate, not an excess one.
+
 For release candidates, run the full suite:
 
 ```bash

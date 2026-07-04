@@ -97,3 +97,13 @@ specs valid by itself.
 | `invalid-foundation-spec-*` | repair the reported spec, rerun `foundation-specs.js` |
 | `unresolved-gaps:*` | ask the user one decision at a time, then update the owning spec |
 | stale verification | `/specnav-verify` or `specnav-verify-rerun` |
+
+
+## Light lane (docs/config changes)
+
+Small, low-risk changes (documentation, CI config) classify as `lite` tier /
+`light` lane via `risk-tier.js`. The light lane skips the runnable prototype
+(record `decision.json` as `not_required` with a reason), folds quality
+review into spec review, and verifies only the static and unit domains. If
+the change grows past the escalation threshold the contract forces a
+re-classification into the standard lane.

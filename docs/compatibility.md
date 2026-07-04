@@ -23,3 +23,31 @@ run.
 - After changing commands, skills, hooks, agents, or plugin metadata, start a new
   Claude Code session.
 - Installed-cache runtime must not rely on `CLAUDE_PLUGIN_ROOT`.
+
+
+## Hook adoption policy
+
+Adopted hook events (deterministic, non-experimental): `SessionStart`,
+`PreToolUse`, `PostToolUse`, `PreCompact`, `PostToolUseFailure` (Bash failure
+classification into `verify/blocker-classification.jsonl`), and `Stop`
+(unaccounted-edit ledger check with `stop_hook_active` loop safety).
+
+Deliberately NOT adopted:
+
+- **agent-type hooks** — marked experimental by the host; subject to breaking
+  changes. Revisit when the host stabilizes them.
+- **UserPromptSubmit context injection** — injecting affordances on every
+  prompt is a per-turn context tax; the SessionStart ritual plus on-demand
+  `/specnav-status` covers the same need.
+
+
+## Plugin manifest policy
+
+- Every plugin sets `defaultEnabled: true` in `plugin.json`; `strict: true`
+  is set per entry in `marketplace.json` (the manifest is the single source
+  of truth for components).
+- The `dependencies` field of `plugin.json` is NOT used: as of mid-2026 it is
+  not yet stable in Claude Code (open host issues). Co-install requirements
+  are enforced at runtime instead by `plugin-suite.js` (`missing-plugin:<name>`
+  blockers) and documented in each plugin README. Revisit when the host
+  stabilizes the field.
