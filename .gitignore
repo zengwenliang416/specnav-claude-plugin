@@ -1,20 +1,22 @@
-# Runtime state
-openspec/.specnav/affordances.json
-openspec/.specnav/events.jsonl
-openspec/.specnav/overrides/
-openspec/.specnav/workflow-state.json
-openspec/.specnav/active-change
-openspec/.specnav/change-registry.json
-openspec/.specnav/journal/
-openspec/.specnav/context/
-openspec/changes/*/verify-report.json
-openspec/changes/*/verify-report.md
-openspec/changes/*/verify-report.stale
+# Root governance state (this repo is developed WITHOUT SpecNav governing
+# itself; a root openspec/ or .specnav.json would make the guard treat every
+# clone as a governed project. Lifecycle artifacts live in
+# tests/fixtures/lifecycle-seed/ instead.)
+/openspec/
+/.specnav.json
+/.claude/
+/.codex/
 
 # Test-generated state
 tests/fixtures/**/openspec/.specnav/affordances.json
 tests/fixtures/**/openspec/.specnav/events.jsonl
 tests/fixtures/**/openspec/.specnav/overrides/
+tests/fixtures/**/openspec/.specnav/workflow-state.json
+tests/fixtures/**/openspec/.specnav/active-change
+tests/fixtures/**/openspec/.specnav/change-registry.json
+tests/fixtures/**/openspec/.specnav/journal/
+tests/fixtures/**/openspec/.specnav/context/
+tests/fixtures/**/openspec/.specnav/session-lock
 tests/fixtures/**/openspec/changes/*/verify-report.json
 tests/fixtures/**/openspec/changes/*/verify-report.md
 tests/fixtures/**/openspec/changes/*/verify-report.stale
