@@ -224,6 +224,22 @@ function validateRequirements(root = lib.projectRoot()) {
   const artifacts = activeChangeOk ? REQUIRED_ARTIFACTS.map((name) => validateArtifact(dir, change, name)) : [];
   blockers.push(...artifacts.flatMap((artifact) => artifact.blockers));
 
+  // acceptance.json (machine-checkable assertion list) is validated when
+  // present. Changes created before the format existed are not blocked
+  // retroactively; new changes receive it from the scaffold template.
+  if (activeChangeOk) {
+    const acceptance = lib.readAcceptanceAssertions(dir);
+    if (acceptance.present) {
+      artifacts.push({
+        name: 'acceptance.json',
+        path: artifactPath(change, 'acceptance.json'),
+        ok: acceptance.ok,
+        blockers: acceptance.blockers
+      });
+      blockers.push(...acceptance.blockers);
+    }
+  }
+
   return {
     ok: blockers.length === 0,
     project_root: projectRoot,

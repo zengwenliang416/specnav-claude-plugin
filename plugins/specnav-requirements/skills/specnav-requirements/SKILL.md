@@ -32,9 +32,10 @@ Discover change requirements after foundation spec validation passes.
 
 - `openspec/changes/<change>/requirements.md`.
 - `openspec/changes/<change>/acceptance.md`.
+- `openspec/changes/<change>/acceptance.json`: the machine-checkable assertion list mirroring acceptance.md. Every criterion becomes one assertion `{id, statement, verify_via, status:"failing", evidence_ref:null}` with `verify_via` in facticity/static/unit/redteam/e2e/sensory. All assertions start `failing`; implementation may only flip `status` to `passing` with an `evidence_ref` — the assertion set itself is frozen once development starts (`acceptance:assertions-mutated` blocks otherwise), and verification cannot go green while any assertion is failing.
 - `openspec/changes/<change>/spec-map.json`.
 - `openspec/changes/<change>/component-impact-map.json`.
-- Templates: `assets/change/requirements.md`, `assets/change/acceptance.md`, `assets/change/spec-map.json`, and `assets/change/component-impact-map.json`.
+- Templates: `assets/change/requirements.md`, `assets/change/acceptance.md`, `assets/change/acceptance.json`, `assets/change/spec-map.json`, and `assets/change/component-impact-map.json`.
 
 ## Stop Conditions
 

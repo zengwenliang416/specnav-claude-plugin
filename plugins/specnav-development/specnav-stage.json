@@ -15,6 +15,7 @@
     "specnav-development-entry",
     "specnav-scope-lock",
     "specnav-vertical-slices",
+    "specnav-task-review",
     "specnav-fix",
     "specnav-debug",
     "specnav-break-loop"
