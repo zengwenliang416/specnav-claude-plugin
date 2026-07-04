@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.5.1
+
+- Fix: guard warnings (`requires_review_on` escalation, missing target path)
+  no longer exit with code 1, which Claude Code renders as a hook ERROR banner
+  ("PreToolUse hook error … Failed with non-blocking status code") even though
+  nothing is blocked. Warnings now follow the non-blocking contract: exit 0
+  with structured JSON (`systemMessage` + `permissionDecision: allow`), so the
+  advisory reaches the model and the user without looking like breakage. The
+  `hook.warn` event is still recorded for gate-effectiveness analysis.
+- Test: hook fixtures updated — warn cases assert exit 0 plus a
+  "SpecNav gate warning" stdout payload, and the review-override case asserts
+  the warning disappears after the override.
+
 ## 0.5.0
 
 Guard & runtime hardening (P0):

@@ -97,9 +97,21 @@ function deny(blockerId, message) {
 }
 
 function warn(root, message) {
-  console.error(`SpecNav gate warning: ${message}`);
+  // Non-blocking advisory. Exit 0 + structured JSON is the Claude Code
+  // contract for "allow with a message"; exit 1 renders as a hook ERROR
+  // banner ("Failed with non-blocking status code") even though nothing is
+  // blocked, which reads as breakage to the user. The warning still reaches
+  // the model via systemMessage and stays auditable via the hook.warn event.
   lib.event(root, 'hook.warn', { message });
-  process.exit(1);
+  process.stdout.write(`${JSON.stringify({
+    systemMessage: `SpecNav gate warning: ${message}`,
+    hookSpecificOutput: {
+      hookEventName: 'PreToolUse',
+      permissionDecision: 'allow',
+      permissionDecisionReason: `SpecNav gate warning: ${message}`
+    }
+  })}\n`);
+  process.exit(0);
 }
 
 function allow(root, reason = 'allow') {

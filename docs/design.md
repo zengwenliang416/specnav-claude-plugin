@@ -4,7 +4,7 @@ This document describes the current Claude Code implementation of SpecNav. The l
 
 ## 1. Current Shape
 
-SpecNav is currently a Claude Code marketplace repository containing seven installable plugins. Current implementation version: `0.5.0`.
+SpecNav is currently a Claude Code marketplace repository containing seven installable plugins. Current implementation version: `0.5.1`.
 
 The accepted target is now the current implementation shape: one marketplace root, one core runtime plugin, and one plugin for each major lifecycle stage.
 
@@ -2297,6 +2297,13 @@ Completed in `0.5.0`:
    PostToolUseFailure hooks; set `defaultEnabled` and `strict` on manifests.
 5. Defer the Codex sibling, retire cross-repo core-drift guard, and add
    dedicated CI unit-test coverage for kernel scripts.
+
+Completed in `0.5.1`:
+
+1. Guard warnings follow the non-blocking hook contract: exit 0 with
+   structured JSON (`systemMessage` + `permissionDecision: allow`) instead of
+   exit 1, which Claude Code rendered as a hook ERROR banner. `hook.warn`
+   events are unchanged for gate-effectiveness analytics.
 
 Next:
 

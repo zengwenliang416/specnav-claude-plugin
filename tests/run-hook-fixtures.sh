@@ -17,6 +17,7 @@ run_case() {
   local name="$1"
   local project="$2"
   local expected="$3"
+  local expect_stdout="${4:-}"
   local payload="$PAYLOADS/$name.json"
   local out="/tmp/specnav-hook-$name.out"
   local err="/tmp/specnav-hook-$name.err"
@@ -34,6 +35,13 @@ run_case() {
     cat "$out" >&2
     exit 1
   fi
+
+  if [[ -n "$expect_stdout" ]] && ! grep -q "$expect_stdout" "$out"; then
+    echo "hook fixture failed: $name stdout missing '$expect_stdout'" >&2
+    echo "--- stdout ---" >&2
+    cat "$out" >&2
+    exit 1
+  fi
 }
 
 run_case write-allowed "$PROJECT" 0
@@ -47,7 +55,8 @@ run_case openspec-allowed "$PROJECT" 0
 run_case bash-safe "$PROJECT" 0
 run_case bash-danger "$PROJECT" 2
 run_case bash-openspec-propose "$PROJECT" 2
-run_case write-missing-path "$PROJECT" 1
+# warnings are non-blocking: exit 0 with a systemMessage payload (exit 1 rendered as a hook error banner)
+run_case write-missing-path "$PROJECT" 0 "SpecNav gate warning"
 # State 1: non-SpecNav project (no marker, no openspec) — guard stays inert
 run_case write-allowed "$NO_STATE" 0
 run_case bash-bootstrap "$NO_STATE" 0
@@ -89,11 +98,16 @@ JSON
 printf 'existing\n' >"$ESCALATION_PROJECT/src/locked/config.ts"
 # modify of an existing in-scope file is blocked when allowed_operations.modify is false
 run_case operation-modify-denied "$ESCALATION_PROJECT" 2
-# a requires_review_on path warns (escalated review) until a review override exists
-run_case review-required "$ESCALATION_PROJECT" 1
+# a requires_review_on path warns non-blockingly (exit 0 + systemMessage) until a review override exists
+run_case review-required "$ESCALATION_PROJECT" 0 "requires_review_on"
 cat >"$ESCALATION_PROJECT/openspec/.specnav/overrides/review.json" <<'JSON'
 {"gate":"review","reason":"shared component reviewed","active_change":"c","affected_path":"src/shared/button.tsx","expires_at":"2099-01-01T00:00:00.000Z"}
 JSON
+# with the override in place the warning disappears entirely
 run_case review-required "$ESCALATION_PROJECT" 0
+if grep -q "requires_review_on" /tmp/specnav-hook-review-required.out; then
+  echo "hook fixture failed: review-required still warns after override" >&2
+  exit 1
+fi
 
 echo "specnav hook fixtures ok"
