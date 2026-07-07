@@ -46,7 +46,18 @@ SPECNAV_MARKETPLACE_ROOT="$(dirname "$(dirname "$SPECNAV_DEVELOPMENT_ROOT")")"
 node "$SPECNAV_CORE_ROOT/scripts/plugin-suite.js" require --marketplace-root "$SPECNAV_MARKETPLACE_ROOT" --plugin specnav-core --plugin specnav-requirements --plugin specnav-prototype --plugin specnav-development --json
 ```
 
-If the suite check exits non-zero, report the emitted blockers and stop. If it passes, run the development contract before any production edit:
+If the suite check exits non-zero, report the emitted blockers and stop. If it passes, run the shared change triage:
+
+```bash
+node "$SPECNAV_CORE_ROOT/scripts/change-triage.js" --intent "${ARGUMENTS:-}" --json
+```
+
+If the triage reports `lane: "light"`, read
+`$SPECNAV_DEVELOPMENT_ROOT/skills/specnav-light-change/SKILL.md` before any
+production edit. The light lane must still pass the development entry contract,
+but it uses the reduced artifact set declared by `specnav-light-change`.
+
+For standard and full lanes, run the development contract before any production edit:
 
 ```bash
 node "$SPECNAV_DEVELOPMENT_ROOT/scripts/development-contract.js" --mode entry --json

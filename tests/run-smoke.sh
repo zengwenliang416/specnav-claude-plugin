@@ -21,6 +21,7 @@ PROJECT_DIR="$FIXTURE" node "$CORE/scripts/archive-gate.js" >/tmp/specnav-archiv
 
 bash "$ROOT/tests/run-codegraph-policy-fixtures.sh"
 bash "$ROOT/tests/run-codegraph-context-fixtures.sh"
+bash "$ROOT/tests/run-lane-routing-fixtures.sh"
 
 printf '{"tool_input":{"file_path":"src/ui/theme.ts"}}' | PROJECT_DIR="$FIXTURE" node "$CORE/scripts/specnav-guard.js" >/tmp/specnav-guard.out 2>/tmp/specnav-guard.err
 

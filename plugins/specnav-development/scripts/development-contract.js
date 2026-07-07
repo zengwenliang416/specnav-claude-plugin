@@ -419,11 +419,12 @@ function pathReferencesText(text, relativePath) {
   return String(text || '').includes(relativePath);
 }
 
-function validateUpstreamContracts(projectRoot, activeChange, prototype) {
+function validateUpstreamContracts(projectRoot, activeChange, prototype, lane = 'standard') {
   const name = 'upstream-contracts';
   const blockers = [];
   const requirements = prototype && prototype.requirements;
   const foundation = requirements && requirements.foundation;
+  const foundationRequired = lane !== 'light';
 
   if (!requirements || requirements.ok !== true) {
     blockers.push('upstream-requirements:not-ok');
@@ -446,9 +447,9 @@ function validateUpstreamContracts(projectRoot, activeChange, prototype) {
     }
   }
 
-  if (!foundation || foundation.ok !== true) {
+  if (foundationRequired && (!foundation || foundation.ok !== true)) {
     blockers.push('upstream-foundation:not-ok');
-  } else {
+  } else if (foundationRequired) {
     if (!foundation.project_root || path.resolve(foundation.project_root) !== projectRoot) {
       blockers.push('upstream-foundation:project-root');
     }
@@ -1014,6 +1015,32 @@ function validateLaneEscalation(projectRoot, changeDir) {
   return [];
 }
 
+function validateLightAcceptanceCompletion(changeDir, activeChange, mode) {
+  const base = validateAcceptanceAssertions(changeDir, activeChange);
+
+  if (!base) {
+    return artifactResult(activeChange, 'acceptance.json', ['missing-requirements-artifact:acceptance.json'], false, {
+      assertions: 0,
+      passing: 0
+    });
+  }
+  const acceptance = lib.readAcceptanceAssertions(changeDir);
+  const blockers = [...base.blockers];
+  if (mode === 'handoff' && acceptance.ok) {
+    for (const assertion of acceptance.assertions) {
+      if (assertion.status !== 'passing') blockers.push(`acceptance:non-passing:${assertion.id}`);
+      if (!(typeof assertion.evidence_ref === 'string' && assertion.evidence_ref.trim())) {
+        blockers.push(`acceptance:missing-evidence:${assertion.id}`);
+      }
+    }
+  }
+
+  return artifactResult(activeChange, 'acceptance.json', unique(blockers), false, {
+    assertions: base.assertions,
+    passing: base.passing
+  });
+}
+
 function validateAcceptanceAssertions(changeDir, activeChange) {
   const name = 'acceptance.json';
   const acceptance = lib.readAcceptanceAssertions(changeDir);
@@ -1044,6 +1071,41 @@ function validateAcceptanceAssertions(changeDir, activeChange) {
     assertions: acceptance.assertions.length,
     passing: acceptance.assertions.filter((assertion) => assertion.status === 'passing').length
   });
+}
+
+function validateLightDevelopment(projectRoot, mode, prototype, activeChange, changeDir, developmentDir) {
+  const artifacts = [];
+  const blockers = [];
+  const tasks = [];
+
+  artifacts.push(validateUpstreamContracts(projectRoot, activeChange, prototype, 'light'));
+  artifacts.push(validateScope(projectRoot, changeDir, activeChange, null));
+  artifacts.push(validateTasksMarkdown(changeDir, activeChange, mode));
+  artifacts.push(validateLightAcceptanceCompletion(changeDir, activeChange, mode));
+  blockers.push(...validateLaneEscalation(projectRoot, changeDir));
+
+  for (const artifact of artifacts) blockers.push(...artifact.blockers);
+
+  const codegraph = codegraphStageGuard(projectRoot, activeChange, 'development');
+  blockers.push(...codegraphBlockers(codegraph));
+  const warnings = unique(codegraphWarnings(codegraph));
+
+  return {
+    ok: blockers.length === 0,
+    project_root: projectRoot,
+    mode,
+    lane: 'light',
+    active_change: activeChange,
+    change_dir: changeDir,
+    development_dir: developmentDir,
+    blockers: unique(blockers),
+    warnings,
+    loops: [],
+    codegraph,
+    prototype,
+    artifacts,
+    tasks
+  };
 }
 
 const LOOP_DETECTION_THRESHOLD = Number(process.env.SPECNAV_LOOP_THRESHOLD || 3);
@@ -1417,6 +1479,11 @@ function validateDevelopment(root = lib.projectRoot(), options = {}) {
   const activeChange = prototype.active_change;
   const changeDir = lib.changeDir(projectRoot, activeChange);
   const developmentDir = path.join(changeDir, 'development');
+  const lane = lib.readLane(changeDir).lane;
+  if (lane === 'light') {
+    return validateLightDevelopment(projectRoot, mode, prototype, activeChange, changeDir, developmentDir);
+  }
+
   const artifacts = [];
   const tasks = [];
   const blockers = [];

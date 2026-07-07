@@ -54,7 +54,15 @@ node "$SPECNAV_DEVELOPMENT_ROOT/scripts/development-contract.js" --mode handoff 
 
 If development is blocked, report the exact blockers and stop. Do not fabricate verification evidence.
 
-If development passes, read and follow these exact installed-cache skill files:
+If development passes and the handoff JSON reports `lane: "light"`, read and
+follow only these exact installed-cache skill files:
+
+- `$SPECNAV_VERIFICATION_ROOT/skills/specnav-verify-plan/SKILL.md`
+- `$SPECNAV_VERIFICATION_ROOT/skills/specnav-verify-static/SKILL.md`
+- `$SPECNAV_VERIFICATION_ROOT/skills/specnav-verify-unit/SKILL.md`
+
+If development passes and the lane is standard or full, read and follow these
+exact installed-cache skill files:
 
 - `$SPECNAV_VERIFICATION_ROOT/skills/specnav-verify-plan/SKILL.md`
 - `$SPECNAV_VERIFICATION_ROOT/skills/specnav-verify-facticity/SKILL.md`
@@ -64,9 +72,10 @@ If development passes, read and follow these exact installed-cache skill files:
 - `$SPECNAV_VERIFICATION_ROOT/skills/specnav-verify-e2e/SKILL.md`
 - `$SPECNAV_VERIFICATION_ROOT/skills/specnav-verify-sensory/SKILL.md`
 
-Do not infer `.claude-plugin/skills/...` paths and do not treat the six domains
-as labels only. Each domain must create or update its `verify/<domain>/report.*`
-artifacts with commands, evidence, findings, required fixes, and residual risk.
+Do not infer `.claude-plugin/skills/...` paths and do not treat domains as
+labels only. Each required domain must create or update its
+`verify/<domain>/report.*` artifacts with commands, evidence, findings,
+required fixes, and residual risk.
 
 After the domain artifacts exist, run:
 

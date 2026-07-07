@@ -99,11 +99,29 @@ specs valid by itself.
 | stale verification | `/specnav-verify` or `specnav-verify-rerun` |
 
 
-## Light lane (docs/config changes)
+## Light lane (simple changes)
 
-Small, low-risk changes (documentation, CI config) classify as `lite` tier /
-`light` lane via `risk-tier.js`. The light lane skips the runnable prototype
-(record `decision.json` as `not_required` with a reason), folds quality
-review into spec review, and verifies only the static and unit domains. If
-the change grows past the escalation threshold the contract forces a
-re-classification into the standard lane.
+Small, low-risk changes classify through `change-triage.js` before routing.
+Docs, copy, labels, comments, README edits, and very small styling/config
+adjustments can enter the `light` lane. The route target is
+`specnav-development` / `/specnav-implement` / `specnav-light-change`.
+
+Light lane still requires:
+
+- an OpenSpec project and a clean active change;
+- `risk-tier.json` with `lane: "light"`;
+- `requirements.md`, `acceptance.md`, `acceptance.json`, `spec-map.json`, and
+  `component-impact-map.json`;
+- `prototype/decision.json` with `status: "not_required"` and a reason;
+- `scope.json` with explicit editable paths;
+- standard checkbox `tasks.md`.
+
+Light lane may skip foundation-spec blocking, runnable prototype approval,
+per-slice development packets, and full six-domain verification. Handoff still
+requires every checkbox complete and every acceptance assertion marked
+`passing` with an `evidence_ref`. Verification runs only static and unit
+domains.
+
+Escalate out of light lane when the request touches auth, permissions, billing,
+security, database, API routes, deployment, package manifests, SpecNav internals,
+more than three intended paths, or more than ten production files after edits.
