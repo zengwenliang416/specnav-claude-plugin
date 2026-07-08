@@ -21,7 +21,7 @@ Create shared verification plan and evidence contracts.
 4. Read `references/domain-report-schema.md` before creating report shells.
 5. Read `references/review-report-style.md` before final aggregate reporting.
 6. If shared verification artifacts are missing, run `node "$SPECNAV_VERIFICATION_ROOT/skills/specnav-verify-plan/scripts/create-verify-plan.js" --json`.
-7. For `lane: "light"`, generate verification scope from `requirements.md`, `acceptance.md`, `acceptance.json`, `prototype/decision.json`, `scope.json`, `tasks.md`, and CodeGraph claims. Require only static and unit domains.
+7. For `lane: "light"`, generate verification scope and user test cases from `requirements.md`, `acceptance.md`, `acceptance.json`, `prototype/decision.json`, `scope.json`, `tasks.md`, and CodeGraph claims. Require only static and unit domains.
 8. For standard/full lanes, generate `verify/user-test-cases.md` and `verify/user-test-cases.json` from requirements, acceptance, prototype handoff, development tasks, development handoff, and CodeGraph claims.
 9. Ask the user to approve, edit, add, or remove the test cases. Freeze approval in `verify/user-test-case-signoff.json`; verification is blocked until its status is `approved`.
 10. Map every approved test case across the required domains in `verify/domain-case-matrix.json`.
@@ -35,7 +35,7 @@ Create shared verification plan and evidence contracts.
 
 - `verify/plan.md`, `plan.json`, `evidence-index.jsonl`, `traceability-matrix.json`, `blocker-classification.jsonl`, `root-cause-checks.jsonl`, behavior eval files, and receipt shell.
 - `verify/user-test-cases.md`, `user-test-cases.json`, `user-test-case-signoff.json`, and `domain-case-matrix.json`.
-- `verify/runtime-evidence.json` with runtime, browser, and any required database evidence.
+- `verify/runtime-evidence.json` with runtime, browser, and any required database evidence for standard/full lanes.
 - `codegraph/claims-map.json` and `codegraph/evidence-query-plan.json` with verification traceability claims.
 - `verify/aggregate-report.html` and change-level `verify-report.html` for stakeholder review.
 - Shared shells: `assets/plan.md`, `assets/plan.json`, `assets/user-test-cases.md`, `assets/user-test-cases.json`, `assets/user-test-case-signoff.json`, `assets/domain-case-matrix.json`, `assets/runtime-evidence.json`, `assets/evidence-index.jsonl`, `assets/traceability-matrix.json`, `assets/blocker-classification.jsonl`, `assets/root-cause-checks.jsonl`, `assets/receipt.md`, `assets/receipt.json`, `assets/behavior-evals/scenarios.json`, `assets/behavior-evals/report.md`, `assets/behavior-evals/report.json`, and `assets/behavior-evals/transcripts/verify-runs-six-domains.md`.
@@ -45,7 +45,7 @@ Create shared verification plan and evidence contracts.
 - Development handoff is blocked.
 - Active change is unclear.
 - User-aligned test cases are missing or not approved by the user.
-- `verify/runtime-evidence.json` is missing, blocked, or lacks the runtime, browser, or database surfaces required by the change.
+- `verify/runtime-evidence.json` is missing, blocked, or lacks the runtime, browser, or database surfaces required by a standard/full change.
 - `plan.changed_files` is empty or not mapped in `traceability-matrix.json`.
 - Any required domain is omitted. For light lane, required domains are static and unit only.
 

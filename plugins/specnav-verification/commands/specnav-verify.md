@@ -55,7 +55,9 @@ node "$SPECNAV_DEVELOPMENT_ROOT/scripts/development-contract.js" --mode handoff 
 If development is blocked, report the exact blockers and stop. Do not fabricate verification evidence.
 
 If development passes and the handoff JSON reports `lane: "light"`, read and
-follow only these exact installed-cache skill files:
+follow only these exact installed-cache skill files. Light lane still requires
+user-approved test cases, but its required domains are limited to static and
+unit:
 
 - `$SPECNAV_VERIFICATION_ROOT/skills/specnav-verify-plan/SKILL.md`
 - `$SPECNAV_VERIFICATION_ROOT/skills/specnav-verify-static/SKILL.md`

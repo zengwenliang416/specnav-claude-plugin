@@ -187,6 +187,34 @@ function pathAllowedByScope(scope, rel) {
   return { ok: included, reason: included ? 'included' : 'not-included' };
 }
 
+function isPlainObject(value) {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function validateLightEntryGate(changeDir, activeChange) {
+  if (lib.readLane(changeDir).lane !== 'light') return [];
+  const gate = lib.readJson(path.join(changeDir, 'light-gate.json'), null);
+  const blockers = [];
+  if (!isPlainObject(gate)) return ['light-entry:missing'];
+  if (gate.schema_version !== 1) blockers.push('light-entry:invalid-schema');
+  if (gate.gate !== 'specnav.light.compactGate.v1') blockers.push('light-entry:invalid-gate');
+  if (gate.change_id !== activeChange) blockers.push('light-entry:change-mismatch');
+  if (gate.lane !== 'light') blockers.push('light-entry:lane-mismatch');
+  if (!isPlainObject(gate.entry)) {
+    blockers.push('light-entry:missing-entry');
+  } else {
+    if (gate.entry.status !== 'ready') blockers.push('light-entry:not-ready');
+    if (!Array.isArray(gate.entry.editable_paths) || gate.entry.editable_paths.length === 0) {
+      blockers.push('light-entry:paths-missing');
+    }
+    if (gate.entry.scope !== 'scope.json') blockers.push('light-entry:scope-missing');
+    if (gate.entry.tasks !== 'tasks.md') blockers.push('light-entry:tasks-missing');
+  }
+  if (!isPlainObject(gate.test)) blockers.push('light-test:missing-gate');
+  if (!isPlainObject(gate.archive)) blockers.push('light-archive:missing-gate');
+  return Array.from(new Set(blockers));
+}
+
 function collectFrozenTestPaths(changeDir) {
   // TDD tamper-guard: task context.json may declare test_paths. A test file
   // may be created once (tests-first), but modifying an existing test during
@@ -296,6 +324,12 @@ function main() {
     }
     lib.event(root, 'hook.deny', { reason: 'missing-tasks', paths: productionPaths });
     deny('missing-tasks', 'production edits require an active OpenSpec change with tasks.md. Fix: create tasks.md for the active change before editing production files.');
+  }
+
+  const lightGateBlockers = validateLightEntryGate(dir, change);
+  if (lightGateBlockers.length) {
+    lib.event(root, 'hook.deny', { reason: lightGateBlockers[0], blockers: lightGateBlockers, paths: productionPaths });
+    deny(lightGateBlockers[0], `light lane production edits require a valid light-gate.json (${lightGateBlockers.join(', ')}). Fix: run /specnav-implement and the specnav-light-change skill to create the compact entry gate.`);
   }
 
   const scope = lib.readFileScope(dir);

@@ -47,6 +47,11 @@ Archive only when the command returns `ok: true`. The command normalizes
 `tasks.md`, requires a green operations archive gate, validates the change with
 `openspec validate`, executes `openspec archive`, updates SpecNav registry/focus
 state, and writes `operations/archive-receipt.json` under the archived change.
+For `lane: "light"`, the archive gate uses the compact evidence contract:
+checked `tasks.md`, passing `acceptance.json` evidence, approved
+`verify/user-test-case-signoff.json`, green `verify/aggregate-report.json`, and
+`light-gate.json`. It does not require the full operations readiness document
+set.
 If `tasks-md.js normalize` changes the file but exits with
 `tasks-md:incomplete-checkboxes`, stop and tell the user the task file has been
 converted to standard checkbox syntax and now needs explicit `- [x]` completion
