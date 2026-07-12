@@ -551,4 +551,21 @@ mv "$TMP_DIR/update-fail.tmp" "$UPDATE_FAIL/openspec/changes/add-dashboard/opera
 run_gate operations-gate.js "$UPDATE_FAIL" "$TMP_DIR/update-fail.json" 2
 assert_blocker "$TMP_DIR/update-fail.json" 'update-spec-unresolved-items'
 
+# Act->promotion: a candidate promoted_check is advisory and must NOT block archive.
+PROMO_CANDIDATE="$TMP_DIR/promo-candidate"
+cp -R "$PROJECT" "$PROMO_CANDIDATE"
+jq '.promoted_checks = [{"id":"cart-total-guard","statement":"changed pricing modules must recompute cart totals","verify_via":"guard","candidate_artifact":"knowledge/promoted-checks/cart-total-guard.json","generalized":true,"status":"candidate","evidence_ref":"operations/postmortem.md"}]' \
+  "$PROMO_CANDIDATE/openspec/changes/add-dashboard/operations/update-spec.json" >"$TMP_DIR/promo-candidate.tmp"
+mv "$TMP_DIR/promo-candidate.tmp" "$PROMO_CANDIDATE/openspec/changes/add-dashboard/operations/update-spec.json"
+run_gate operations-gate.js "$PROMO_CANDIDATE" "$TMP_DIR/promo-candidate.json" 0
+
+# Act->promotion: an admitted promoted_check without a dry-run reference must block.
+PROMO_ADMIT_FAIL="$TMP_DIR/promo-admit-fail"
+cp -R "$PROJECT" "$PROMO_ADMIT_FAIL"
+jq '.promoted_checks = [{"id":"cart-total-guard","statement":"changed pricing modules must recompute cart totals","verify_via":"guard","candidate_artifact":"knowledge/promoted-checks/cart-total-guard.json","generalized":true,"status":"admitted","evidence_ref":"operations/postmortem.md"}]' \
+  "$PROMO_ADMIT_FAIL/openspec/changes/add-dashboard/operations/update-spec.json" >"$TMP_DIR/promo-admit.tmp"
+mv "$TMP_DIR/promo-admit.tmp" "$PROMO_ADMIT_FAIL/openspec/changes/add-dashboard/operations/update-spec.json"
+run_gate operations-gate.js "$PROMO_ADMIT_FAIL" "$TMP_DIR/promo-admit-fail.json" 2
+assert_blocker "$TMP_DIR/promo-admit-fail.json" 'promoted-check-admitted-missing-dry-run:cart-total-guard'
+
 echo "specnav operations plugin fixtures ok"

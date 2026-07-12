@@ -4,7 +4,7 @@ This document describes the current Claude Code implementation of SpecNav. The l
 
 ## 1. Current Shape
 
-SpecNav is currently a Claude Code marketplace repository containing seven installable plugins. Current implementation version: `0.5.1`.
+SpecNav is currently a Claude Code marketplace repository containing seven installable plugins. Current implementation version: `0.5.2`.
 
 The accepted target is now the current implementation shape: one marketplace root, one core runtime plugin, and one plugin for each major lifecycle stage.
 
@@ -2304,6 +2304,20 @@ Completed in `0.5.1`:
    structured JSON (`systemMessage` + `permissionDecision: allow`) instead of
    exit 1, which Claude Code rendered as a hook ERROR banner. `hook.warn`
    events are unchanged for gate-effectiveness analytics.
+
+Completed in `0.5.2`:
+
+1. Add the optional L3 AI-facing annotation layer: an opt-in
+   `ai-annotation-policy` foundation spec, `anchor-scan.js` coverage scan
+   (advisory by default, `anchor.coverage` events), an opt-in verify gate, and
+   an optional `anchor_refs` traceability column. Absent policy changes nothing.
+2. Add the Act -> capability promotion loop: `promoted_checks[]` in
+   `update-spec.json`, `promotion-dry-run.js` admission (UID-pruning
+   generalization lint), the `specnav-promote-check` skill, a data-declared
+   `promoted-check` guard rule enforced only under a per-project opt-in, and
+   `gate-effectiveness.js` consumption of `promotion.*` / `anchor.coverage`
+   events. Both features are advisory-by-default and never expand mandatory
+   gates.
 
 Next:
 

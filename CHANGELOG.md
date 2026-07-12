@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.5.2
+
+Two opt-in capabilities borrowed from PDCA "AI harness" practice, both
+advisory-by-default so they never expand mandatory gates (per the repo's
+anti-list):
+
+- L3 AI-facing annotation layer. New optional `ai-annotation-policy` foundation
+  spec (absent by default), `anchor-scan.js` coverage scan over touched code
+  (advisory report + `anchor.coverage` event; blocks with `anchor-uncovered:<file>`
+  only under `enforcement: gate`), an opt-in verify-gate fold, and an optional
+  `anchor_refs` traceability column. Requirements/verification behavior is
+  unchanged when no policy is present.
+- Act -> capability promotion loop. `update-spec.json` gains an optional
+  `promoted_checks[]` (candidate never blocks archive; admitted requires a passed
+  dry-run + generalized statement + signoff). New `promotion-dry-run.js` runs a
+  candidate read-only and lints one-off tokens (UID -> business variable), the
+  `specnav-promote-check` skill orchestrates distillation, and the guard enforces
+  admitted `promoted-check` rules only when a rule declares `enforcement: gate`
+  (overridable, mirrors `frozen-tests`). `gate-effectiveness.js` now consumes
+  `promotion.*` and `anchor.coverage` events for the retirement loop.
+
 ## 0.5.1
 
 - Fix: guard warnings (`requires_review_on` escalation, missing target path)

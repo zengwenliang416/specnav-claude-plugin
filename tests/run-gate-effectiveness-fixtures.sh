@@ -34,6 +34,12 @@ cat >"$PROJECT/openspec/.specnav/events.jsonl" <<'JSONL'
 {"ts":"2026-07-01T02:00:00Z","type":"hook.warn","payload":{"reason":"requires-review"}}
 {"ts":"2026-07-01T03:00:00Z","type":"hook.allow","payload":{"reason":"within-scope"}}
 {"ts":"2026-07-01T03:10:00Z","type":"verify","payload":{"status":"red","active_change":"c"}}
+{"ts":"2026-07-01T04:00:00Z","type":"promotion.candidate","payload":{"id":"cart-total-guard"}}
+{"ts":"2026-07-01T04:01:00Z","type":"promotion.dry-run","payload":{"id":"cart-total-guard","result":"pass"}}
+{"ts":"2026-07-01T04:02:00Z","type":"promotion.dry-run","payload":{"id":"other","result":"fail"}}
+{"ts":"2026-07-01T04:03:00Z","type":"promotion.admitted","payload":{"id":"cart-total-guard"}}
+{"ts":"2026-07-01T05:00:00Z","type":"anchor.coverage","payload":{"change":"c","coverage_ratio":0.5,"uncovered_count":2,"enforcement":"advisory"}}
+{"ts":"2026-07-01T05:10:00Z","type":"anchor.coverage","payload":{"change":"c","coverage_ratio":0.8,"uncovered_count":1,"enforcement":"advisory"}}
 JSONL
 
 OUT="$(PROJECT_DIR="$PROJECT" node "$CORE/scripts/gate-effectiveness.js" --json)"
@@ -54,9 +60,19 @@ echo "$OUT" | jq -e '.gates[] | select(.gate == "requires-review") | .signal == 
 echo "$OUT" | jq -e '.totals.red_verifies_after_allows == 1' >/dev/null \
   || { echo "gate-eff fixture failed: red-after-allow"; exit 1; }
 
+# promotion lifecycle aggregation
+echo "$OUT" | jq -e '.promotion.candidates == 1 and .promotion.dry_runs == 2 and .promotion.dry_run_pass == 1 and .promotion.dry_run_pass_rate == 0.5 and .promotion.admitted == 1' >/dev/null \
+  || { echo "gate-eff fixture failed: promotion aggregation"; echo "$OUT" | jq '.promotion'; exit 1; }
+
+# anchor coverage trend aggregation
+echo "$OUT" | jq -e '.anchor_coverage.runs == 2 and .anchor_coverage.latest_coverage == 0.8 and .anchor_coverage.min_coverage == 0.5 and .anchor_coverage.uncovered_total == 3' >/dev/null \
+  || { echo "gate-eff fixture failed: anchor coverage aggregation"; echo "$OUT" | jq '.anchor_coverage'; exit 1; }
+
 # markdown output renders
 MD="$(PROJECT_DIR="$PROJECT" node "$CORE/scripts/gate-effectiveness.js")"
 echo "$MD" | grep -q '| scope |' || { echo "gate-eff fixture failed: markdown"; exit 1; }
+echo "$MD" | grep -q '## Act -> promotion' || { echo "gate-eff fixture failed: promotion markdown"; exit 1; }
+echo "$MD" | grep -q '## L3 anchor coverage' || { echo "gate-eff fixture failed: anchor markdown"; exit 1; }
 
 # Case: empty/missing events does not crash and flags insufficiency.
 EMPTY="$TMP_DIR/empty"
