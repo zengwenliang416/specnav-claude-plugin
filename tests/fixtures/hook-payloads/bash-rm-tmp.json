@@ -1,0 +1,6 @@
+{
+  "tool_name": "Bash",
+  "tool_input": {
+    "command": "rm -rf /tmp/codex-A /tmp/codex-B && mkdir -p /tmp/codex-A"
+  }
+}

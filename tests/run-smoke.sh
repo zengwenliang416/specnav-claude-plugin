@@ -26,7 +26,10 @@ bash "$ROOT/tests/run-light-compact-gate-fixtures.sh"
 
 printf '{"tool_input":{"file_path":"src/ui/theme.ts"}}' | PROJECT_DIR="$FIXTURE" node "$CORE/scripts/specnav-guard.js" >/tmp/specnav-guard.out 2>/tmp/specnav-guard.err
 
-if printf '{"tool_input":{"file_path":"src/server/auth.ts"}}' | PROJECT_DIR="$FIXTURE" node "$CORE/scripts/specnav-guard.js" >/tmp/specnav-guard-deny.out 2>/tmp/specnav-guard-deny.err; then
+# Accounting-first default warns on scope drift; strict mode still blocks.
+printf '{"tool_input":{"file_path":"src/server/auth.ts"}}' | PROJECT_DIR="$FIXTURE" node "$CORE/scripts/specnav-guard.js" >/tmp/specnav-guard-soft.out 2>/dev/null
+grep -q "SpecNav gate warning" /tmp/specnav-guard-soft.out || { echo "expected soft scope warning" >&2; exit 1; }
+if printf '{"tool_input":{"file_path":"src/server/auth.ts"}}' | SPECNAV_STRICT=1 PROJECT_DIR="$FIXTURE" node "$CORE/scripts/specnav-guard.js" >/tmp/specnav-guard-deny.out 2>/tmp/specnav-guard-deny.err; then
   echo "expected scope denial" >&2
   exit 1
 fi

@@ -16,7 +16,9 @@ run_payload() {
   local err="/tmp/specnav-override-$name.err"
 
   set +e
-  PROJECT_DIR="$TMP" node "$CORE/scripts/specnav-guard.js" <"$PAYLOADS/$name.json" >"$out" 2>"$err"
+  # Overrides are exercised against strict mode: soft-mode scope drift never
+  # blocks, so the override's block-then-allow flip is only visible here.
+  SPECNAV_STRICT=1 PROJECT_DIR="$TMP" node "$CORE/scripts/specnav-guard.js" <"$PAYLOADS/$name.json" >"$out" 2>"$err"
   local status=$?
   set -e
 

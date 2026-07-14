@@ -66,12 +66,13 @@ if [[ -f "$STABLE_PROJECT/openspec/.specnav/events.jsonl" ]] \
   echo "selfcheck fixture failed: stable field wrongly reported as fallback"; exit 1
 fi
 
-# Case 6: deny path emits a structured PreToolUse decision with blocker id.
+# Case 6: strict-mode deny path emits a structured PreToolUse decision with
+# blocker id (accounting-first default downgrades scope drift to a warning).
 DENY_PROJECT="$TMP_DIR/deny-project"
 cp -R "$PROJECT_FIXTURE" "$DENY_PROJECT"
 set +e
 OUT="$(printf '{"tool_name":"Write","tool_input":{"file_path":"src/ui/private/secret.ts","content":"x"}}' \
-  | PROJECT_DIR="$DENY_PROJECT" node "$CORE/scripts/specnav-guard.js" 2>/dev/null)"
+  | SPECNAV_STRICT=1 PROJECT_DIR="$DENY_PROJECT" node "$CORE/scripts/specnav-guard.js" 2>/dev/null)"
 STATUS=$?
 set -e
 [[ "$STATUS" == "2" ]] || { echo "selfcheck fixture failed: expected deny exit 2, got $STATUS"; exit 1; }

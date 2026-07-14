@@ -1,0 +1,6 @@
+{
+  "tool_name": "Bash",
+  "tool_input": {
+    "command": "git commit -m \"chore(payroll): add OpenSpec proposal and verification artifacts\""
+  }
+}
