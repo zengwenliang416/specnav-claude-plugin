@@ -1,5 +1,76 @@
 # Changelog
 
+## 0.6.0
+
+Accounting-first guard, cross-repo support, and a large token/artifact diet —
+driven by field data from real projects (6.4k allow / 55 deny events, ~50%
+of denies were misfires on harness paths and routine cleanup commands).
+
+Guard policy (breaking behavior change, opt-out via `SPECNAV_STRICT=1`):
+
+- Soft gates by default: scope drift, missing tasks/scope/gate artifacts,
+  legacy-OpenSpec entrypoints, and missing-openspec now warn (exit 0 +
+  systemMessage + `hook.scope-drift`/`hook.warn` events) instead of blocking.
+  Hard gates remain hard in both modes: frozen acceptance contracts, frozen
+  task tests, admitted promoted checks, and dangerous commands.
+- `SPECNAV_STRICT=1` restores full blocking for every soft gate.
+- Dangerous-command matching narrowed to genuinely destructive shapes
+  (`rm -rf /`, `sudo rm`, `dd of=/dev/`, `curl|sh`); `rm -rf .next` and
+  `/tmp` cleanup no longer trip it. Legacy-OpenSpec matching now requires
+  command position — commit messages mentioning "OpenSpec propose" pass.
+- Harness-owned paths (`~/.claude`, `~/.codex`, `~/.config`, tmp dirs) are
+  never governed: Claude Code plans/memory writes no longer hit scope denies.
+
+Cross-repo (new):
+
+- `scope.json` gains optional `external_repos[]` (`root`, `include`,
+  `exclude`, `reason` — reason required). Declared sibling-repo edits are
+  allowed, audited via `hook.external-edit`, and best-effort mark the
+  sibling's own verify report stale. Undeclared external paths soft-gate
+  with a copyable repair template (`external-scope`).
+- specnav-codegraph ships hooks now: a SessionStart announce that lists
+  sibling repositories carrying a `.codegraph/` index (one compact line,
+  silent when none), and a PreToolUse redirect that turns Grep/Bash searches
+  into an equivalent `codegraph explore -p <repo>` command when the target
+  repo is indexed. Reads of specific files are never intercepted; kill
+  switch `SPECNAV_CROSS_REPO_REDIRECT=0`; fail-open on any internal error.
+  Non-sibling repos can be declared in `openspec/.specnav/cross-repo.json`.
+
+Light lane v2 (single-file):
+
+- `create-light-change.js` now writes ONE `light-change.json` (lane, editable
+  paths, acceptance assertions, tasks, pending user test, optional
+  external_repos) instead of the 14-artifact packet. All five stage contracts
+  (requirements, prototype, development, verification, operations/archive)
+  short-circuit on a valid v2 file; `--format packet` keeps the v1 behavior
+  and in-flight v1 changes continue to validate.
+- Cross-repo paths (`../repo/...`) in `--paths` become `external_repos`
+  declarations instead of validation failures.
+
+Token/artifact diet:
+
+- Contract scripts print a compact one-line decision by default
+  (`ok/lane/blockers`); the full artifact table moved behind `--verbose`
+  (~2KB → ~200B per call, 612 calls observed per project month).
+- `verify-domains aggregate` writes JSON only; md/html renders moved behind
+  `--render` and no longer gate operations.
+- development/manifest.json can replace the six one-shot entry planning JSONs
+  (before-dev-check, promotion-map, complexity-budget, task-graph,
+  code-owner-map, extraction-map) with sections in one file; per-file set
+  still accepted.
+- Event log noise: `hook.allow` recording is now opt-in
+  (`SPECNAV_EVENT_VERBOSE=1`); post-tool stale marking is idempotent (one
+  `verify.stale` per implementation burst instead of per edit).
+- Per-stage context manifests (5 append-only jsonl, unbounded) replaced by
+  one overwrite-in-place `context/current.json`; journal keeps the latest 10
+  sessions; `openspec/.specnav/.gitignore` is written on bootstrap so
+  session-local runtime state (events, journal, workflow-state, session-lock)
+  stays out of version control.
+- Slash-command files replace the 40-line inline plugin-root resolver with a
+  compact `specnav_env` bootstrap delegating to `resolve-runtime.js`;
+  `/specnav-implement` inlines the light-lane fast path (create + entry gate
+  in one step).
+
 ## 0.5.2
 
 Two opt-in capabilities borrowed from PDCA "AI harness" practice, both

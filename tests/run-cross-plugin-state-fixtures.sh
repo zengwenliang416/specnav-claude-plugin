@@ -15,17 +15,13 @@ for plugin in "${PLUGINS[@]}"; do
     '{id: $id, version: "0.4.0", scope: "user", enabled: true, installPath: $installPath}'
 done | jq -s '.' >"$TMP_DIR/plugin-list.json"
 
-PROJECT_DIR="$PROJECT" node "$CORE/scripts/workflow-state.js" --marketplace-root "$ROOT" --write --json >"$TMP_DIR/specnav-cross-state.json"
+PROJECT_DIR="$PROJECT" node "$CORE/scripts/workflow-state.js" --marketplace-root "$ROOT" --write --json --verbose >"$TMP_DIR/specnav-cross-state.json"
 jq -e '.ok == true' "$TMP_DIR/specnav-cross-state.json" >/dev/null
 jq -e '.plugin_suite.ok == true' "$TMP_DIR/specnav-cross-state.json" >/dev/null
 jq -e '.plugin_suite.plugins[] | select(.name == "specnav-core")' "$TMP_DIR/specnav-cross-state.json" >/dev/null
 jq -e '.plugin_suite.plugins[] | select(.name == "specnav-requirements")' "$TMP_DIR/specnav-cross-state.json" >/dev/null
 test -f "$PROJECT/openspec/.specnav/workflow-state.json"
-test -s "$PROJECT/openspec/.specnav/context/requirements-context.jsonl"
-test -s "$PROJECT/openspec/.specnav/context/prototype-context.jsonl"
-test -s "$PROJECT/openspec/.specnav/context/implement-context.jsonl"
-test -s "$PROJECT/openspec/.specnav/context/verify-context.jsonl"
-test -s "$PROJECT/openspec/.specnav/context/ops-context.jsonl"
+test -s "$PROJECT/openspec/.specnav/context/current.json"
 test -f "$PROJECT/openspec/.specnav/journal/index.md"
 
 PROJECT_DIR="$PROJECT" node "$CORE/scripts/affordances.js" --json >"$TMP_DIR/specnav-cross-affordances.json"

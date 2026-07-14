@@ -198,7 +198,7 @@ test -d "$command_bootstrap_project/openspec"
 
 workflow_state_json="$TMP_DIR/workflow-state.json"
 workflow_state_status=0
-PROJECT_DIR="$PROJECT" node "$CORE/scripts/workflow-state.js" --json >"$workflow_state_json" || workflow_state_status=$?
+PROJECT_DIR="$PROJECT" node "$CORE/scripts/workflow-state.js" --json --verbose >"$workflow_state_json" || workflow_state_status=$?
 if [ "$workflow_state_status" -ne 0 ]; then
   echo "workflow-state exited $workflow_state_status, expected 0" >&2
   exit 1
@@ -210,7 +210,7 @@ assert_jq '.actions[] | select(.id == "status" and .state == "ready")' "$workflo
 
 workflow_missing_json="$TMP_DIR/workflow-state-missing-openspec.json"
 workflow_missing_status=0
-PROJECT_DIR="$NO_STATE" node "$CORE/scripts/workflow-state.js" --json >"$workflow_missing_json" || workflow_missing_status=$?
+PROJECT_DIR="$NO_STATE" node "$CORE/scripts/workflow-state.js" --json --verbose >"$workflow_missing_json" || workflow_missing_status=$?
 if [ "$workflow_missing_status" -ne 2 ]; then
   echo "workflow-state missing openspec exited $workflow_missing_status, expected 2" >&2
   cat "$workflow_missing_json" >&2
@@ -283,11 +283,7 @@ session_ready_json="$TMP_DIR/session-ready.json"
 PROJECT_DIR="$PROJECT" node "$CORE/scripts/specnav-session-start.js" >"$session_ready_json"
 assert_jq '.status == "ready"' "$session_ready_json" "session start did not report ready for openspec project"
 test -f "$PROJECT/openspec/.specnav/workflow-state.json"
-test -s "$PROJECT/openspec/.specnav/context/requirements-context.jsonl"
-test -s "$PROJECT/openspec/.specnav/context/prototype-context.jsonl"
-test -s "$PROJECT/openspec/.specnav/context/implement-context.jsonl"
-test -s "$PROJECT/openspec/.specnav/context/verify-context.jsonl"
-test -s "$PROJECT/openspec/.specnav/context/ops-context.jsonl"
+test -s "$PROJECT/openspec/.specnav/context/current.json"
 test -f "$PROJECT/openspec/.specnav/journal/index.md"
 
 # Non-SpecNav project (no marker, no openspec) — session stays inactive, no routing noise

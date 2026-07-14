@@ -4,7 +4,7 @@ This document describes the current Claude Code implementation of SpecNav. The l
 
 ## 1. Current Shape
 
-SpecNav is currently a Claude Code marketplace repository containing seven installable plugins. Current implementation version: `0.5.2`.
+SpecNav is currently a Claude Code marketplace repository containing seven installable plugins. Current implementation version: `0.6.0`.
 
 The accepted target is now the current implementation shape: one marketplace root, one core runtime plugin, and one plugin for each major lifecycle stage.
 
@@ -2318,6 +2318,25 @@ Completed in `0.5.2`:
    `gate-effectiveness.js` consumption of `promotion.*` / `anchor.coverage`
    events. Both features are advisory-by-default and never expand mandatory
    gates.
+
+Completed in `0.6.0`:
+
+1. Accounting-first guard policy: scope drift, missing artifacts, and legacy
+   entrypoint hits warn by default (events preserved) with `SPECNAV_STRICT=1`
+   restoring blocking; dangerous-command and legacy-OpenSpec matching narrowed
+   to eliminate observed misfires; harness-owned paths exempted from
+   governance.
+2. Cross-repo support: `external_repos[]` in scope.json (declared, audited
+   sibling-repo edits with stale propagation), plus specnav-codegraph hooks
+   that announce indexed sibling repositories at session start and redirect
+   cross-repo Grep/Bash searches to `codegraph explore -p`.
+3. Light lane v2: one `light-change.json` replaces the 14-artifact packet
+   across all five stage contracts; `--format packet` retains v1.
+4. Token/artifact diet: compact contract stdout (`--verbose` for tables),
+   JSON-only verification reports (`--render` for md/html),
+   `development/manifest.json` consolidation, opt-in `hook.allow` events,
+   idempotent stale marking, single `context/current.json`, journal rotation,
+   and a runtime `.gitignore` for `openspec/.specnav/`.
 
 Next:
 

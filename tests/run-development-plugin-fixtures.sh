@@ -13,7 +13,7 @@ run_json() {
   local expected_status="$3"
   local mode="${4:-}"
   local status
-  local command=(node "$DEV/scripts/development-contract.js" --json)
+  local command=(node "$DEV/scripts/development-contract.js" --json --verbose)
 
   if [[ -n "$mode" ]]; then
     command+=(--mode "$mode")
@@ -864,6 +864,38 @@ jq -e '.prototype.ok == true' "$TMP_DIR/happy-development.json" >/dev/null
 jq -e '.tasks[] | select(.task_id == "001-dashboard-summary" and .ok == true)' "$TMP_DIR/happy-development.json" >/dev/null
 run_json "$HAPPY_PROJECT" "$TMP_DIR/happy-entry.json" 0 entry
 jq -e '.ok == true and .mode == "entry"' "$TMP_DIR/happy-entry.json" >/dev/null
+
+# D2 consolidation: development/manifest.json (one file, six sections) replaces
+# the per-file entry planning set and still passes entry mode.
+MANIFEST_PROJECT="$TMP_DIR/manifest-project"
+cp -R "$HAPPY_PROJECT" "$MANIFEST_PROJECT"
+MANIFEST_DEV="$MANIFEST_PROJECT/openspec/changes/add-dashboard/development"
+rm -f "$MANIFEST_DEV/before-dev-check.json" "$MANIFEST_DEV/prototype-promotion-map.json" \
+  "$MANIFEST_DEV/complexity-budget.json" "$MANIFEST_DEV/task-graph.json" \
+  "$MANIFEST_DEV/code-owner-map.json" "$MANIFEST_DEV/extraction-map.json"
+cat >"$MANIFEST_DEV/manifest.json" <<'JSON'
+{
+  "schema_version": 1,
+  "before_dev_check": {"active_change": "add-dashboard", "status": "ok"},
+  "promotion_map": {"promotion_policy": "reimplement_under_development_gate", "allowed_to_copy": ["layout"], "must_reimplement": ["logic"], "blocked_direct_copies": ["scripts"]},
+  "complexity_budget": {"max_new_files": 8, "max_new_dependencies": 0},
+  "task_graph": {"tasks": [{"id": "001-dashboard-summary", "depends_on": []}]},
+  "code_owner_map": {"src/dashboard": "app-team"},
+  "extraction_map": {"candidates": [], "policy": "extract shared dashboard widgets on second use"}
+}
+JSON
+run_json "$MANIFEST_PROJECT" "$TMP_DIR/manifest-entry.json" 0 entry
+jq -e '.ok == true and .mode == "entry"' "$TMP_DIR/manifest-entry.json" >/dev/null
+jq -e '.artifacts[] | select(.name == "manifest.json" and .ok == true)' "$TMP_DIR/manifest-entry.json" >/dev/null
+# A manifest missing a section blocks with a named blocker.
+cat >"$MANIFEST_DEV/manifest.json" <<'JSON'
+{
+  "schema_version": 1,
+  "before_dev_check": {"active_change": "add-dashboard", "status": "ok"}
+}
+JSON
+run_json "$MANIFEST_PROJECT" "$TMP_DIR/manifest-broken.json" 2 entry
+assert_blocker "$TMP_DIR/manifest-broken.json" "invalid-development-manifest:missing-section:promotion_map"
 
 SLICE_SCRIPT_PROJECT="$TMP_DIR/slice-script-project"
 cp -R "$HAPPY_PROJECT" "$SLICE_SCRIPT_PROJECT"

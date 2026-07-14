@@ -96,7 +96,9 @@ for legacy_core_skill in archive bootstrap design explore fix implement propose 
 done
 
 for command_file in "$ROOT"/plugins/*/commands/*.md; do
-  grep -q 'specnav_plugin_root()' "$command_file"
+  # Every command must resolve installed-cache roots via either the compact
+  # specnav_env bootstrap (resolve-runtime.js) or the legacy inline resolver.
+  grep -Eq 'specnav_env\(\)|specnav_plugin_root\(\)' "$command_file"
   if grep -qF 'node - "$1"' "$command_file"; then
     echo "command resolver must not use slash-command positional $1: $command_file" >&2
     exit 1
