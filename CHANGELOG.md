@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.6.1
+
+Field fix from the first day of 0.6.0 usage: one missing-tasks warning
+repeated 154 times in a single session (~93KB of context) and was tuned out.
+
+- Warning dedup: the same (reason, change) soft-gate warning now reaches the
+  model/user ONCE per session (tracked in openspec/.specnav/warned.json,
+  keyed by hook session_id). Every occurrence still lands in events.jsonl
+  for accounting; SPECNAV_STRICT=1 blocking is unaffected.
+- Requirements-stage awareness: while a change has requirements.md but no
+  tasks.md / light-change.json yet, edits to docs/, README, and *.md files
+  are the legal work of that stage and no longer trigger missing-tasks.
+  Production-source edits still warn.
+- warned.json added to the runtime .gitignore.
+
 ## 0.6.0
 
 Accounting-first guard, cross-repo support, and a large token/artifact diet —
