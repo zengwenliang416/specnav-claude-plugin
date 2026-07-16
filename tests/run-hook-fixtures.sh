@@ -176,22 +176,34 @@ if ! grep -q "hook.allow" "$ALLOW_EVENTS_PROJECT/openspec/.specnav/events.jsonl"
 fi
 
 
-# Warning dedup: same (reason, change) warns once per session; a new session
-# id resets. Events keep recording every occurrence.
+# Graduated enforcement: hit 1 warns, hit 2 is silent, hit 3 denies.
+# A new session id resets. Events record every occurrence.
 DEDUP_PROJECT="$TMP_DIR/dedup-project"
 mkdir -p "$DEDUP_PROJECT/openspec/.specnav" "$DEDUP_PROJECT/openspec/changes/d"
 printf 'd\n' >"$DEDUP_PROJECT/openspec/.specnav/active-change"
 DEDUP_PAYLOAD='{"session_id":"s-dedup-1","tool_name":"Write","tool_input":{"file_path":"src/app.ts","content":"x"}}'
 OUT1="$(printf '%s' "$DEDUP_PAYLOAD" | PROJECT_DIR="$DEDUP_PROJECT" node "$CORE/scripts/specnav-guard.js")"
-echo "$OUT1" | grep -q "SpecNav gate warning" || { echo "dedup: first warn missing"; exit 1; }
+echo "$OUT1" | grep -q "SpecNav gate warning" || { echo "escalation: first warn missing"; exit 1; }
+echo "$OUT1" | grep -q "BLOCKS after" || { echo "escalation: first warn must announce the escalation rule"; exit 1; }
 OUT2="$(printf '%s' "$DEDUP_PAYLOAD" | PROJECT_DIR="$DEDUP_PROJECT" node "$CORE/scripts/specnav-guard.js")"
 if echo "$OUT2" | grep -q "SpecNav gate warning"; then
-  echo "dedup: second identical warn should be silent"; exit 1
+  echo "escalation: second identical warn should be silent"; exit 1
 fi
+set +e
+printf '%s' "$DEDUP_PAYLOAD" | PROJECT_DIR="$DEDUP_PROJECT" node "$CORE/scripts/specnav-guard.js" >"$TMP_DIR/escalate3.out" 2>"$TMP_DIR/escalate3.err"
+ESC_STATUS=$?
+set -e
+[[ "$ESC_STATUS" == "2" ]] || { echo "escalation: third hit should deny, got $ESC_STATUS"; exit 1; }
+grep -q "fired 3 times" "$TMP_DIR/escalate3.err" || { echo "escalation: deny should explain the escalation"; exit 1; }
 WARN_EVENTS="$(grep -c '"reason":"missing-tasks"' "$DEDUP_PROJECT/openspec/.specnav/events.jsonl")"
-[[ "$WARN_EVENTS" == "2" ]] || { echo "dedup: expected 2 warn events, got $WARN_EVENTS"; exit 1; }
-OUT3="$(printf '%s' "${DEDUP_PAYLOAD/s-dedup-1/s-dedup-2}" | PROJECT_DIR="$DEDUP_PROJECT" node "$CORE/scripts/specnav-guard.js")"
-echo "$OUT3" | grep -q "SpecNav gate warning" || { echo "dedup: new session should warn again"; exit 1; }
+[[ "$WARN_EVENTS" == "3" ]] || { echo "escalation: expected 3 events, got $WARN_EVENTS"; exit 1; }
+# New session resets to a warning.
+OUT4="$(printf '%s' "${DEDUP_PAYLOAD/s-dedup-1/s-dedup-2}" | PROJECT_DIR="$DEDUP_PROJECT" node "$CORE/scripts/specnav-guard.js")"
+echo "$OUT4" | grep -q "SpecNav gate warning" || { echo "escalation: new session should warn again"; exit 1; }
+# SPECNAV_SOFT=1 never denies no matter how many hits.
+for i in 1 2 3 4; do
+  SPECNAV_SOFT=1 printf '%s' '{"session_id":"s-soft","tool_name":"Write","tool_input":{"file_path":"src/app.ts","content":"x"}}' | SPECNAV_SOFT=1 PROJECT_DIR="$DEDUP_PROJECT" node "$CORE/scripts/specnav-guard.js" >/dev/null || { echo "escalation: SPECNAV_SOFT must never deny"; exit 1; }
+done
 
 # Requirements-stage awareness: docs/markdown edits under a change that has
 # requirements.md but no tasks.md yet are silent; source edits still warn.
@@ -205,5 +217,23 @@ if echo "$OUT" | grep -q "SpecNav gate warning"; then
 fi
 OUT="$(printf '%s' '{"session_id":"s-req","tool_name":"Write","tool_input":{"file_path":"src/app.ts","content":"x"}}' | PROJECT_DIR="$REQ_STAGE_PROJECT" node "$CORE/scripts/specnav-guard.js")"
 echo "$OUT" | grep -q "missing-tasks" || { echo "req-stage: source edit should still warn"; exit 1; }
+
+
+# Repo suitability: bootstrap refuses tooling-shaped repos unless --force.
+TOOLING_REPO="$TMP_DIR/tooling-repo"
+mkdir -p "$TOOLING_REPO/plugins/x" "$TOOLING_REPO/.claude-plugin"
+set +e
+PROJECT_DIR="$TOOLING_REPO" node "$CORE/scripts/specnav-bootstrap.js" --json "$TOOLING_REPO" >"$TMP_DIR/boot-tooling.json" 2>/dev/null
+BOOT_STATUS=$?
+set -e
+[[ "$BOOT_STATUS" == "2" ]] || { echo "suitability: tooling repo should be refused, got $BOOT_STATUS"; exit 1; }
+grep -q "repo-profile:tooling" "$TMP_DIR/boot-tooling.json" || { echo "suitability: blocker id missing"; exit 1; }
+test ! -d "$TOOLING_REPO/openspec" || { echo "suitability: refused bootstrap must not create openspec/"; exit 1; }
+# Application-shaped repo passes detection (bootstrap proceeds to openspec CLI).
+APP_REPO="$TMP_DIR/app-repo"
+mkdir -p "$APP_REPO/src/pages"
+printf '{"dependencies":{"react":"18.0.0"}}\n' >"$APP_REPO/package.json"
+PROFILE="$(node -e "const b=require('$CORE/scripts/specnav-bootstrap');console.log(b.detectRepoProfile('$APP_REPO').profile)")"
+[[ "$PROFILE" == "application" ]] || { echo "suitability: app repo misdetected as $PROFILE"; exit 1; }
 
 echo "specnav hook fixtures ok"

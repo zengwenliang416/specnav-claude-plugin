@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.7.0
+
+Graduated enforcement: soft gates now escalate instead of being purely
+advisory. Field data showed both extremes fail — pure-hard misfired on ~50%
+of denies (pre-0.6), pure-soft was ignored 154 times in one session (0.6.0).
+
+- Escalating soft gates: the same (reason, change) gate warns on the 1st hit
+  (announcing the escalation rule), stays silent on the 2nd, and DENIES from
+  the 3rd hit in the same session — sustained drift becomes a decision, not
+  an accident. Repairing the gate or creating an override stops the count.
+  Threshold configurable via SPECNAV_GATE_ESCALATION (default 3).
+  SPECNAV_STRICT=1 still denies from hit 1; new SPECNAV_SOFT=1 keeps gates
+  purely advisory (never denies).
+- Repo suitability gate: specnav-bootstrap now detects tool/library/plugin
+  repositories (plugin-marketplace layout, skills layout, published-library
+  shape, no UI/server/page signals) and refuses with repo-profile:tooling
+  instead of scaffolding empty-shell foundation specs. --force overrides.
+  Application repos (UI/server frameworks, page/route directories) proceed
+  as before.
+
 ## 0.6.1
 
 Field fix from the first day of 0.6.0 usage: one missing-tasks warning

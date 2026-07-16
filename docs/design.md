@@ -4,7 +4,7 @@ This document describes the current Claude Code implementation of SpecNav. The l
 
 ## 1. Current Shape
 
-SpecNav is currently a Claude Code marketplace repository containing seven installable plugins. Current implementation version: `0.6.1`.
+SpecNav is currently a Claude Code marketplace repository containing seven installable plugins. Current implementation version: `0.7.0`.
 
 The accepted target is now the current implementation shape: one marketplace root, one core runtime plugin, and one plugin for each major lifecycle stage.
 
@@ -2318,6 +2318,15 @@ Completed in `0.5.2`:
    `gate-effectiveness.js` consumption of `promotion.*` / `anchor.coverage`
    events. Both features are advisory-by-default and never expand mandatory
    gates.
+
+Completed in `0.7.0`:
+
+1. Graduated enforcement: soft gates warn once, go silent once, then deny on
+   the third same-session hit (SPECNAV_GATE_ESCALATION, default 3);
+   SPECNAV_STRICT=1 denies immediately, SPECNAV_SOFT=1 never denies.
+2. Repo suitability: bootstrap refuses tooling-shaped repositories
+   (repo-profile:tooling) unless --force, so foundation-spec templates are
+   never scaffolded into repos that cannot honestly fill them.
 
 Completed in `0.6.1`:
 
