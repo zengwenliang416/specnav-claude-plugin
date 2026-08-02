@@ -1,12 +1,13 @@
 {
   "schema": "specnav.verification.kernel-sync.v1",
   "generated": true,
-  "generated_at": "2026-08-02T17:06:55.815Z",
+  "generated_at": "2026-08-02T17:41:09.346Z",
+  "host": "claude-code",
   "source_repository": "specnav-codex-plugin",
-  "source_commit": "c92d7e88d7978d7942368fbac2d0779be9e17466",
+  "source_commit": "b9bee79d9275451031d34a45a8712aea4e04014a",
   "source_dirty": false,
   "source_path": "plugins/specnav-verification",
-  "source_tree_digest": "c645a6fd93f6459b001924f8a80d78d3767aa4c2e2c44c5e5420f6559d3c845a",
+  "source_tree_digest": "c56ab46259449061d74bf3ca71a66cdea2423531c900bfc2065dcfec0d41c4e1",
   "kernel": {
     "name": "@specnav/verification-kernel",
     "version": "2.0.0-alpha.1",
@@ -82,6 +83,7 @@
     "kernel/gates/index.js",
     "kernel/governance/compatibility-snapshot.js",
     "kernel/governance/cross-host-drift.js",
+    "kernel/governance/host-provenance.js",
     "kernel/governance/index.js",
     "kernel/index.js",
     "kernel/metadata.js",
@@ -266,6 +268,10 @@
   ],
   "host_files": [
     {
+      "target": ".claude-plugin/plugin.json",
+      "target_sha256": "28fa10ea6e35f0c691b31231e59657b68af52ec52c76cf0ee403995f6c1329a0"
+    },
+    {
       "target": "commands/specnav-verification.md",
       "target_sha256": "9dd8facf8f40b86da4031e4f16886305ad8e61e599ac8d29f6535f8ca9e9fc0b"
     },
@@ -278,16 +284,14 @@
       "target_sha256": "fc486eaf84da434e2edc366f0ae545c61a27bd2d86c3868d3ec0dc778338a9db"
     },
     {
-      "target": "scripts/plugin-runtime.js",
-      "target_sha256": "2f8c10600d73d636c2e3db1a426d99807c58edb97424d09e4041828e61fcf2fd"
-    },
-    {
       "target": "specnav-stage.json",
       "target_sha256": "4bb90867d699db74b6d6416dd06ab2274507324bdbc56af74ce0ef096315ed6d"
-    },
+    }
+  ],
+  "host_runtime_files": [
     {
-      "target": ".claude-plugin/plugin.json",
-      "target_sha256": "28fa10ea6e35f0c691b31231e59657b68af52ec52c76cf0ee403995f6c1329a0"
+      "target": "scripts/plugin-runtime.js",
+      "target_sha256": "2f8c10600d73d636c2e3db1a426d99807c58edb97424d09e4041828e61fcf2fd"
     }
   ]
 }
