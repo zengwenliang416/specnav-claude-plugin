@@ -1,6 +1,6 @@
 # Clean Session Transcript
 
-Prompt: /specnav-verify
+Prompt: $specnav-verify-plan
 
 Observed:
 

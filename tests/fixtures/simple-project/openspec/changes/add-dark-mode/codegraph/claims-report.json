@@ -1,0 +1,12 @@
+{
+  "schema": "specnav.codegraph.claims_report.v1",
+  "generated_at": "2026-08-02T14:59:38.247Z",
+  "active_change": "add-dark-mode",
+  "claims_file": "openspec/changes/add-dark-mode/codegraph/claims-map.json",
+  "evidence_index": "openspec/changes/add-dark-mode/codegraph/evidence-index.json",
+  "claims_count": 0,
+  "verified_claims": [],
+  "unverified_claims": [],
+  "blockers": [],
+  "warnings": []
+}

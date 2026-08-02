@@ -5,7 +5,7 @@ description: Use this skill when SpecNav needs static analysis, OpenSpec validat
 
 ## Runtime Paths
 
-Resolve every `SPECNAV_*_ROOT` variable with the owning SpecNav command's installed-cache resolver before running Bash. Do not rely on `CLAUDE_PLUGIN_ROOT`; it is only guaranteed inside Claude Code hook processes. If a required installed plugin root cannot be resolved, report the exact blocker and stop.
+Resolve every `SPECNAV_*_ROOT` variable with the owning SpecNav Claude Code plugin resolver before running Bash. Claude Code skills must resolve installed plugin roots and explicit `SPECNAV_*_ROOT` overrides. If a required installed plugin root cannot be resolved, report the exact blocker and stop.
 
 # SpecNav Verify Static
 

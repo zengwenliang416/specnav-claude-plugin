@@ -259,8 +259,8 @@ if [ "$route_verify_status" -ne 0 ]; then
   exit 1
 fi
 assert_jq '.target_plugin == "specnav-verification"' "$route_verify_json" "specnav-route verification did not target specnav-verification"
-assert_jq '.command == "/specnav-verify"' "$route_verify_json" "specnav-route verification did not route to specnav-verify"
-assert_jq '.skill == "specnav-verify-plan"' "$route_verify_json" "specnav-route verification did not select specnav-verify-plan"
+assert_jq '.command == "/specnav-verification"' "$route_verify_json" "specnav-route verification did not route to specnav-verification"
+assert_jq '.skill == "specnav-verification"' "$route_verify_json" "specnav-route verification did not select specnav-verification"
 assert_jq '.required_plugins | index("specnav-verification")' "$route_verify_json" "specnav-route verification did not require specnav-verification"
 
 bootstrap_project="$TMP_DIR/bootstrap-project"

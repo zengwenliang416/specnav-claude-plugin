@@ -40,7 +40,7 @@
     {
       "name": "specnav-verification",
       "source": "./plugins/specnav-verification",
-      "description": "SpecNav verification stage: six-domain evidence, traceability, receipt, and aggregate report.",
+      "description": "SpecNav Verification 2.0: approved cases, managed runtime, six-domain evidence, repair loops, gates, and stakeholder reports.",
       "version": "0.7.0",
       "category": "productivity",
       "strict": true

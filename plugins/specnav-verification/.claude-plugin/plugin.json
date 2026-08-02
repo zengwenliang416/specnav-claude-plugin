@@ -1,7 +1,7 @@
 {
   "name": "specnav-verification",
   "version": "0.7.0",
-  "description": "Six-domain verification plugin for the SpecNav OpenSpec lifecycle suite.",
+  "description": "Full Verification 2.0 for Claude Code with approved cases, six-domain evidence, repair loops, gates, and review reports.",
   "author": {
     "name": "Wenliang Zeng"
   },
@@ -12,7 +12,8 @@
     "claude-code",
     "openspec",
     "verification",
-    "testing"
+    "testing",
+    "html-report"
   ],
   "skills": "./skills/",
   "defaultEnabled": true

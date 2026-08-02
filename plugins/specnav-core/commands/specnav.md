@@ -52,7 +52,7 @@ Stage work must route through the stage plugin commands, not core lifecycle skil
 - requirements -> require `specnav-requirements`, then use `/specnav-requirements`
 - prototype -> require `specnav-prototype`, then use `/specnav-prototype`
 - development/build/fix -> require `specnav-development`, then use `/specnav-implement`
-- verification/check -> require `specnav-verification`, then use `/specnav-verify`
+- verification/check -> require `specnav-verification`, then use `/specnav-verification`
 - operations/release/archive -> require `specnav-operations`, then use `/specnav-release` or `/specnav-archive`
 
 Before each handoff, state the router JSON fields `target_plugin`, `command`, `skill`, `required_plugins`, `blockers`, `confirmation_required`, and `no_fallback`. If a required plugin is missing, report the exact blocker and stop. Do not fall back to core stage implementation.

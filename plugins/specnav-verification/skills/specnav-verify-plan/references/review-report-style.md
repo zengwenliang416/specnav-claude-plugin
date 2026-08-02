@@ -6,7 +6,7 @@ it must be readable without opening JSON.
 
 ## Visual Direction
 
-Use the Claude warm editorial style:
+Use the Codex warm editorial style:
 
 - cream canvas `#faf9f5`;
 - coral primary accent `#cc785c`;

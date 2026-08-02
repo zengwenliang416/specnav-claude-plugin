@@ -70,7 +70,8 @@ set -e
 [[ "$STATUS" == "2" ]]
 jq -e '.blockers | index("acceptance:non-passing:LIGHT-001")' "$TMP_DIR/handoff-open.json" >/dev/null
 
-# 6. Complete the work inside the single file; handoff + verify + ops go green.
+# 6. Complete the light development work. Verification 2.0 still requires the
+# full six-domain packet and therefore blocks until the change is escalated.
 python3 - "$CHANGE_DIR/light-change.json" <<'PY'
 import json, sys
 path = sys.argv[1]
@@ -88,18 +89,38 @@ PY
 PROJECT_DIR="$PROJECT" SPECNAV_CHANGE="$CHANGE" node "$DEV/scripts/development-contract.js" --mode handoff --json >"$TMP_DIR/handoff-done.json"
 jq -e '.ok == true' "$TMP_DIR/handoff-done.json" >/dev/null
 
-PROJECT_DIR="$PROJECT" SPECNAV_CHANGE="$CHANGE" node "$VERIFY/scripts/verify-domains.js" aggregate --json >"$TMP_DIR/aggregate.json"
-jq -e '.verdict == "green" and .lane == "light"' "$TMP_DIR/aggregate.json" >/dev/null
-test -f "$CHANGE_DIR/verify/aggregate-report.json"
-# Single-format: no md/html unless --render.
-test ! -f "$CHANGE_DIR/verify/aggregate-report.md"
-test ! -f "$CHANGE_DIR/verify/aggregate-report.html"
+set +e
+PROJECT_DIR="$PROJECT" SPECNAV_CHANGE="$CHANGE" \
+  node "$VERIFY/scripts/verify-domains.js" aggregate --json >"$TMP_DIR/aggregate.json"
+STATUS=$?
+set -e
+[[ "$STATUS" == "2" ]]
+jq -e '
+  .verdict == "red"
+  and .lane == "light"
+  and (.blockers | index("verification-v2:light-lane-not-supported"))
+  and (.required_domains | length == 6)
+' "$TMP_DIR/aggregate.json" >/dev/null
 
-PROJECT_DIR="$PROJECT" SPECNAV_CHANGE="$CHANGE" node "$OPS/scripts/operations-gate.js" --json >"$TMP_DIR/ops.json"
-jq -e '.ok == true and .lane == "light" and .light_format == "v2"' "$TMP_DIR/ops.json" >/dev/null
+set +e
+PROJECT_DIR="$PROJECT" SPECNAV_CHANGE="$CHANGE" \
+  node "$OPS/scripts/operations-gate.js" --json >"$TMP_DIR/ops.json"
+STATUS=$?
+set -e
+[[ "$STATUS" == "2" ]]
+jq -e '
+  .ok == false
+  and .lane == "light"
+  and (.blockers | index("verification-not-green"))
+' "$TMP_DIR/ops.json" >/dev/null
 
-PROJECT_DIR="$PROJECT" SPECNAV_CHANGE="$CHANGE" node "$OPS/scripts/archive-gate.js" --json >"$TMP_DIR/archive.json"
-jq -e '.verdict == "green" and .lane == "light"' "$TMP_DIR/archive.json" >/dev/null
+set +e
+PROJECT_DIR="$PROJECT" SPECNAV_CHANGE="$CHANGE" \
+  node "$OPS/scripts/archive-gate.js" --json >"$TMP_DIR/archive.json"
+STATUS=$?
+set -e
+[[ "$STATUS" == "2" ]]
+jq -e '.verdict == "red" and .lane == "light"' "$TMP_DIR/archive.json" >/dev/null
 
 # 7. Cross-repo paths become an external_repos declaration instead of a blocker.
 SIBLING="$TMP_DIR/sibling-repo"
