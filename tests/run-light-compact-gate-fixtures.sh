@@ -241,7 +241,11 @@ fi
 jq -e '
   .ok == false
   and .lane == "light"
-  and (.blockers | index("verification-not-green"))
+  and (.blockers | map(startswith("verification-release:artifact-")) | any)
+  and (.artifacts[] | select(
+    .name == "operations/verification-v2-proof.json"
+    and .ok == false
+  ))
 ' "$TMP_DIR/light-ops.json" >/dev/null
 
 set +e
@@ -250,6 +254,11 @@ PROJECT_DIR="$PROJECT" SPECNAV_CHANGE="$CHANGE" \
 ARCHIVE_STATUS=$?
 set -e
 [[ "$ARCHIVE_STATUS" == "2" ]]
-jq -e '.verdict == "red" and .lane == "light"' "$TMP_DIR/light-archive.json" >/dev/null
+jq -e '
+  .verdict == "red"
+  and .lane == "light"
+  and (.blockers | map(startswith("verification-release:artifact-")) | any)
+  and .verification_v2_proof_id == null
+' "$TMP_DIR/light-archive.json" >/dev/null
 
 echo "specnav light compact gate fixtures ok"
