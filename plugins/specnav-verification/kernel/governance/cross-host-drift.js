@@ -49,7 +49,11 @@ function compareCandidate(reference, candidate, blockers) {
       artifact
     ));
   }
-  if (!sameValue(reference.kernel, candidate.kernel)) {
+  const kernelIdentityMismatch = !sameValue(
+    reference.kernel,
+    candidate.kernel
+  );
+  if (kernelIdentityMismatch) {
     blockers.push(blocker(
       `verification-drift:kernel-identity-mismatch:${candidate.host}`,
       artifact,
@@ -60,10 +64,11 @@ function compareCandidate(reference, candidate, blockers) {
     ));
   }
   compareSchemas(reference, candidate, blockers);
-  if (
+  const blockerRegistryMismatch = (
     reference.blocker_registry.digest
     !== candidate.blocker_registry.digest
-  ) {
+  );
+  if (blockerRegistryMismatch) {
     blockers.push(blocker(
       `verification-drift:blocker-registry-mismatch:${candidate.host}`,
       artifact,
@@ -73,7 +78,10 @@ function compareCandidate(reference, candidate, blockers) {
       }
     ));
   }
-  if (reference.fixtures.digest !== candidate.fixtures.digest) {
+  const fixtureOutputMismatch = (
+    reference.fixtures.digest !== candidate.fixtures.digest
+  );
+  if (fixtureOutputMismatch) {
     blockers.push(blocker(
       `verification-drift:fixture-output-mismatch:${candidate.host}`,
       artifact,
@@ -83,16 +91,37 @@ function compareCandidate(reference, candidate, blockers) {
       }
     ));
   }
-  if (
+  const reportModelMismatch = (
     reference.report_model.digest
     !== candidate.report_model.digest
-  ) {
+  );
+  if (reportModelMismatch) {
     blockers.push(blocker(
       `verification-drift:report-model-mismatch:${candidate.host}`,
       artifact,
       {
         expected: reference.report_model.digest,
         actual: candidate.report_model.digest
+      }
+    ));
+  }
+  const kernelSourceMismatch = (
+    reference.kernel_source.digest
+    !== candidate.kernel_source.digest
+  );
+  if (
+    kernelSourceMismatch
+    && !kernelIdentityMismatch
+    && !blockerRegistryMismatch
+    && !fixtureOutputMismatch
+    && !reportModelMismatch
+  ) {
+    blockers.push(blocker(
+      `verification-drift:kernel-source-mismatch:${candidate.host}`,
+      artifact,
+      {
+        expected: reference.kernel_source.digest,
+        actual: candidate.kernel_source.digest
       }
     ));
   }

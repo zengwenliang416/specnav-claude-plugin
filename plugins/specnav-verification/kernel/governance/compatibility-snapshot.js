@@ -78,6 +78,52 @@ function assertDirectory(root, blockerId) {
   return resolved;
 }
 
+function requiredDirectory(value, blockerId) {
+  if (typeof value !== 'string' || value.trim().length === 0) {
+    throw new Error(blockerId);
+  }
+  return assertDirectory(path.resolve(value), blockerId);
+}
+
+function safeRelativePath(value, blockerId) {
+  if (
+    typeof value !== 'string'
+    || value.length === 0
+    || value.includes('\0')
+    || path.isAbsolute(value)
+  ) {
+    throw new Error(blockerId);
+  }
+  const segments = value.replaceAll('\\', '/').split('/');
+  if (
+    segments.some((segment) => (
+      segment.length === 0 || segment === '.' || segment === '..'
+    ))
+  ) {
+    throw new Error(blockerId);
+  }
+  return segments.join('/');
+}
+
+function confinedFile(root, relative, blockerId) {
+  const safe = safeRelativePath(relative, blockerId);
+  let current = root;
+  for (const segment of safe.split('/')) {
+    current = path.join(current, segment);
+    if (
+      fs.existsSync(current)
+      && fs.lstatSync(current).isSymbolicLink()
+    ) {
+      throw new Error(blockerId);
+    }
+  }
+  const resolved = path.resolve(root, safe);
+  if (!resolved.startsWith(`${root}${path.sep}`)) {
+    throw new Error(blockerId);
+  }
+  return { relative: safe, file: resolved };
+}
+
 function listFiles(root, predicate = () => true) {
   const files = [];
   for (const entry of fs.readdirSync(root, {
@@ -117,6 +163,18 @@ function kernelIdentity(pluginRoot) {
     api_version: metadata.apiVersion,
     contract_version: metadata.contractVersion,
     contract_digest: metadata.contractDigest
+  });
+}
+
+function kernelSourceSnapshot(pluginRoot) {
+  const files = listFiles(
+    path.join(pluginRoot, 'kernel'),
+    (relative) => relative.endsWith('.js')
+  ).map((relative) => `kernel/${relative}`);
+  const snapshot = digestFiles(pluginRoot, files);
+  return Object.freeze({
+    digest: snapshot.digest,
+    file_count: snapshot.files.length
   });
 }
 
@@ -198,12 +256,15 @@ function reportModelSnapshot(pluginRoot, fixtureRoot) {
   });
 }
 
-function architectureSnapshot(pluginRoot, hostFiles) {
-  const files = [...new Set(hostFiles || [])].sort();
+function architectureSnapshot(pluginRoot, hostFiles, host) {
+  const blockerId = `verification-drift:host-path-unsafe:${host}`;
+  const files = [...new Set(hostFiles || [])]
+    .map((relative) => safeRelativePath(relative, blockerId))
+    .sort();
   const records = [];
   const violations = [];
   for (const relative of files) {
-    const file = path.join(pluginRoot, relative);
+    const { file } = confinedFile(pluginRoot, relative, blockerId);
     if (!fs.existsSync(file) || !fs.statSync(file).isFile()) {
       violations.push({
         file: relative,
@@ -236,7 +297,7 @@ function architectureSnapshot(pluginRoot, hostFiles) {
   });
 }
 
-function manifestSnapshot(pluginRoot, manifestFile, actualKernel) {
+function manifestSnapshot(pluginRoot, manifestFile, actualKernel, host) {
   if (!manifestFile) {
     return Object.freeze({
       present: false,
@@ -244,7 +305,19 @@ function manifestSnapshot(pluginRoot, manifestFile, actualKernel) {
       host_files: Object.freeze([])
     });
   }
-  const manifest = readJson(manifestFile);
+  const manifestPathBlocker = (
+    `verification-drift:manifest-path-unsafe:${host}`
+  );
+  const manifestRelative = path.relative(
+    pluginRoot,
+    path.resolve(manifestFile)
+  ).split(path.sep).join('/');
+  const manifestPath = confinedFile(
+    pluginRoot,
+    manifestRelative,
+    manifestPathBlocker
+  ).file;
+  const manifest = readJson(manifestPath);
   const blockers = [];
   const claimedKernel = manifest.kernel || {};
   if (
@@ -257,10 +330,16 @@ function manifestSnapshot(pluginRoot, manifestFile, actualKernel) {
     blockers.push('manifest-kernel-identity-mismatch');
   }
   const files = Array.isArray(manifest.files)
-    ? [...manifest.files].sort()
+    ? [...manifest.files]
+      .map((relative) => (
+        safeRelativePath(relative, manifestPathBlocker)
+      ))
+      .sort()
     : [];
   const missing = files.filter((relative) => (
-    !fs.existsSync(path.join(pluginRoot, relative))
+    !fs.existsSync(
+      confinedFile(pluginRoot, relative, manifestPathBlocker).file
+    )
   ));
   if (missing.length > 0) {
     blockers.push('manifest-file-missing');
@@ -276,6 +355,9 @@ function manifestSnapshot(pluginRoot, manifestFile, actualKernel) {
     ? manifest.host_files
       .map((entry) => entry?.target)
       .filter((entry) => typeof entry === 'string')
+      .map((relative) => (
+        safeRelativePath(relative, manifestPathBlocker)
+      ))
       .sort()
     : [];
   return Object.freeze({
@@ -290,19 +372,20 @@ function createCompatibilitySnapshot(options = {}) {
   const host = typeof options.host === 'string' && options.host
     ? options.host
     : 'unknown';
-  const pluginRoot = assertDirectory(
-    path.resolve(options.pluginRoot || ''),
+  const pluginRoot = requiredDirectory(
+    options.pluginRoot,
     `verification-drift:plugin-root-missing:${host}`
   );
-  const fixtureRoot = assertDirectory(
-    path.resolve(options.fixtureRoot || ''),
+  const fixtureRoot = requiredDirectory(
+    options.fixtureRoot,
     `verification-drift:fixture-root-missing:${host}`
   );
   const kernel = kernelIdentity(pluginRoot);
   const manifest = manifestSnapshot(
     pluginRoot,
     options.manifestFile ? path.resolve(options.manifestFile) : null,
-    kernel
+    kernel,
+    host
   );
   const hostFiles = options.hostFiles?.length
     ? options.hostFiles
@@ -311,11 +394,12 @@ function createCompatibilitySnapshot(options = {}) {
     schema: SNAPSHOT_SCHEMA,
     host,
     kernel,
+    kernel_source: kernelSourceSnapshot(pluginRoot),
     schemas: schemaSnapshot(pluginRoot),
     blocker_registry: blockerRegistry(pluginRoot),
     fixtures: fixtureSnapshot(pluginRoot, fixtureRoot),
     report_model: reportModelSnapshot(pluginRoot, fixtureRoot),
-    architecture: architectureSnapshot(pluginRoot, hostFiles),
+    architecture: architectureSnapshot(pluginRoot, hostFiles, host),
     manifest
   });
 }

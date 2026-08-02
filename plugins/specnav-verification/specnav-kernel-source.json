@@ -1,12 +1,12 @@
 {
   "schema": "specnav.verification.kernel-sync.v1",
   "generated": true,
-  "generated_at": "2026-08-02T16:25:45.884Z",
+  "generated_at": "2026-08-02T16:36:03.442Z",
   "source_repository": "specnav-codex-plugin",
   "source_commit": "0e77ebc8b1906ba603c509ae66492dae7b66f9fa",
   "source_dirty": true,
   "source_path": "plugins/specnav-verification",
-  "source_tree_digest": "c1f3c0ff5676fe4bf433e741b9bca69b1dfc91d581a6bb2325c39f320653aa42",
+  "source_tree_digest": "a6309a8e799094932fb971b86d8fba321452bc008007d193cbc61f8c31ba6661",
   "kernel": {
     "name": "@specnav/verification-kernel",
     "version": "2.0.0-alpha.1",
