@@ -46,6 +46,36 @@ function pluginRepairCommand(pluginRoot = path.resolve(__dirname, '..')) {
   if (require('node:fs').existsSync(claudeManifest)) {
     return '/plugin marketplace update specnav-marketplace';
   }
+  const codeFreeManifest = path.resolve(
+    pluginRoot,
+    '../..',
+    'specnav.manifest.json'
+  );
+  if (require('node:fs').existsSync(codeFreeManifest)) {
+    try {
+      const manifest = JSON.parse(
+        require('node:fs').readFileSync(codeFreeManifest, 'utf8')
+      );
+      if (
+        manifest.schema === 'specnav.hostPackage.v1'
+        && Array.isArray(manifest.modules)
+        && manifest.modules.some((entry) => (
+          entry
+          && entry.name === 'specnav-verification'
+          && entry.path === 'modules/specnav-verification'
+        ))
+      ) {
+        return (
+          'codefree-o plugin '
+          + 'github:zengwenliang416/specnav-codefree-o-plugin -g'
+        );
+      }
+    } catch {
+      throw new Error(
+        'verification-runtime:invalid-codefree-o-manifest'
+      );
+    }
+  }
   return 'codex plugin marketplace upgrade specnav-marketplace --json';
 }
 
