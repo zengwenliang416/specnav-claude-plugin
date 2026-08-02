@@ -1,12 +1,12 @@
 {
   "schema": "specnav.verification.kernel-sync.v1",
   "generated": true,
-  "generated_at": "2026-08-02T16:36:03.442Z",
+  "generated_at": "2026-08-02T17:06:55.815Z",
   "source_repository": "specnav-codex-plugin",
-  "source_commit": "0e77ebc8b1906ba603c509ae66492dae7b66f9fa",
-  "source_dirty": true,
+  "source_commit": "c92d7e88d7978d7942368fbac2d0779be9e17466",
+  "source_dirty": false,
   "source_path": "plugins/specnav-verification",
-  "source_tree_digest": "a6309a8e799094932fb971b86d8fba321452bc008007d193cbc61f8c31ba6661",
+  "source_tree_digest": "c645a6fd93f6459b001924f8a80d78d3767aa4c2e2c44c5e5420f6559d3c845a",
   "kernel": {
     "name": "@specnav/verification-kernel",
     "version": "2.0.0-alpha.1",
@@ -276,6 +276,10 @@
     {
       "target": "scripts/claude-verification-adapter.js",
       "target_sha256": "fc486eaf84da434e2edc366f0ae545c61a27bd2d86c3868d3ec0dc778338a9db"
+    },
+    {
+      "target": "scripts/plugin-runtime.js",
+      "target_sha256": "2f8c10600d73d636c2e3db1a426d99807c58edb97424d09e4041828e61fcf2fd"
     },
     {
       "target": "specnav-stage.json",

@@ -3,8 +3,11 @@
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
+const localMetadata = require('../metadata');
+const { canonicalValue } = require('../cases/canonical');
 
 const SNAPSHOT_SCHEMA = 'specnav.verification.compatibility-snapshot.v1';
+const LOCAL_PLUGIN_ROOT = path.resolve(__dirname, '../..');
 const BLOCKER_LITERAL = /['"`]([a-z][a-z0-9-]*(?::[a-z0-9][a-z0-9:._/-]*)+)['"`]/gi;
 const IGNORED_LITERAL_PREFIXES = Object.freeze([
   'about:',
@@ -61,8 +64,13 @@ function stableDigest(value) {
   return sha256(canonicalJson(value));
 }
 
-function readJson(file) {
-  return JSON.parse(fs.readFileSync(file, 'utf8'));
+function readJson(file, blockerId = null) {
+  try {
+    return JSON.parse(fs.readFileSync(file, 'utf8'));
+  } catch {
+    if (blockerId) throw new Error(blockerId);
+    throw new Error(`verification-drift:json-invalid:${file}`);
+  }
 }
 
 function assertDirectory(root, blockerId) {
@@ -153,16 +161,42 @@ function digestFiles(root, files) {
   };
 }
 
+function metadataLiteral(source, name, blockerId) {
+  const stringMatch = source.match(
+    new RegExp(`const ${name} = ['"]([^'"]+)['"];`)
+  );
+  if (stringMatch) return stringMatch[1];
+  const numberMatch = source.match(
+    new RegExp(`const ${name} = ([0-9]+);`)
+  );
+  if (numberMatch) return Number(numberMatch[1]);
+  throw new Error(blockerId);
+}
+
 function kernelIdentity(pluginRoot) {
   const metadataFile = path.join(pluginRoot, 'kernel/metadata.js');
-  delete require.cache[require.resolve(metadataFile)];
-  const metadata = require(metadataFile);
+  const contractsFile = path.join(pluginRoot, 'kernel/contracts.js');
+  const metadataSource = fs.readFileSync(metadataFile, 'utf8');
+  const contractsSource = fs.readFileSync(contractsFile, 'utf8');
+  const blockerId = 'verification-drift:kernel-identity-invalid';
+  const localSourcesMatch = (
+    sha256(metadataSource)
+      === fileDigest(LOCAL_PLUGIN_ROOT, 'kernel/metadata.js')
+    && sha256(contractsSource)
+      === fileDigest(LOCAL_PLUGIN_ROOT, 'kernel/contracts.js')
+  );
   return Object.freeze({
-    name: metadata.name,
-    version: metadata.version,
-    api_version: metadata.apiVersion,
-    contract_version: metadata.contractVersion,
-    contract_digest: metadata.contractDigest
+    name: metadataLiteral(metadataSource, 'name', blockerId),
+    version: metadataLiteral(metadataSource, 'version', blockerId),
+    api_version: metadataLiteral(metadataSource, 'apiVersion', blockerId),
+    contract_version: metadataLiteral(
+      metadataSource,
+      'contractVersion',
+      blockerId
+    ),
+    contract_digest: localSourcesMatch
+      ? localMetadata.contractDigest
+      : `source-${sha256(`${metadataSource}\n${contractsSource}`)}`
   });
 }
 
@@ -210,14 +244,8 @@ function blockerRegistry(pluginRoot) {
   });
 }
 
-function fixtureSnapshot(pluginRoot, fixtureRoot) {
+function fixtureSnapshot(fixtureRoot) {
   const manifest = readJson(path.join(fixtureRoot, 'manifest.json'));
-  const canonicalModule = path.join(
-    pluginRoot,
-    'kernel/cases/canonical.js'
-  );
-  delete require.cache[require.resolve(canonicalModule)];
-  const { canonicalValue } = require(canonicalModule);
   const records = [];
   for (const group of ['positive', 'negative']) {
     for (const entry of manifest[group] || []) {
@@ -297,28 +325,70 @@ function architectureSnapshot(pluginRoot, hostFiles, host) {
   });
 }
 
-function manifestSnapshot(pluginRoot, manifestFile, actualKernel, host) {
-  if (!manifestFile) {
+function loadManifest(pluginRoot, manifestFile, host) {
+  if (!manifestFile) return null;
+  const pathBlocker = `verification-drift:manifest-path-unsafe:${host}`;
+  let manifestParent;
+  try {
+    manifestParent = fs.realpathSync(path.dirname(manifestFile));
+  } catch {
+    throw new Error(pathBlocker);
+  }
+  const normalizedManifest = path.join(
+    manifestParent,
+    path.basename(manifestFile)
+  );
+  const manifestRelative = path.relative(
+    pluginRoot,
+    normalizedManifest
+  ).split(path.sep).join('/');
+  const confined = confinedFile(
+    pluginRoot,
+    manifestRelative,
+    pathBlocker
+  );
+  if (!fs.existsSync(confined.file)) {
+    throw new Error(`verification-drift:manifest-missing:${host}`);
+  }
+  return Object.freeze({
+    relative: confined.relative,
+    value: readJson(
+      confined.file,
+      `verification-drift:manifest-invalid:${host}`
+    )
+  });
+}
+
+function manifestSnapshot(options) {
+  const {
+    pluginRoot,
+    loadedManifest,
+    actualKernel,
+    host,
+    requiredHostFiles,
+    expectedSourceCommit
+  } = options;
+  if (!loadedManifest) {
     return Object.freeze({
       present: false,
       blockers: Object.freeze([]),
       host_files: Object.freeze([])
     });
   }
+  if (!Array.isArray(requiredHostFiles) || requiredHostFiles.length === 0) {
+    throw new Error(`verification-drift:host-files-required:${host}`);
+  }
+  const manifest = loadedManifest.value;
   const manifestPathBlocker = (
     `verification-drift:manifest-path-unsafe:${host}`
   );
-  const manifestRelative = path.relative(
-    pluginRoot,
-    path.resolve(manifestFile)
-  ).split(path.sep).join('/');
-  const manifestPath = confinedFile(
-    pluginRoot,
-    manifestRelative,
-    manifestPathBlocker
-  ).file;
-  const manifest = readJson(manifestPath);
   const blockers = [];
+  if (
+    manifest.schema !== 'specnav.verification.kernel-sync.v1'
+    || manifest.generated !== true
+  ) {
+    blockers.push('manifest-contract-mismatch');
+  }
   const claimedKernel = manifest.kernel || {};
   if (
     claimedKernel.name !== actualKernel.name
@@ -360,11 +430,72 @@ function manifestSnapshot(pluginRoot, manifestFile, actualKernel, host) {
       ))
       .sort()
     : [];
+  const required = [...new Set(requiredHostFiles)]
+    .map((relative) => (
+      safeRelativePath(relative, manifestPathBlocker)
+    ))
+    .sort();
+  if (canonicalJson(hostFiles) !== canonicalJson(required)) {
+    blockers.push('manifest-host-files-mismatch');
+  }
+  const transformedFiles = Array.isArray(manifest.transformed_files)
+    ? manifest.transformed_files
+      .map((entry) => entry?.target)
+      .filter((entry) => typeof entry === 'string')
+      .map((relative) => (
+        safeRelativePath(relative, manifestPathBlocker)
+      ))
+      .sort()
+    : [];
+  for (const entry of [
+    ...(manifest.transformed_files || []),
+    ...(manifest.host_files || [])
+  ]) {
+    if (
+      !entry
+      || typeof entry.target !== 'string'
+      || typeof entry.target_sha256 !== 'string'
+    ) {
+      blockers.push('manifest-host-file-digest-mismatch');
+      continue;
+    }
+    const target = confinedFile(
+      pluginRoot,
+      entry.target,
+      manifestPathBlocker
+    ).file;
+    if (
+      !fs.existsSync(target)
+      || sha256(fs.readFileSync(target)) !== entry.target_sha256
+    ) {
+      blockers.push('manifest-host-file-digest-mismatch');
+    }
+  }
+  const expectedFiles = [...new Set([
+    ...files,
+    ...transformedFiles,
+    ...hostFiles,
+    loadedManifest.relative
+  ])].sort();
+  const actualFiles = listFiles(pluginRoot);
+  if (canonicalJson(expectedFiles) !== canonicalJson(actualFiles)) {
+    blockers.push('manifest-file-set-mismatch');
+  }
+  if (expectedSourceCommit) {
+    if (manifest.source_dirty !== false) {
+      blockers.push('manifest-source-dirty');
+    }
+    if (manifest.source_commit !== expectedSourceCommit) {
+      blockers.push('manifest-source-commit-mismatch');
+    }
+  }
   return Object.freeze({
     present: true,
     schema: manifest.schema || null,
-    blockers: Object.freeze(blockers.sort()),
-    host_files: Object.freeze(hostFiles)
+    blockers: Object.freeze([...new Set(blockers)].sort()),
+    host_files: Object.freeze(hostFiles),
+    source_commit: manifest.source_commit || null,
+    source_dirty: manifest.source_dirty !== false
   });
 }
 
@@ -380,16 +511,21 @@ function createCompatibilitySnapshot(options = {}) {
     options.fixtureRoot,
     `verification-drift:fixture-root-missing:${host}`
   );
-  const kernel = kernelIdentity(pluginRoot);
-  const manifest = manifestSnapshot(
+  const loadedManifest = loadManifest(
     pluginRoot,
     options.manifestFile ? path.resolve(options.manifestFile) : null,
-    kernel,
     host
   );
-  const hostFiles = options.hostFiles?.length
-    ? options.hostFiles
-    : manifest.host_files;
+  const kernel = kernelIdentity(pluginRoot);
+  const manifest = manifestSnapshot({
+    pluginRoot,
+    loadedManifest,
+    actualKernel: kernel,
+    host,
+    requiredHostFiles: options.hostFiles,
+    expectedSourceCommit: options.expectedSourceCommit || null
+  });
+  const hostFiles = options.hostFiles || [];
   return Object.freeze({
     schema: SNAPSHOT_SCHEMA,
     host,
@@ -397,7 +533,7 @@ function createCompatibilitySnapshot(options = {}) {
     kernel_source: kernelSourceSnapshot(pluginRoot),
     schemas: schemaSnapshot(pluginRoot),
     blocker_registry: blockerRegistry(pluginRoot),
-    fixtures: fixtureSnapshot(pluginRoot, fixtureRoot),
+    fixtures: fixtureSnapshot(fixtureRoot),
     report_model: reportModelSnapshot(pluginRoot, fixtureRoot),
     architecture: architectureSnapshot(pluginRoot, hostFiles, host),
     manifest
