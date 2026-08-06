@@ -789,11 +789,19 @@ test -f "$VERIFY/skills/specnav-verify-rerun/SKILL.md"
 jq -e '.contracts.verification == "scripts/verify-domains.js"' "$VERIFY/specnav-stage.json" >/dev/null
 jq -e 'has("planned_contracts") | not' "$VERIFY/specnav-stage.json" >/dev/null
 grep -Fq -- '--marketplace-root "$SPECNAV_MARKETPLACE_ROOT"' "$VERIFY/commands/specnav-verify.md"
-grep -Fq 'node "$SPECNAV_DEVELOPMENT_ROOT/scripts/development-contract.js" --mode handoff --json' "$VERIFY/commands/specnav-verify.md"
-grep -Fq 'node "$SPECNAV_VERIFICATION_ROOT/scripts/verify-domains.js" aggregate --json' "$VERIFY/commands/specnav-verify.md"
+grep -Fq 'node "$SPECNAV_DEVELOPMENT_ROOT/scripts/development-contract.js" \' "$VERIFY/commands/specnav-verify.md"
+grep -Fq -- '--mode handoff \' "$VERIFY/commands/specnav-verify.md"
+grep -Fq 'node "$SPECNAV_VERIFICATION_ROOT/scripts/claude-verification-adapter.js" \' "$VERIFY/commands/specnav-verify.md"
+grep -Fq '  validate \' "$VERIFY/commands/specnav-verify.md"
 
 PROJECT="$TMP_DIR/verify-project"
 write_base_project "$PROJECT"
+git -C "$PROJECT" init -q
+git -C "$PROJECT" add .
+git -C "$PROJECT" \
+  -c user.name='SpecNav Tests' \
+  -c user.email='specnav@example.invalid' \
+  commit -qm 'fixture: verification baseline'
 
 run_json "$PROJECT" validate "$TMP_DIR/missing-verify.json" 2
 assert_blocker "$TMP_DIR/missing-verify.json" 'missing-verify-artifact:plan.json'
