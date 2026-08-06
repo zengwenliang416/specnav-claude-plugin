@@ -2,12 +2,19 @@
 'use strict';
 
 const crypto = require('node:crypto');
+const { spawnSync } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
 const runtime = require('./plugin-runtime');
 const safeFs = require('./safe-filesystem');
 
 const kernel = runtime.requirePluginScript('specnav-verification', 'kernel');
+const {
+  createTrustedFactAuthority
+} = runtime.requirePluginScript(
+  'specnav-verification',
+  'kernel/repair'
+);
 const core = runtime.requirePluginScript('specnav-core', 'scripts/specnav-lib');
 
 const REQUIRED_HOSTS = Object.freeze(['claude-code', 'codex', 'codefree-o']);
@@ -17,6 +24,34 @@ const REQUIRED_REPORTS = Object.freeze([
   'test-case-results.html'
 ]);
 const PROOF_SCHEMA = 'specnav.operations.verification-v2-proof.v1';
+const HOST_DESCRIPTORS = Object.freeze({
+  codex: Object.freeze({
+    plugin: 'plugins/specnav-verification',
+    manifest: null,
+    hostFiles: Object.freeze(['scripts/codex-verification-adapter.js'])
+  }),
+  'claude-code': Object.freeze({
+    plugin: 'plugins/specnav-verification',
+    manifest: 'plugins/specnav-verification/specnav-kernel-source.json',
+    hostFiles: Object.freeze([
+      'commands/specnav-verification.md',
+      'commands/specnav-verify.md',
+      'scripts/claude-verification-adapter.js',
+      'scripts/plugin-runtime.js',
+      'specnav-stage.json',
+      '.claude-plugin/plugin.json'
+    ])
+  }),
+  'codefree-o': Object.freeze({
+    plugin: 'modules/specnav-verification',
+    manifest: 'modules/specnav-verification/specnav-kernel-source.json',
+    hostFiles: Object.freeze([
+      'scripts/codefree-o-verification-adapter.js',
+      'scripts/plugin-runtime.js',
+      'specnav-stage.json'
+    ])
+  })
+});
 
 function isRecord(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -213,6 +248,23 @@ function readJson(base, relative, artifact, blockers) {
   }
 }
 
+function readJsonValue(base, relative, artifact, blockers) {
+  const bytes = readFile(base, relative, artifact, blockers);
+  if (!bytes) return { value: null, bytes: null };
+  try {
+    return {
+      value: JSON.parse(bytes.toString('utf8')),
+      bytes
+    };
+  } catch {
+    blockers.push(blocker(
+      `verification-release:artifact-json-invalid:${artifact}`,
+      artifact
+    ));
+    return { value: null, bytes };
+  }
+}
+
 function validateSchema(schemaRegistry, entityType, value, artifact, blockers) {
   if (!value) return null;
   try {
@@ -246,27 +298,98 @@ function sameIds(left, right) {
   return canonicalJson(exactIds(left)) === canonicalJson(exactIds(right));
 }
 
-function automaticSchemaRegistry(changeDir, blockers) {
-  const parsed = readJson(
-    changeDir,
-    'verify/v2/runtime-status.json',
-    'verify/v2/runtime-status.json',
-    blockers
-  );
-  if (!parsed.value) return null;
+function resolveRuntimeAuthority(candidate, authority, blockers) {
+  let result;
   try {
-    return kernel.createSchemaRegistry({
-      runtimeStatus: parsed.value,
-      runtimeRoot: parsed.value.runtime_root
-    });
+    result = authority.resolve(candidate);
   } catch (error) {
     blockers.push(blocker(
-      'verification-release:runtime-schema-registry-unavailable',
+      'verification-release:runtime-authority-unavailable',
       'verify/v2/runtime-status.json',
       error instanceof Error ? error.message : String(error)
     ));
     return null;
   }
+  if (
+    !result
+    || result.ok !== true
+    || !result.runtimeStatus
+    || typeof result.runtimeRoot !== 'string'
+    || !result.authority
+    || !/^[a-f0-9]{64}$/.test(result.authority.digest || '')
+  ) {
+    blockers.push(...(Array.isArray(result?.blockers)
+      ? result.blockers
+      : [blocker(
+          'verification-release:runtime-authority-unavailable',
+          'verify/v2/runtime-status.json'
+        )]));
+    return null;
+  }
+  return result;
+}
+
+function git(projectRoot, args) {
+  const result = spawnSync('git', args, {
+    cwd: projectRoot,
+    encoding: 'utf8',
+    maxBuffer: 32 * 1024 * 1024
+  });
+  if (result.status !== 0) {
+    throw new Error(
+      result.stderr.trim() || `git ${args.join(' ')} failed`
+    );
+  }
+  return result.stdout;
+}
+
+function resolveCurrentFingerprints(
+  projectRoot,
+  snapshot,
+  runtimeStatus,
+  runtimeAuthority
+) {
+  const codeSha = git(projectRoot, ['rev-parse', 'HEAD']).trim();
+  if (!/^[a-f0-9]{40}$/.test(codeSha)) {
+    throw new Error('verification-release:git-head-invalid');
+  }
+  const status = git(projectRoot, [
+    'status',
+    '--porcelain=v1',
+    '--untracked-files=all'
+  ]);
+  if (status.trim() !== '') {
+    throw new Error('verification-release:dirty-worktree');
+  }
+  const testInventory = git(projectRoot, [
+    'ls-tree',
+    '-r',
+    'HEAD',
+    '--',
+    'tests',
+    'plugins/specnav-verification'
+  ]);
+  return {
+    case_snapshot_hash: snapshot.snapshot_hash,
+    code_sha: codeSha,
+    test_sha: crypto.createHash('sha256')
+      .update(testInventory)
+      .update(snapshot.snapshot_hash)
+      .digest('hex'),
+    environment_hash: crypto.createHash('sha256')
+      .update(JSON.stringify({
+        platform: process.platform,
+        arch: process.arch,
+        node: process.version,
+        runtime_version: runtimeStatus.runtime_version,
+        runtime_root: runtimeStatus.runtime_root,
+        runtime_authority_hash: runtimeAuthority?.digest || null,
+        kernel_version: kernel.metadata.version
+      }))
+      .digest('hex'),
+    runtime_version: runtimeStatus.runtime_version,
+    kernel_version: kernel.metadata.version
+  };
 }
 
 function gateRequest(input, stage) {
@@ -275,6 +398,9 @@ function gateRequest(input, stage) {
     stage,
     aggregation_request: input.aggregation_request,
     open_failure_ids: input.open_failure_ids,
+    failure_state_status: input.failure_state_status,
+    failure_state_digest: input.failure_state_digest,
+    authority_chain_digest: input.authority_chain_digest,
     freshness: input.freshness,
     integrity_status: input.integrity_status,
     evidence_index_version: input.evidence_index_version,
@@ -289,10 +415,11 @@ function completeGateInput(input, change) {
   return isRecord(input)
     && input.schema === 'specnav.verification.release-gate-input.v1'
     && input.change_id === change
-    && ['standard', 'full'].includes(input.lane)
+    && input.lane === 'full'
     && isConcreteString(input.case_snapshot_id)
     && /^[a-f0-9]{64}$/.test(input.case_snapshot_hash || '')
     && isConcreteString(input.case_approval_id)
+    && isConcreteString(input.case_approval_reviewer_id)
     && isRecord(aggregation)
     && aggregation.change_id === change
     && Array.isArray(aggregation.case_ids)
@@ -301,6 +428,9 @@ function completeGateInput(input, change) {
     && isRecord(aggregation.integrity)
     && isRecord(aggregation.policy_facts)
     && Array.isArray(input.open_failure_ids)
+    && ['valid', 'invalid'].includes(input.failure_state_status)
+    && /^[a-f0-9]{64}$/.test(input.failure_state_digest || '')
+    && /^[a-f0-9]{64}$/.test(input.authority_chain_digest || '')
     && isRecord(input.freshness)
     && isConcreteString(input.freshness.status)
     && isConcreteString(input.freshness.checked_at)
@@ -339,6 +469,9 @@ function validatePersistedGate(schemaRegistry, input, persisted, stage, blockers
     && validated.stage === stage
     && sameIds(validated.source_case_ids, caseIds)
     && sameIds(validated.source_reading_ids, readingIds)
+    && validated.failure_state_status === input.failure_state_status
+    && validated.failure_state_digest === input.failure_state_digest
+    && validated.authority_chain_digest === input.authority_chain_digest
     && validated.evidence_index_version === input.evidence_index_version
     && validated.runtime_version === input.runtime_version
     && validated.kernel_version === input.kernel_version
@@ -356,6 +489,7 @@ function validatePersistedGate(schemaRegistry, input, persisted, stage, blockers
     || validated.blockers.length > 0
     || input.freshness?.status !== 'fresh'
     || input.integrity_status !== 'intact'
+    || input.failure_state_status !== 'valid'
     || input.open_failure_ids.length > 0
   ) {
     blockers.push(blocker(
@@ -419,28 +553,34 @@ function validateApproval(
   schemaRegistry,
   snapshotCandidate,
   approvalCandidate,
+  requirementsCandidate,
+  acceptanceCandidate,
   input,
   blockers
 ) {
-  const snapshot = validateSchema(
-    schemaRegistry,
-    'case-snapshot',
-    snapshotCandidate,
-    'verify/v2/case-snapshot.json',
-    blockers
-  );
-  const approval = validateSchema(
-    schemaRegistry,
-    'case-approval',
-    approvalCandidate,
-    'verify/v2/case-approval.json',
-    blockers
-  );
-  if (!snapshot || !approval) return { snapshot, approval };
+  const validator = kernel.createCaseApprovalValidator({ schemaRegistry });
+  const result = validator.evaluate({
+    snapshot: snapshotCandidate,
+    approval: approvalCandidate,
+    currentRequirements: requirementsCandidate,
+    currentAcceptance: acceptanceCandidate,
+    expectedReviewerId: input.case_approval_reviewer_id
+  });
+  const snapshot = result.snapshot;
+  const approval = result.approval;
+  if (!result.ok) {
+    blockers.push(blocker(
+      'verification-release:case-approval-invalid',
+      'verify/v2/case-approval.json',
+      result.blockers
+    ));
+    return { snapshot, approval };
+  }
   const caseIds = snapshot.cases.map((entry) => entry.id);
   const aggregationCaseIds = input?.aggregation_request?.case_ids;
   const valid = approval.decision === 'approved'
     && approval.reviewer?.kind === 'human'
+    && approval.reviewer.id === input.case_approval_reviewer_id
     && approval.change_id === input.change_id
     && approval.snapshot_id === snapshot.id
     && approval.snapshot_hash === snapshot.snapshot_hash
@@ -476,11 +616,49 @@ function validateReportModel(
   );
   if (!model || !releaseGate) return model;
   const readingIds = input.aggregation_request.readings.map((entry) => entry.id);
+  const semantic = {
+    change_id: model.change_id,
+    verdict: model.verdict,
+    sources: model.sources,
+    summary: model.summary,
+    catalog: model.catalog,
+    results: model.results,
+    blockers: model.blockers,
+    warnings: model.warnings
+  };
+  if (model.id !== `report-model-${sha256(canonicalJson(semantic))}`) {
+    blockers.push(blocker(
+      'verification-release:report-identity-invalid',
+      artifact
+    ));
+  }
   if (model.change_id !== input.change_id || model.verdict !== 'green') {
     blockers.push(blocker('verification-release:report-not-green', artifact));
   }
   if (model.sources.gate_decision_id !== releaseGate.id) {
     blockers.push(blocker('verification-release:report-gate-mismatch', artifact));
+  }
+  try {
+    const aggregate = kernel.createSixDomainAggregator({
+      schemaRegistry
+    }).aggregate(input.aggregation_request);
+    if (
+      !aggregate.ok
+      || !aggregate.id
+      || model.sources.aggregate_id !== aggregate.id
+    ) {
+      blockers.push(blocker(
+        'verification-release:report-aggregate-mismatch',
+        artifact,
+        aggregate.blockers
+      ));
+    }
+  } catch (error) {
+    blockers.push(blocker(
+      'verification-release:report-aggregate-mismatch',
+      artifact,
+      error instanceof Error ? error.message : String(error)
+    ));
   }
   if (!sameIds(model.sources.reading_ids, readingIds)) {
     blockers.push(blocker('verification-release:report-readings-mismatch', artifact));
@@ -519,12 +697,29 @@ function validateReportModel(
       artifact
     ));
   }
+  const repairLoop = model.summary.repair_loop;
+  const noOpenRepairState = (
+    model.summary.open_failure_ids.length === 0
+    && model.summary.open_repair_ids.length === 0
+  );
+  const hasRepairHistory = (
+    model.summary.totals.failures > 0
+    || model.summary.totals.repairs > 0
+    || repairLoop.failure_ids.length > 0
+    || repairLoop.repair_ids.length > 0
+  );
+  const repairStateValid = hasRepairHistory
+    ? repairLoop.status === 'closed' && noOpenRepairState
+    : (
+      repairLoop.status === 'not_started'
+      && repairLoop.failure_ids.length === 0
+      && repairLoop.repair_ids.length === 0
+      && noOpenRepairState
+    );
   if (
     model.summary.integrity !== 'intact'
     || model.summary.freshness?.status !== 'fresh'
-    || model.summary.repair_loop?.status !== 'closed'
-    || model.summary.open_failure_ids.length > 0
-    || model.summary.open_repair_ids.length > 0
+    || !repairStateValid
   ) {
     blockers.push(blocker('verification-release:report-state-not-closed', artifact));
   }
@@ -572,7 +767,27 @@ function validateEvidenceIndex(
   return index;
 }
 
-function validateReports(changeDir, blockers) {
+function validateReports(changeDir, manifest, model, blockers) {
+  const manifestArtifact = 'verify/v2/report-render-manifest.json';
+  const entries = Array.isArray(manifest?.reports) ? manifest.reports : [];
+  const names = entries.map((entry) => entry?.name);
+  const exactSet = entries.length === REQUIRED_REPORTS.length
+    && new Set(names).size === REQUIRED_REPORTS.length
+    && REQUIRED_REPORTS.every((name) => names.includes(name));
+  if (
+    !manifest
+    || manifest.schema !== 'specnav.verification.report-render-manifest.v1'
+    || manifest.change_id !== model?.change_id
+    || manifest.report_model_id !== model?.id
+    || !isConcreteString(manifest.generated_at)
+    || Number.isNaN(Date.parse(manifest.generated_at))
+    || !exactSet
+  ) {
+    blockers.push(blocker(
+      'verification-release:report-render-manifest-invalid',
+      manifestArtifact
+    ));
+  }
   const reports = [];
   for (const name of REQUIRED_REPORTS) {
     const relative = `verify/reports/${name}`;
@@ -591,12 +806,25 @@ function validateReports(changeDir, blockers) {
       blockers.push(blocker(`verification-release:report-empty:${name}`, relative));
       continue;
     }
-    reports.push({
+    const actual = {
       name,
       path: relative,
       sha256: sha256(bytes),
       size: bytes.length
-    });
+    };
+    const recorded = entries.find((entry) => entry?.name === name);
+    if (
+      !recorded
+      || recorded.path !== actual.path
+      || recorded.sha256 !== actual.sha256
+      || recorded.size !== actual.size
+    ) {
+      blockers.push(blocker(
+        `verification-release:report-render-mismatch:${name}`,
+        relative
+      ));
+    }
+    reports.push(actual);
   }
   return reports;
 }
@@ -680,7 +908,13 @@ function validateMigration(
   };
 }
 
-function validateHostInstallations(changeDir, index, bindings, blockers) {
+function validateHostInstallations(
+  changeDir,
+  index,
+  bindings,
+  authority,
+  blockers
+) {
   const artifact = 'operations/host-installation-receipts.json';
   const hostIds = Array.isArray(index?.hosts)
     ? index.hosts.map((entry) => entry?.host)
@@ -740,6 +974,7 @@ function validateHostInstallations(changeDir, index, bindings, blockers) {
       && receipt.gate_input_sha256 === bindings.gate_input_sha256
       && receipt.evidence_index_digest === bindings.evidence_index_digest
       && receipt.commit === entry.commit
+      && receipt.commit === authority?.commits?.[host]
       && /^https:\/\/github\.com\/[^/]+\/[^/]+(?:\.git)?$/.test(receipt.source || '')
       && /^[a-f0-9]{40}$/.test(receipt.commit || '')
       && receipt.clean_checkout === true
@@ -772,7 +1007,14 @@ function validateHostInstallations(changeDir, index, bindings, blockers) {
   return records.sort((left, right) => left.host.localeCompare(right.host));
 }
 
-function validateCompatibility(candidate, input, hosts, bindings, blockers) {
+function validateCompatibility(
+  candidate,
+  input,
+  hosts,
+  bindings,
+  authority,
+  blockers
+) {
   const artifact = 'operations/cross-host-compatibility.json';
   const commits = new Map(hosts.map((entry) => [entry.host, entry.commit]));
   const candidateHostIds = Array.isArray(candidate?.hosts)
@@ -797,6 +1039,9 @@ function validateCompatibility(candidate, input, hosts, bindings, blockers) {
     || candidate.ok !== true
     || candidate.kernel_version !== input.kernel_version
     || !validHosts
+    || authority?.comparison?.ok !== true
+    || canonicalJson(candidate.blockers)
+      !== canonicalJson(authority?.comparison?.blockers || [])
     || !Array.isArray(candidate.blockers)
     || candidate.blockers.length > 0
     || candidate.fallback_used !== false
@@ -850,6 +1095,20 @@ function atomicWriteJson(changeDir, relative, value) {
 
 function createReleaseProofValidator(options = {}) {
   const clock = options.clock || (() => new Date().toISOString());
+  const runtimeAuthority = options.runtimeAuthority
+    || kernel.createRuntimeAuthority();
+  const hostCompatibilityAuthority = options.hostCompatibilityAuthority
+    || kernel.createHostCompatibilityAuthority({
+      lockFile: process.env.SPECNAV_VERIFICATION_HOST_LOCK,
+      fixtureRoot: process.env.SPECNAV_VERIFICATION_FIXTURE_ROOT,
+      descriptors: HOST_DESCRIPTORS,
+      sourceHost: 'codex',
+      roots: {
+        codex: process.env.SPECNAV_CODEX_REPOSITORY_ROOT,
+        'claude-code': process.env.SPECNAV_CLAUDE_REPOSITORY_ROOT,
+        'codefree-o': process.env.SPECNAV_CODEFREE_O_REPOSITORY_ROOT
+      }
+    });
   if (typeof clock !== 'function') {
     throw new Error('verification-release:clock-invalid');
   }
@@ -866,8 +1125,37 @@ function createReleaseProofValidator(options = {}) {
         blockers: stableBlockers(blockers)
       };
     }
-    const schemaRegistry = options.schemaRegistry
-      || automaticSchemaRegistry(changeDir, blockers);
+    const runtimeStatusRead = readJson(
+      changeDir,
+      'verify/v2/runtime-status.json',
+      'verify/v2/runtime-status.json',
+      blockers
+    );
+    const runtimeResolution = resolveRuntimeAuthority(
+      runtimeStatusRead.value,
+      runtimeAuthority,
+      blockers
+    );
+    const schemaRegistry = options.schemaRegistry || (
+      runtimeResolution
+        ? kernel.createSchemaRegistry({
+            runtimeStatus: runtimeResolution.runtimeStatus,
+            runtimeRoot: runtimeResolution.runtimeRoot
+          })
+        : null
+    );
+    if (
+      schemaRegistry
+      && runtimeResolution
+      && typeof schemaRegistry.runtime_root === 'string'
+      && fs.realpathSync(schemaRegistry.runtime_root)
+        !== fs.realpathSync(runtimeResolution.runtimeRoot)
+    ) {
+      blockers.push(blocker(
+        'verification-release:schema-registry-authority-mismatch',
+        'verify/v2/runtime-status.json'
+      ));
+    }
     if (!schemaRegistry) {
       return {
         ok: false,
@@ -900,6 +1188,17 @@ function createReleaseProofValidator(options = {}) {
         'verify/v2/gate-input.json'
       ));
     }
+    if (
+      inputComplete
+      && runtimeResolution
+      && input.runtime_version
+        !== runtimeResolution.runtimeStatus.runtime_version
+    ) {
+      blockers.push(blocker(
+        'verification-release:runtime-version-mismatch',
+        'verify/v2/gate-input.json'
+      ));
+    }
 
     const snapshotRead = readJson(
       changeDir,
@@ -911,6 +1210,18 @@ function createReleaseProofValidator(options = {}) {
       changeDir,
       'verify/v2/case-approval.json',
       'verify/v2/case-approval.json',
+      blockers
+    );
+    const requirementsRead = readJsonValue(
+      changeDir,
+      'verify/v2/requirements-source.json',
+      'verify/v2/requirements-source.json',
+      blockers
+    );
+    const acceptanceRead = readJsonValue(
+      changeDir,
+      'verify/v2/acceptance-source.json',
+      'verify/v2/acceptance-source.json',
       blockers
     );
     const releaseRead = readJson(
@@ -929,6 +1240,12 @@ function createReleaseProofValidator(options = {}) {
       changeDir,
       'verify/v2/report-model.json',
       'verify/v2/report-model.json',
+      blockers
+    );
+    const reportManifestRead = readJson(
+      changeDir,
+      'verify/v2/report-render-manifest.json',
+      'verify/v2/report-render-manifest.json',
       blockers
     );
     const migrationRead = readJson(
@@ -961,6 +1278,86 @@ function createReleaseProofValidator(options = {}) {
       'operations/cross-host-compatibility.json',
       blockers
     );
+    const canonicalReads = {
+      runs: readJsonValue(
+        changeDir,
+        'verify/v2/runs.json',
+        'verify/v2/runs.json',
+        blockers
+      ),
+      attempts: readJsonValue(
+        changeDir,
+        'verify/v2/attempts.json',
+        'verify/v2/attempts.json',
+        blockers
+      ),
+      readings: readJsonValue(
+        changeDir,
+        'verify/v2/readings.json',
+        'verify/v2/readings.json',
+        blockers
+      ),
+      failures: readJsonValue(
+        changeDir,
+        'verify/v2/failures.json',
+        'verify/v2/failures.json',
+        blockers
+      ),
+      repairLinks: readJsonValue(
+        changeDir,
+        'verify/v2/repair-links.json',
+        'verify/v2/repair-links.json',
+        blockers
+      ),
+      freshness: readJson(
+        changeDir,
+        'verify/v2/freshness.json',
+        'verify/v2/freshness.json',
+        blockers
+      ),
+      integrity: readJson(
+        changeDir,
+        'verify/v2/integrity.json',
+        'verify/v2/integrity.json',
+        blockers
+      ),
+      failureState: readJson(
+        changeDir,
+        'verify/v2/failure-state.json',
+        'verify/v2/failure-state.json',
+        blockers
+      ),
+      authorityAnchor: readJson(
+        changeDir,
+        'verify/v2/authority-chain-anchor.json',
+        'verify/v2/authority-chain-anchor.json',
+        blockers
+      ),
+      proposals: {
+        bytes: readFile(
+          changeDir,
+          'verify/v2/transition-proposals.jsonl',
+          'verify/v2/transition-proposals.jsonl',
+          blockers
+        )
+      },
+      receipts: {
+        bytes: readFile(
+          changeDir,
+          'verify/v2/transition-receipts.jsonl',
+          'verify/v2/transition-receipts.jsonl',
+          blockers
+        )
+      },
+      attemptFacts: {
+        bytes: readFile(
+          changeDir,
+          'verify/v2/attempt-facts.jsonl',
+          'verify/v2/attempt-facts.jsonl',
+          blockers
+        )
+      }
+    };
 
     let approval = { snapshot: null, approval: null };
     let releaseGate = null;
@@ -970,14 +1367,123 @@ function createReleaseProofValidator(options = {}) {
     let migration = { required: null, receipt: null };
     let hosts = [];
     let compatibility = null;
+    let hostAuthorityResult = null;
+    let canonicalRebuild = null;
     if (inputComplete) {
       approval = validateApproval(
         schemaRegistry,
         snapshotRead.value,
         approvalRead.value,
+        requirementsRead.value,
+        acceptanceRead.value,
         input,
         blockers
       );
+      let trustedFactAuthority = options.trustedFactAuthority || null;
+      if (
+        !trustedFactAuthority
+        && runtimeResolution?.signingKey
+      ) {
+        try {
+          trustedFactAuthority = createTrustedFactAuthority({
+            schemaRegistry,
+            key: runtimeResolution.signingKey,
+            clock: () => input.freshness.checked_at
+          });
+        } catch (error) {
+          blockers.push(blocker(
+            'verification-release:trusted-fact-authority-unavailable',
+            'verify/v2/failure-state.json',
+            error instanceof Error ? error.message : String(error)
+          ));
+        }
+      }
+      if (!trustedFactAuthority) {
+        blockers.push(blocker(
+          'verification-release:trusted-fact-authority-unavailable',
+          'verify/v2/failure-state.json'
+        ));
+      } else if (approval.snapshot && approval.approval && runtimeResolution) {
+        try {
+          const fingerprintResolver = options.fingerprints
+            || resolveCurrentFingerprints;
+          const currentFingerprints = fingerprintResolver(
+            root,
+            approval.snapshot,
+            runtimeResolution.runtimeStatus,
+            runtimeResolution.authority
+          );
+          canonicalRebuild = kernel.createVerificationArtifactPipeline({
+            kernel,
+            schemaRegistry,
+            changeRoot: changeDir,
+            verificationRoot: path.join(changeDir, 'verify'),
+            snapshot: approval.snapshot,
+            approval: approval.approval,
+            currentFingerprints,
+            trustedFactAuthority,
+            clock: () => input.freshness.checked_at,
+            secrets: [],
+            policyVersion: input.policy_version
+          }).build({ persist: false });
+          if (!canonicalRebuild.ok) {
+            blockers.push(blocker(
+              'verification-release:canonical-rebuild-blocked',
+              'verify/v2',
+              canonicalRebuild.blockers
+            ));
+          }
+          if (
+            !canonicalRebuild.gate_input
+            || canonicalJson(canonicalRebuild.gate_input)
+              !== canonicalJson(input)
+          ) {
+            blockers.push(blocker(
+              'verification-release:canonical-gate-input-mismatch',
+              'verify/v2/gate-input.json'
+            ));
+          }
+          for (const [name, persisted, rebuilt] of [
+            [
+              'freshness',
+              canonicalReads.freshness.value,
+              canonicalRebuild.freshness
+            ],
+            [
+              'integrity',
+              canonicalReads.integrity.value,
+              canonicalRebuild.integrity
+            ],
+            [
+              'failure-state',
+              canonicalReads.failureState.value,
+              canonicalRebuild.failure_state
+            ],
+            [
+              'authority-chain-anchor',
+              canonicalReads.authorityAnchor.value,
+              canonicalRebuild.authority_chain_anchor
+            ]
+          ]) {
+            if (
+              !persisted
+              || !rebuilt
+              || canonicalJson(persisted) !== canonicalJson(rebuilt)
+            ) {
+              blockers.push(blocker(
+                `verification-release:canonical-${name}-mismatch`,
+                `verify/v2/${name}.json`
+              ));
+            }
+          }
+        } catch (error) {
+          blockers.push(blocker(
+            'verification-release:canonical-rebuild-failed',
+            'verify/v2',
+            error instanceof Error ? error.message : String(error)
+          ));
+        }
+      }
       releaseGate = validatePersistedGate(
         schemaRegistry,
         input,
@@ -1022,10 +1528,29 @@ function createReleaseProofValidator(options = {}) {
         gate_input_sha256: inputRead.bytes ? sha256(inputRead.bytes) : null,
         evidence_index_digest: evidenceIndex?.source_digest || null
       };
+      try {
+        hostAuthorityResult = hostCompatibilityAuthority.resolve();
+      } catch (error) {
+        hostAuthorityResult = {
+          ok: false,
+          blockers: [blocker(
+            'verification-release:host-authority-unavailable',
+            'host-authority',
+            error instanceof Error ? error.message : String(error)
+          )]
+        };
+      }
+      if (hostAuthorityResult?.ok !== true) {
+        blockers.push(...(hostAuthorityResult?.blockers || [blocker(
+          'verification-release:host-authority-unavailable',
+          'host-authority'
+        )]));
+      }
       hosts = validateHostInstallations(
         changeDir,
         installRead.value,
         releaseBindings,
+        hostAuthorityResult,
         blockers
       );
       compatibility = validateCompatibility(
@@ -1033,19 +1558,38 @@ function createReleaseProofValidator(options = {}) {
         input,
         hosts,
         releaseBindings,
+        hostAuthorityResult,
         blockers
       );
     }
-    const reports = validateReports(changeDir, blockers);
+    const reports = validateReports(
+      changeDir,
+      reportManifestRead.value,
+      model,
+      blockers
+    );
     const finalBlockers = stableBlockers(blockers);
     const generatedAt = clock();
     const sources = {
       gate_input: inputRead.bytes ? sha256(inputRead.bytes) : null,
+      runtime_status: runtimeStatusRead.bytes
+        ? sha256(runtimeStatusRead.bytes)
+        : null,
+      runtime_authority: runtimeResolution?.authority?.digest || null,
       case_snapshot: snapshotRead.bytes ? sha256(snapshotRead.bytes) : null,
       case_approval: approvalRead.bytes ? sha256(approvalRead.bytes) : null,
+      requirements_source: requirementsRead.bytes
+        ? sha256(requirementsRead.bytes)
+        : null,
+      acceptance_source: acceptanceRead.bytes
+        ? sha256(acceptanceRead.bytes)
+        : null,
       release_gate: releaseRead.bytes ? sha256(releaseRead.bytes) : null,
       archive_gate: archiveRead.bytes ? sha256(archiveRead.bytes) : null,
       report_model: reportRead.bytes ? sha256(reportRead.bytes) : null,
+      report_render_manifest: reportManifestRead.bytes
+        ? sha256(reportManifestRead.bytes)
+        : null,
       evidence_raw: evidenceRaw ? sha256(evidenceRaw) : null,
       evidence_index: evidenceIndexRead.bytes
         ? sha256(evidenceIndexRead.bytes)
@@ -1062,11 +1606,17 @@ function createReleaseProofValidator(options = {}) {
       sources,
       case_snapshot_id: approval.snapshot?.id || null,
       case_approval_id: approval.approval?.id || null,
+      case_approval_reviewer_id: approval.approval?.reviewer?.id || null,
+      runtime_authority: runtimeResolution?.authority || null,
+      host_authority: hostAuthorityResult?.summary || null,
       release_gate: releaseGate ? {
         id: releaseGate.id,
         decision: releaseGate.decision,
         source_case_ids: releaseGate.source_case_ids,
         source_reading_ids: releaseGate.source_reading_ids,
+        failure_state_status: releaseGate.failure_state_status,
+        failure_state_digest: releaseGate.failure_state_digest,
+        authority_chain_digest: releaseGate.authority_chain_digest,
         evidence_index_version: releaseGate.evidence_index_version,
         runtime_version: releaseGate.runtime_version,
         kernel_version: releaseGate.kernel_version,

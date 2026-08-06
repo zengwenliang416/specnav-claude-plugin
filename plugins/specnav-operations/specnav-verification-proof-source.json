@@ -1,0 +1,27 @@
+{
+  "schema": "specnav.operations.verification-proof-sync.v1",
+  "generated": true,
+  "generated_at": "2026-08-06T16:59:29.280Z",
+  "host": "claude-code",
+  "source_repository": "specnav-codex-plugin",
+  "source_commit": "b9487a46d58d18013d547aa24c4899428719dab6",
+  "source_dirty": false,
+  "files": [
+    {
+      "path": "scripts/operations-gate.js",
+      "sha256": "5ca829ddcaa29f097fa4055fbc94b468af04cfe7bc01a2a4b8ce95e400616ddd"
+    },
+    {
+      "path": "scripts/safe-filesystem.js",
+      "sha256": "e408ac8ab966fa95120f011d6884357e46bbb37eae2960bb28817c34013f335c"
+    },
+    {
+      "path": "scripts/safe-filesystem.py",
+      "sha256": "3ef2b2896727e4be786557b325366f01ff0153631449381ab03b53f5c9855d43"
+    },
+    {
+      "path": "scripts/verification-v2-proof.js",
+      "sha256": "86c1a0dc879fd66aedb6a5d3b0a1158e3b0a1d71a4f58fefb019d32564d0debe"
+    }
+  ]
+}
