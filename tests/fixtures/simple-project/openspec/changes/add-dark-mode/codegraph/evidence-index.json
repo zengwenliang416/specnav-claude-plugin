@@ -1,6 +1,6 @@
 {
   "schema": "specnav.codegraph.evidence_index.v1",
-  "generated_at": "2026-08-02T14:59:38.245Z",
+  "generated_at": "2026-08-02T18:36:35.899Z",
   "active_change": "add-dark-mode",
   "source_raw": "openspec/changes/add-dark-mode/codegraph/evidence.jsonl",
   "by_claim": {},

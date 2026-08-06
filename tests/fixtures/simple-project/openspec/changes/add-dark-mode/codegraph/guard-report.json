@@ -1,6 +1,6 @@
 {
   "schema": "specnav.codegraph.guard_report.v1",
-  "generated_at": "2026-08-02T14:59:38.247Z",
+  "generated_at": "2026-08-02T18:36:35.901Z",
   "active_change": "add-dark-mode",
   "stage": "verification",
   "ok": true,
@@ -63,7 +63,7 @@
   },
   "evidence_index": {
     "schema": "specnav.codegraph.evidence_index.v1",
-    "generated_at": "2026-08-02T14:59:38.245Z",
+    "generated_at": "2026-08-02T18:36:35.899Z",
     "active_change": "add-dark-mode",
     "source_raw": "openspec/changes/add-dark-mode/codegraph/evidence.jsonl",
     "by_claim": {},
@@ -74,7 +74,7 @@
   },
   "claims_report": {
     "schema": "specnav.codegraph.claims_report.v1",
-    "generated_at": "2026-08-02T14:59:38.247Z",
+    "generated_at": "2026-08-02T18:36:35.901Z",
     "active_change": "add-dark-mode",
     "claims_file": "openspec/changes/add-dark-mode/codegraph/claims-map.json",
     "evidence_index": "openspec/changes/add-dark-mode/codegraph/evidence-index.json",

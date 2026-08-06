@@ -1,7 +1,7 @@
 {
   "schema": "specnav.codegraph.status.v1",
   "ok": true,
-  "generated_at": "2026-08-02T14:59:38.244Z",
+  "generated_at": "2026-08-02T18:36:35.898Z",
   "project_root": "/Volumes/zwl/AI/ai-coding/specnav-claude-plugin/tests/fixtures/simple-project",
   "active_change": "add-dark-mode",
   "policy": {
