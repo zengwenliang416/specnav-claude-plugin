@@ -1,13 +1,13 @@
 {
   "schema": "specnav.verification.kernel-sync.v1",
   "generated": true,
-  "generated_at": "2026-08-09T04:27:11.530Z",
+  "generated_at": "2026-08-09T07:25:50.800Z",
   "host": "claude-code",
   "source_repository": "specnav-codex-plugin",
-  "source_commit": "84a780d64d7465b9a1f8f1d010647580b2762929",
+  "source_commit": "4ff8614c06a8564917bc3000d1ccc56e8a176208",
   "source_dirty": false,
   "source_path": "plugins/specnav-verification",
-  "source_tree_digest": "6077715193dd0275fd18379303de018bf51d47fa4b08dc022e7309bbf8bbda8e",
+  "source_tree_digest": "ed904eb4bda2a363c2f1f731ba772c55c512b9e5e5a12a195f59f213a256e825",
   "kernel": {
     "name": "@specnav/verification-kernel",
     "version": "2.0.0-alpha.2",
@@ -275,8 +275,8 @@
       "source": "skills/specnav-verify-rerun/SKILL.md",
       "target": "skills/specnav-verify-rerun/SKILL.md",
       "transform": "claude-code-skill-v1",
-      "source_sha256": "e83ed08dda85b42ffc60531676d1142e0e280ed1c70f4935db62152f7bd493b3",
-      "target_sha256": "2417b4713a7078b24f1e1c590f6ee2fca8800423e2e6bd3a6f120fd8508e2762"
+      "source_sha256": "4d34cc1703f64f7c3630b5e807482a95ea13a06a507b2c4c62f76d09a4815418",
+      "target_sha256": "bb076488e46a4e870e2415f566e8201c4cdadaece2aa6bd0b7872fb36d757ff5"
     },
     {
       "source": "skills/specnav-verify-sensory/SKILL.md",
