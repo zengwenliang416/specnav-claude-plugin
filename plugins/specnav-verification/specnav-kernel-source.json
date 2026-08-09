@@ -1,13 +1,13 @@
 {
   "schema": "specnav.verification.kernel-sync.v1",
   "generated": true,
-  "generated_at": "2026-08-09T07:30:55.513Z",
+  "generated_at": "2026-08-09T08:34:17.528Z",
   "host": "claude-code",
   "source_repository": "specnav-codex-plugin",
-  "source_commit": "0f34ee14314d3e1fdee7e1476092e8cbe76bda30",
-  "source_dirty": false,
+  "source_commit": "43383ddba0820a522a1a65767b632742b7115bae",
+  "source_dirty": true,
   "source_path": "plugins/specnav-verification",
-  "source_tree_digest": "463d460c2ce36a1bc55af291cd50dd8918be06c9194fbdb439bc998bfa56c001",
+  "source_tree_digest": "995538e1cb367479e385c56e916ce410aa39bab0f97127d23e6aca746905a7cc",
   "kernel": {
     "name": "@specnav/verification-kernel",
     "version": "2.0.0-alpha.2",
@@ -79,6 +79,7 @@
     "kernel/evidence/paths.js",
     "kernel/evidence/raw-store.js",
     "kernel/evidence/redaction-constants.js",
+    "kernel/evidence/repository-fingerprint.js",
     "kernel/evidence/secret-redactor.js",
     "kernel/evidence/structured-redactor.js",
     "kernel/evidence/text-redactor.js",
@@ -154,6 +155,9 @@
     "schemas/gate-decision.schema.json",
     "schemas/migration-receipt.schema.json",
     "schemas/reading.schema.json",
+    "schemas/repair-baseline.schema.json",
+    "schemas/repair-lineage-recovery-review.schema.json",
+    "schemas/repair-lineage-recovery.schema.json",
     "schemas/repair-link.schema.json",
     "schemas/repair-review.schema.json",
     "schemas/report-model.schema.json",
@@ -276,8 +280,8 @@
       "source": "skills/specnav-verify-rerun/SKILL.md",
       "target": "skills/specnav-verify-rerun/SKILL.md",
       "transform": "claude-code-skill-v1",
-      "source_sha256": "4d34cc1703f64f7c3630b5e807482a95ea13a06a507b2c4c62f76d09a4815418",
-      "target_sha256": "bb076488e46a4e870e2415f566e8201c4cdadaece2aa6bd0b7872fb36d757ff5"
+      "source_sha256": "311d456adc1b210c24106c3845c6cf35fe99318a94924faabc0963d4d472d974",
+      "target_sha256": "9f2dc55be3e423e9663e6466f45f73ba3a6511fa55144d7d1d35af634339d2e0"
     },
     {
       "source": "skills/specnav-verify-sensory/SKILL.md",
