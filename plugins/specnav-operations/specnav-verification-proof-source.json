@@ -1,10 +1,10 @@
 {
   "schema": "specnav.operations.verification-proof-sync.v1",
   "generated": true,
-  "generated_at": "2026-08-06T16:59:29.280Z",
+  "generated_at": "2026-08-10T18:00:52.848Z",
   "host": "claude-code",
   "source_repository": "specnav-codex-plugin",
-  "source_commit": "b9487a46d58d18013d547aa24c4899428719dab6",
+  "source_commit": "3b3cb524d5d40373beb07bdc86a129cefcacd4ca",
   "source_dirty": false,
   "files": [
     {
@@ -13,15 +13,15 @@
     },
     {
       "path": "scripts/safe-filesystem.js",
-      "sha256": "e408ac8ab966fa95120f011d6884357e46bbb37eae2960bb28817c34013f335c"
+      "sha256": "e875055f713a3755ada2f5fba4da34dab5084ad171b24b79931739bb6eec8708"
     },
     {
       "path": "scripts/safe-filesystem.py",
-      "sha256": "3ef2b2896727e4be786557b325366f01ff0153631449381ab03b53f5c9855d43"
+      "sha256": "d774ab504fd40137feac1a44a5ff6d066f1de09877714c304d15742d163b171b"
     },
     {
       "path": "scripts/verification-v2-proof.js",
-      "sha256": "86c1a0dc879fd66aedb6a5d3b0a1158e3b0a1d71a4f58fefb019d32564d0debe"
+      "sha256": "f6c6bf848ef4ad46b1758879c968b6be33e2b78fed63d7fddaf30890174a6156"
     }
   ]
 }
