@@ -1,7 +1,7 @@
 {
   "schema": "specnav.operations.verification-proof-sync.v1",
   "generated": true,
-  "generated_at": "2026-08-10T18:00:52.848Z",
+  "generated_at": "2026-08-10T18:04:47.357Z",
   "host": "claude-code",
   "source_repository": "specnav-codex-plugin",
   "source_commit": "3b3cb524d5d40373beb07bdc86a129cefcacd4ca",
@@ -20,8 +20,28 @@
       "sha256": "d774ab504fd40137feac1a44a5ff6d066f1de09877714c304d15742d163b171b"
     },
     {
+      "path": "scripts/verification-v2-host-artifacts.js",
+      "sha256": "8fbe1740bd0e56bf7026edfc4b2fd3476ece39ff14e38572d1bca79d3431e8d4"
+    },
+    {
+      "path": "scripts/verification-v2-host-contract.js",
+      "sha256": "7a6a183863fde18e7e45c895c9067e1040f2b8fad8d8a1cb25f01585a101fccb"
+    },
+    {
+      "path": "scripts/verification-v2-pointer-chain.js",
+      "sha256": "ed1ed4dfc0b4c5552c894f230f65a18816aff80bf56bc60df15f3f4e9c9cd494"
+    },
+    {
       "path": "scripts/verification-v2-proof.js",
       "sha256": "f6c6bf848ef4ad46b1758879c968b6be33e2b78fed63d7fddaf30890174a6156"
+    },
+    {
+      "path": "scripts/verification-v2-trusted-runtime.js",
+      "sha256": "05ed0acbb536fb61a30577f3c4ba9fa2cd82d0ec22905764f3f238b852bb8d66"
+    },
+    {
+      "path": "specnav-stage.json",
+      "sha256": "3cf34cd60146482cfe94424e747a4a94007cf2332c22bdbb559c8c49a5bc54b9"
     }
   ]
 }
