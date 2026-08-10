@@ -11,7 +11,6 @@ const {
 } = require('../evidence/repository-fingerprint');
 
 const MAX_OUTPUT = 64 * 1024 * 1024;
-const HOSTS = Object.freeze(['claude-code', 'codex', 'codefree-o']);
 
 function sha256(value) {
   return crypto.createHash('sha256').update(value).digest('hex');
@@ -27,6 +26,23 @@ function canonicalize(value) {
 
 function canonicalJson(value) {
   return JSON.stringify(canonicalize(value));
+}
+
+function semanticPath(file, pathAliases = []) {
+  for (const alias of [...pathAliases].sort(
+    (left, right) => right.path.length - left.path.length
+  )) {
+    const relative = path.relative(alias.path, file);
+    if (
+      relative === ''
+      || (!relative.startsWith('..') && !path.isAbsolute(relative))
+    ) {
+      return relative
+        ? `${alias.identity}/${relative.split(path.sep).join('/')}`
+        : alias.identity;
+    }
+  }
+  return file;
 }
 
 function blocker(id, artifact = null, detail = null) {
@@ -171,13 +187,22 @@ function assertConfinedDirectory(root, relative, id) {
   return real;
 }
 
-function sandboxPrefix(
-  tools,
-  allowedRoots,
-  writableRoots,
-  allowNetwork = false
-) {
-  if (process.platform === 'darwin') {
+function createHostSandboxPlan(options = {}) {
+  const platform = options.platform || process.platform;
+  const tools = options.toolchain;
+  const allowedRoots = [...new Set(options.allowedRoots || [])].sort();
+  const writableRoots = [...new Set(options.writableRoots || [])].sort();
+  const semanticAllowedRoots = [...new Set(allowedRoots.map(
+    (root) => semanticPath(root, options.pathAliases)
+  ))].sort();
+  const semanticWritableRoots = [...new Set(writableRoots.map(
+    (root) => semanticPath(root, options.pathAliases)
+  ))].sort();
+  const allowNetwork = options.allowNetwork === true;
+  if (!tools?.sandbox?.path || !tools?.sandbox?.sha256) {
+    throw new Error('verification-host-launcher:sandbox-tool-required');
+  }
+  if (platform === 'darwin') {
     const literals = [
       '/System',
       '/usr',
@@ -197,13 +222,32 @@ function sandboxPrefix(
       `(allow file-write* ${writable})`,
       ...(allowNetwork ? ['(allow network-outbound)'] : [])
     ].join(' ');
+    const semanticLiterals = [
+      '/System',
+      '/usr',
+      '/bin',
+      '/dev',
+      ...semanticAllowedRoots
+    ].map((entry) => `(subpath ${JSON.stringify(entry)})`).join(' ');
+    const semanticWritable = semanticWritableRoots
+      .map((entry) => `(subpath ${JSON.stringify(entry)})`)
+      .join(' ');
+    const semanticProfile = [
+      '(version 1)',
+      '(deny default)',
+      '(allow process*)',
+      '(allow sysctl-read)',
+      `(allow file-read* ${semanticLiterals})`,
+      `(allow file-write* ${semanticWritable})`,
+      ...(allowNetwork ? ['(allow network-outbound)'] : [])
+    ].join(' ');
     return {
       executable: tools.sandbox,
       argv: [tools.sandbox.path, '-p', profile],
-      policy_sha256: sha256(profile)
+      policy_sha256: sha256(semanticProfile)
     };
   }
-  if (process.platform === 'linux') {
+  if (platform === 'linux') {
     const argv = [
       tools.sandbox.path,
       '--unshare-all',
@@ -231,25 +275,50 @@ function sandboxPrefix(
     }
     for (const root of writableRoots) argv.push('--bind', root, root);
     if (allowNetwork) argv.push('--share-net');
+    const semanticArgv = argv.slice(1).map(
+      (entry) => semanticPath(entry, options.pathAliases)
+    );
     return {
       executable: tools.sandbox,
       argv,
-      policy_sha256: sha256(canonicalJson(argv.slice(1)))
+      policy_sha256: sha256(canonicalJson(semanticArgv))
     };
   }
   throw new Error('verification-host-launcher:platform-unsupported');
+}
+
+function createHostRunnerIdentity(runnerSourceSha256, tools) {
+  if (!/^[a-f0-9]{64}$/.test(runnerSourceSha256 || '')) {
+    throw new Error('verification-host-launcher:runner-source-invalid');
+  }
+  return sha256(canonicalJson({
+    runner_source_sha256: runnerSourceSha256,
+    toolchain: tools
+  }));
 }
 
 function createHostProofLauncher(options = {}) {
   const tools = options.toolchain || toolchain();
   const spawnCommand = options.spawnCommand || spawn;
   const clock = options.clock || (() => new Date().toISOString());
+  const hosts = Array.isArray(options.hosts)
+    ? [...new Set(options.hosts)].sort()
+    : [];
+  const sourceHost = options.sourceHost;
+  const dependencyHosts = new Set(options.dependencyHosts || []);
+  const rootEnvironment = options.rootEnvironment || (() => ({}));
+  if (
+    hosts.length === 0
+    || hosts.some((host) => typeof host !== 'string' || host === '')
+    || !hosts.includes(sourceHost)
+    || [...dependencyHosts].some((host) => !hosts.includes(host))
+    || typeof rootEnvironment !== 'function'
+  ) {
+    throw new Error('verification-host-launcher:host-configuration-invalid');
+  }
   const launcherFile = fs.realpathSync(__filename);
   const runnerSourceSha256 = sha256(fs.readFileSync(launcherFile));
-  const runnerIdentity = sha256(Buffer.concat([
-    Buffer.from(runnerSourceSha256),
-    Buffer.from(canonicalJson(tools))
-  ]));
+  const runnerIdentity = createHostRunnerIdentity(runnerSourceSha256, tools);
 
   function execute(argv, config) {
     return spawnCommand(argv, config);
@@ -263,8 +332,13 @@ function createHostProofLauncher(options = {}) {
     const setup = {};
     const observations = {};
     try {
-      for (const host of HOSTS) {
-        const repository = host === 'codex' ? lock.source : lock.hosts[host];
+      for (const host of hosts) {
+        const repository = host === sourceHost ? lock.source : lock.hosts[host];
+        if (!repository) {
+          throw new Error(
+            `verification-host-launcher:repository-lock-missing:${host}`
+          );
+        }
         const root = path.join(workspace, host);
         fs.mkdirSync(root, { recursive: true, mode: 0o700 });
         const env = sanitizedEnvironment(root, workspace);
@@ -373,7 +447,7 @@ function createHostProofLauncher(options = {}) {
           source_code_inventory_sha: null,
           package_lock_sha256: null
         };
-        if (host === 'codex') {
+        if (host === sourceHost) {
           const tree = execute([
             tools.git.path,
             'ls-tree',
@@ -394,7 +468,7 @@ function createHostProofLauncher(options = {}) {
             tree.stdout.toString('utf8')
           );
         }
-        if (host === 'codefree-o') {
+        if (dependencyHosts.has(host)) {
           const packageLockFile = path.join(root, 'package-lock.json');
           const packageLockBytes = fs.readFileSync(packageLockFile);
           const packageLock = JSON.parse(packageLockBytes.toString('utf8'));
@@ -407,7 +481,7 @@ function createHostProofLauncher(options = {}) {
               resolved = new URL(entry.resolved);
             } catch {
               throw new Error(
-                'verification-host-launcher:package-lock-source-invalid:codefree-o'
+                `verification-host-launcher:package-lock-source-invalid:${host}`
               );
             }
             if (
@@ -417,7 +491,7 @@ function createHostProofLauncher(options = {}) {
               || !entry.integrity.startsWith('sha512-')
             ) {
               throw new Error(
-                'verification-host-launcher:package-lock-source-invalid:codefree-o'
+                `verification-host-launcher:package-lock-source-invalid:${host}`
               );
             }
           }
@@ -478,17 +552,21 @@ function createHostProofLauncher(options = {}) {
         ? [context.roots[host]]
         : [])
     ];
-    const sandbox = sandboxPrefix(
-      tools,
+    const sandbox = createHostSandboxPlan({
+      toolchain: tools,
       allowedRoots,
       writableRoots,
-      context.allowNetwork === true
-    );
-    const env = sanitizedEnvironment(context.roots[host], writable, {
-      SPECNAV_CODEX_ROOT: context.roots.codex,
-      SPECNAV_CLAUDE_ROOT: context.roots['claude-code'],
-      SPECNAV_CODEFREE_O_ROOT: context.roots['codefree-o']
+      pathAliases: [{
+        path: context.workspace,
+        identity: '$WORKSPACE'
+      }],
+      allowNetwork: context.allowNetwork === true
     });
+    const env = sanitizedEnvironment(
+      context.roots[host],
+      writable,
+      rootEnvironment(context.roots)
+    );
     const result = execute([...sandbox.argv, ...argv], {
       id: context.id,
       cwd: context.roots[host],
@@ -502,7 +580,8 @@ function createHostProofLauncher(options = {}) {
       executable_sha256: sha256(fs.readFileSync(fs.realpathSync(argv[0]))),
       sandbox_executable_realpath: sandbox.executable.path,
       sandbox_executable_sha256: sandbox.executable.sha256,
-      sandbox_policy_sha256: sandbox.policy_sha256
+      sandbox_policy_sha256: sandbox.policy_sha256,
+      sandbox_argv: sandbox.argv
     };
   }
 
@@ -512,17 +591,24 @@ function createHostProofLauncher(options = {}) {
     }
   }
 
-  function environmentDigest(prepared, runtimeAuthority) {
+  function environmentDigest(
+    prepared,
+    runtimeAuthority,
+    effectiveRunnerIdentity = runnerIdentity
+  ) {
     return sha256(canonicalJson({
       platform: process.platform,
       arch: process.arch,
       node: process.version,
-      runner_identity_sha256: runnerIdentity,
+      runner_identity_sha256: effectiveRunnerIdentity,
       runtime_authority_digest: runtimeAuthority.digest,
       toolchain: tools,
-      roots: Object.fromEntries(HOSTS.map((host) => [
+      roots: Object.fromEntries(hosts.map((host) => [
         host,
-        prepared.roots[host]
+        semanticPath(prepared.roots[host], [{
+          path: prepared.workspace,
+          identity: '$WORKSPACE'
+        }])
       ]))
     }));
   }
@@ -534,13 +620,17 @@ function createHostProofLauncher(options = {}) {
     prepare,
     run,
     runnerIdentity,
+    runnerIdentityFor(sourceSha256) {
+      return createHostRunnerIdentity(sourceSha256, tools);
+    },
     runnerSourceSha256,
     toolchain: tools
   });
 }
 
 module.exports = {
-  HOSTS,
+  createHostRunnerIdentity,
+  createHostSandboxPlan,
   createHostProofLauncher,
   sanitizedEnvironment
 };

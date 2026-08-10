@@ -12,6 +12,7 @@
   "runner_source_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
   "source_snapshot_digest": "3333333333333333333333333333333333333333333333333333333333333333",
   "fixture_snapshot_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "fixture_manifest_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
   "repository": "https://github.com/zengwenliang416/specnav-codex-plugin.git",
   "ref": "refs/heads/main",
   "commit": "1111111111111111111111111111111111111111",

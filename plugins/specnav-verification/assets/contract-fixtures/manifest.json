@@ -443,5 +443,6 @@
     "kernel_version",
     "freshness"
   ],
-  "unresolved_reference_fixture": "special/attempt-unresolved-references.json"
+  "unresolved_reference_fixture": "special/attempt-unresolved-references.json",
+  "host_cross_host_negative_matrix": "special/host-cross-host-negative-matrix.json"
 }

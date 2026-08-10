@@ -9,7 +9,7 @@
     "change_id",
     "run_id",
     "generation",
-    "previous_pointer_sha256",
+    "previous_pointer",
     "host_lock_sha256",
     "runtime_authority_digest",
     "lock",
@@ -32,10 +32,10 @@
       "type": "integer",
       "minimum": 1
     },
-    "previous_pointer_sha256": {
+    "previous_pointer": {
       "anyOf": [
         {
-          "$ref": "common.schema.json#/$defs/sha256"
+          "$ref": "#/$defs/artifact"
         },
         {
           "type": "null"

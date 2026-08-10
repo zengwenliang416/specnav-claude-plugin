@@ -18,6 +18,7 @@
     "runner_source_sha256",
     "source_snapshot_digest",
     "fixture_snapshot_digest",
+    "fixture_manifest_sha256",
     "repository",
     "ref",
     "commit",
@@ -77,6 +78,9 @@
       "$ref": "common.schema.json#/$defs/sha256"
     },
     "fixture_snapshot_digest": {
+      "$ref": "common.schema.json#/$defs/sha256"
+    },
+    "fixture_manifest_sha256": {
       "$ref": "common.schema.json#/$defs/sha256"
     },
     "repository": {

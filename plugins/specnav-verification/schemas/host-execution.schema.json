@@ -25,6 +25,7 @@
     "runner_source_sha256",
     "environment_sha256",
     "fixture_snapshot_digest",
+    "fixture_manifest_sha256",
     "observations",
     "commands",
     "blocker",
@@ -102,6 +103,9 @@
     "fixture_snapshot_digest": {
       "$ref": "common.schema.json#/$defs/sha256"
     },
+    "fixture_manifest_sha256": {
+      "$ref": "common.schema.json#/$defs/sha256"
+    },
     "observations": {
       "type": "object",
       "additionalProperties": false,
@@ -156,6 +160,7 @@
           "sandbox_executable_realpath",
           "sandbox_executable_sha256",
           "sandbox_policy_sha256",
+          "sandbox_argv",
           "exit_status",
           "signal",
           "stdout_sha256",
@@ -212,6 +217,20 @@
               }
             ]
           },
+          "sandbox_argv": {
+            "oneOf": [
+              {
+                "type": "array",
+                "minItems": 2,
+                "items": {
+                  "$ref": "common.schema.json#/$defs/nonEmptyString"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "exit_status": {
             "oneOf": [
               {
@@ -251,7 +270,45 @@
           "completed_at": {
             "$ref": "common.schema.json#/$defs/dateTime"
           }
-        }
+        },
+        "oneOf": [
+          {
+            "properties": {
+              "sandbox_executable_realpath": {
+                "type": "null"
+              },
+              "sandbox_executable_sha256": {
+                "type": "null"
+              },
+              "sandbox_policy_sha256": {
+                "type": "null"
+              },
+              "sandbox_argv": {
+                "type": "null"
+              }
+            }
+          },
+          {
+            "properties": {
+              "sandbox_executable_realpath": {
+                "$ref": "common.schema.json#/$defs/nonEmptyString"
+              },
+              "sandbox_executable_sha256": {
+                "$ref": "common.schema.json#/$defs/sha256"
+              },
+              "sandbox_policy_sha256": {
+                "$ref": "common.schema.json#/$defs/sha256"
+              },
+              "sandbox_argv": {
+                "type": "array",
+                "minItems": 2,
+                "items": {
+                  "$ref": "common.schema.json#/$defs/nonEmptyString"
+                }
+              }
+            }
+          }
+        ]
       }
     },
     "blocker": {
@@ -342,6 +399,36 @@
         "properties": {
           "blocker": {
             "type": "object"
+          },
+          "commands": {
+            "type": "array",
+            "contains": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "exit_status": {
+                      "type": "integer",
+                      "minimum": 1
+                    }
+                  },
+                  "required": [
+                    "exit_status"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "signal": {
+                      "$ref": "common.schema.json#/$defs/nonEmptyString"
+                    }
+                  },
+                  "required": [
+                    "signal"
+                  ]
+                }
+              ]
+            }
           }
         }
       }

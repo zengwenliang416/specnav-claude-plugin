@@ -19,6 +19,7 @@
   "runner_source_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
   "environment_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
   "fixture_snapshot_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "fixture_manifest_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
   "observations": {
     "advertised_commit": "1111111111111111111111111111111111111111",
     "checkout_head": "1111111111111111111111111111111111111111",
@@ -37,6 +38,11 @@
       "sandbox_executable_realpath": "/usr/bin/sandbox-exec",
       "sandbox_executable_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
       "sandbox_policy_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "sandbox_argv": [
+        "/usr/bin/sandbox-exec",
+        "-p",
+        "(version 1) (deny default)"
+      ],
       "exit_status": 0,
       "signal": null,
       "stdout_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
