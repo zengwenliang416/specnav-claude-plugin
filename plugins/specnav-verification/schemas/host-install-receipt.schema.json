@@ -15,7 +15,9 @@
     "host_lock_sha256",
     "runtime_authority_digest",
     "runner_identity_sha256",
+    "runner_source_sha256",
     "source_snapshot_digest",
+    "fixture_snapshot_digest",
     "repository",
     "ref",
     "commit",
@@ -68,7 +70,13 @@
     "runner_identity_sha256": {
       "$ref": "common.schema.json#/$defs/sha256"
     },
+    "runner_source_sha256": {
+      "$ref": "common.schema.json#/$defs/sha256"
+    },
     "source_snapshot_digest": {
+      "$ref": "common.schema.json#/$defs/sha256"
+    },
+    "fixture_snapshot_digest": {
       "$ref": "common.schema.json#/$defs/sha256"
     },
     "repository": {

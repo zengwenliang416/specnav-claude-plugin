@@ -8,6 +8,8 @@
     "schema",
     "change_id",
     "run_id",
+    "generation",
+    "previous_pointer_sha256",
     "host_lock_sha256",
     "runtime_authority_digest",
     "lock",
@@ -25,6 +27,20 @@
     },
     "run_id": {
       "$ref": "common.schema.json#/$defs/stableId"
+    },
+    "generation": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "previous_pointer_sha256": {
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/sha256"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "host_lock_sha256": {
       "$ref": "common.schema.json#/$defs/sha256"

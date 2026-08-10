@@ -22,7 +22,10 @@
     "host_authority_digest",
     "source_snapshot_digest",
     "runner_identity_sha256",
+    "runner_source_sha256",
     "environment_sha256",
+    "fixture_snapshot_digest",
+    "observations",
     "commands",
     "blocker",
     "started_at",
@@ -90,8 +93,54 @@
     "runner_identity_sha256": {
       "$ref": "common.schema.json#/$defs/sha256"
     },
+    "runner_source_sha256": {
+      "$ref": "common.schema.json#/$defs/sha256"
+    },
     "environment_sha256": {
       "$ref": "common.schema.json#/$defs/sha256"
+    },
+    "fixture_snapshot_digest": {
+      "$ref": "common.schema.json#/$defs/sha256"
+    },
+    "observations": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "advertised_commit",
+        "checkout_head",
+        "source_code_inventory_sha",
+        "package_lock_sha256"
+      ],
+      "properties": {
+        "advertised_commit": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "checkout_head": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "source_code_inventory_sha": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/sourceSha"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "package_lock_sha256": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
     },
     "commands": {
       "type": "array",
@@ -104,6 +153,9 @@
           "argv",
           "executable_realpath",
           "executable_sha256",
+          "sandbox_executable_realpath",
+          "sandbox_executable_sha256",
+          "sandbox_policy_sha256",
           "exit_status",
           "signal",
           "stdout_sha256",
@@ -129,6 +181,36 @@
           },
           "executable_sha256": {
             "$ref": "common.schema.json#/$defs/sha256"
+          },
+          "sandbox_executable_realpath": {
+            "oneOf": [
+              {
+                "$ref": "common.schema.json#/$defs/nonEmptyString"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sandbox_executable_sha256": {
+            "oneOf": [
+              {
+                "$ref": "common.schema.json#/$defs/sha256"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sandbox_policy_sha256": {
+            "oneOf": [
+              {
+                "$ref": "common.schema.json#/$defs/sha256"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "exit_status": {
             "oneOf": [

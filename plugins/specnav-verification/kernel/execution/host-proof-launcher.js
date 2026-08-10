@@ -6,6 +6,10 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 
+const {
+  codeInventorySha
+} = require('../evidence/repository-fingerprint');
+
 const MAX_OUTPUT = 64 * 1024 * 1024;
 const HOSTS = Object.freeze(['claude-code', 'codex', 'codefree-o']);
 
@@ -99,6 +103,9 @@ function sanitizedEnvironment(root, tmp, extra = {}) {
 
 function spawn(argv, options = {}) {
   const startedAt = new Date().toISOString();
+  const executableRealpath = fs.realpathSync(argv[0]);
+  const before = fs.statSync(executableRealpath);
+  const executableSha256 = sha256(fs.readFileSync(executableRealpath));
   const result = spawnSync(argv[0], argv.slice(1), {
     cwd: options.cwd,
     env: options.env,
@@ -106,18 +113,26 @@ function spawn(argv, options = {}) {
     maxBuffer: MAX_OUTPUT,
     timeout: options.timeoutMs
   });
+  const after = fs.statSync(executableRealpath);
+  const executableChanged = before.dev !== after.dev
+    || before.ino !== after.ino
+    || before.size !== after.size
+    || before.mtimeMs !== after.mtimeMs
+    || executableSha256 !== sha256(fs.readFileSync(executableRealpath));
   return {
     id: options.id,
     argv,
-    executable_realpath: fs.realpathSync(argv[0]),
-    executable_sha256: sha256(fs.readFileSync(fs.realpathSync(argv[0]))),
+    executable_realpath: executableRealpath,
+    executable_sha256: executableSha256,
     started_at: startedAt,
     completed_at: new Date().toISOString(),
     exit_status: result.status,
     signal: result.signal,
     stdout: Buffer.isBuffer(result.stdout) ? result.stdout : Buffer.alloc(0),
     stderr: Buffer.isBuffer(result.stderr) ? result.stderr : Buffer.alloc(0),
-    error: result.error
+    error: executableChanged
+      ? 'verification-host-launcher:executable-changed-during-run'
+      : result.error
       ? (result.error instanceof Error ? result.error.message : String(result.error))
       : null
   };
@@ -156,7 +171,12 @@ function assertConfinedDirectory(root, relative, id) {
   return real;
 }
 
-function sandboxPrefix(tools, allowedRoots, writableRoot) {
+function sandboxPrefix(
+  tools,
+  allowedRoots,
+  writableRoots,
+  allowNetwork = false
+) {
   if (process.platform === 'darwin') {
     const literals = [
       '/System',
@@ -165,17 +185,22 @@ function sandboxPrefix(tools, allowedRoots, writableRoot) {
       '/dev',
       ...allowedRoots
     ].map((entry) => `(subpath ${JSON.stringify(entry)})`).join(' ');
+    const writable = writableRoots
+      .map((entry) => `(subpath ${JSON.stringify(entry)})`)
+      .join(' ');
     const profile = [
       '(version 1)',
       '(deny default)',
       '(allow process*)',
       '(allow sysctl-read)',
       `(allow file-read* ${literals})`,
-      `(allow file-write* (subpath ${JSON.stringify(writableRoot)}))`
+      `(allow file-write* ${writable})`,
+      ...(allowNetwork ? ['(allow network-outbound)'] : [])
     ].join(' ');
     return {
       executable: tools.sandbox,
-      argv: [tools.sandbox.path, '-p', profile]
+      argv: [tools.sandbox.path, '-p', profile],
+      policy_sha256: sha256(profile)
     };
   }
   if (process.platform === 'linux') {
@@ -200,9 +225,17 @@ function sandboxPrefix(tools, allowedRoots, writableRoot) {
         argv.push('--ro-bind', candidate, candidate);
       }
     }
-    for (const root of allowedRoots) argv.push('--ro-bind', root, root);
-    argv.push('--bind', writableRoot, writableRoot);
-    return { executable: tools.sandbox, argv };
+    const writable = new Set(writableRoots);
+    for (const root of allowedRoots) {
+      if (!writable.has(root)) argv.push('--ro-bind', root, root);
+    }
+    for (const root of writableRoots) argv.push('--bind', root, root);
+    if (allowNetwork) argv.push('--share-net');
+    return {
+      executable: tools.sandbox,
+      argv,
+      policy_sha256: sha256(canonicalJson(argv.slice(1)))
+    };
   }
   throw new Error('verification-host-launcher:platform-unsupported');
 }
@@ -212,8 +245,9 @@ function createHostProofLauncher(options = {}) {
   const spawnCommand = options.spawnCommand || spawn;
   const clock = options.clock || (() => new Date().toISOString());
   const launcherFile = fs.realpathSync(__filename);
+  const runnerSourceSha256 = sha256(fs.readFileSync(launcherFile));
   const runnerIdentity = sha256(Buffer.concat([
-    fs.readFileSync(launcherFile),
+    Buffer.from(runnerSourceSha256),
     Buffer.from(canonicalJson(tools))
   ]));
 
@@ -227,6 +261,7 @@ function createHostProofLauncher(options = {}) {
     );
     const roots = {};
     const setup = {};
+    const observations = {};
     try {
       for (const host of HOSTS) {
         const repository = host === 'codex' ? lock.source : lock.hosts[host];
@@ -332,24 +367,61 @@ function createHostProofLauncher(options = {}) {
             `verification-host-launcher:checkout-head-mismatch:${host}`
           );
         }
-        if (host === 'codefree-o') {
-          const install = execute([
-            tools.npm.path,
-            'ci',
-            '--ignore-scripts',
-            '--no-audit',
-            '--no-fund'
+        const observation = {
+          advertised_commit: advertised,
+          checkout_head: head.stdout.toString('utf8').trim(),
+          source_code_inventory_sha: null,
+          package_lock_sha256: null
+        };
+        if (host === 'codex') {
+          const tree = execute([
+            tools.git.path,
+            'ls-tree',
+            '-r',
+            'HEAD'
           ], {
-            id: 'dependency-install',
+            id: 'checkout-tree',
             cwd: root,
             env,
-            timeoutMs: 600000
+            timeoutMs: 60000
           });
-          commands.push(install);
+          commands.push(tree);
           requireSuccess(
-            install,
-            `verification-host-launcher:dependency-install-failed:${host}`
+            tree,
+            `verification-host-launcher:checkout-tree-failed:${host}`
           );
+          observation.source_code_inventory_sha = codeInventorySha(
+            tree.stdout.toString('utf8')
+          );
+        }
+        if (host === 'codefree-o') {
+          const packageLockFile = path.join(root, 'package-lock.json');
+          const packageLockBytes = fs.readFileSync(packageLockFile);
+          const packageLock = JSON.parse(packageLockBytes.toString('utf8'));
+          for (const [packagePath, entry] of Object.entries(
+            packageLock.packages || {}
+          )) {
+            if (!packagePath || !entry?.resolved) continue;
+            let resolved;
+            try {
+              resolved = new URL(entry.resolved);
+            } catch {
+              throw new Error(
+                'verification-host-launcher:package-lock-source-invalid:codefree-o'
+              );
+            }
+            if (
+              resolved.protocol !== 'https:'
+              || resolved.hostname !== 'registry.npmjs.org'
+              || typeof entry.integrity !== 'string'
+              || !entry.integrity.startsWith('sha512-')
+            ) {
+              throw new Error(
+                'verification-host-launcher:package-lock-source-invalid:codefree-o'
+              );
+            }
+          }
+          observation.package_lock_sha256 = sha256(packageLockBytes);
         }
         assertConfinedDirectory(
           root,
@@ -358,13 +430,16 @@ function createHostProofLauncher(options = {}) {
         );
         roots[host] = fs.realpathSync(root);
         setup[host] = commands;
+        observations[host] = observation;
       }
       return {
         ok: true,
         workspace,
         roots,
         setup,
+        observations,
         runner_identity_sha256: runnerIdentity,
+        runner_source_sha256: runnerSourceSha256,
         toolchain: tools,
         blockers: []
       };
@@ -375,7 +450,9 @@ function createHostProofLauncher(options = {}) {
         workspace: null,
         roots: {},
         setup: {},
+        observations: {},
         runner_identity_sha256: runnerIdentity,
+        runner_source_sha256: runnerSourceSha256,
         toolchain: tools,
         blockers: Array.isArray(error.blockers)
           ? error.blockers
@@ -391,10 +468,22 @@ function createHostProofLauncher(options = {}) {
     fs.mkdirSync(writable, { recursive: true, mode: 0o700 });
     const allowedRoots = [
       ...Object.values(context.roots),
-      context.runtimeRoot,
+      ...(context.allowRuntime === true ? [context.runtimeRoot] : []),
+      ...(context.trustedRoots || []),
       path.dirname(path.dirname(tools.node.path))
     ];
-    const sandbox = sandboxPrefix(tools, allowedRoots, writable);
+    const writableRoots = [
+      writable,
+      ...(context.allowCheckoutWrite === true
+        ? [context.roots[host]]
+        : [])
+    ];
+    const sandbox = sandboxPrefix(
+      tools,
+      allowedRoots,
+      writableRoots,
+      context.allowNetwork === true
+    );
     const env = sanitizedEnvironment(context.roots[host], writable, {
       SPECNAV_CODEX_ROOT: context.roots.codex,
       SPECNAV_CLAUDE_ROOT: context.roots['claude-code'],
@@ -412,7 +501,8 @@ function createHostProofLauncher(options = {}) {
       executable_realpath: fs.realpathSync(argv[0]),
       executable_sha256: sha256(fs.readFileSync(fs.realpathSync(argv[0]))),
       sandbox_executable_realpath: sandbox.executable.path,
-      sandbox_executable_sha256: sandbox.executable.sha256
+      sandbox_executable_sha256: sandbox.executable.sha256,
+      sandbox_policy_sha256: sandbox.policy_sha256
     };
   }
 
@@ -444,6 +534,7 @@ function createHostProofLauncher(options = {}) {
     prepare,
     run,
     runnerIdentity,
+    runnerSourceSha256,
     toolchain: tools
   });
 }
