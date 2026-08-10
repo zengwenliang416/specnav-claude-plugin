@@ -9,9 +9,13 @@ const {
 const {
   evaluateMidsceneOracle
 } = require('./midscene-oracle');
+const {
+  createHostProofLauncher
+} = require('./host-proof-launcher');
 
 module.exports = Object.freeze({
   createEventSequence,
   createExecutionOrchestrator,
+  createHostProofLauncher,
   evaluateMidsceneOracle
 });
