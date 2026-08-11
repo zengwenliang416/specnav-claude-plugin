@@ -1,12 +1,12 @@
 {
   "schema": "specnav.operations.verification-proof-sync.v1",
   "generated": true,
-  "generated_at": "2026-08-11T01:53:44.357Z",
+  "generated_at": "2026-08-11T19:51:31.163Z",
   "host": "claude-code",
   "source_repository": "specnav-codex-plugin",
-  "source_commit": "c40b7d6bf1f1374afb258738b883356229794330",
+  "source_commit": "086ed8dd9bbe915c2f2ef4acae0a3fc2a23cbd32",
   "source_dirty": false,
-  "runner_source_sha256": "3368e5ef38af6587f61347776d8626aee673f994264e3028ec5989137cc27cf2",
+  "runner_source_sha256": "7b32a50b600d623fb12997f6891853d3d6490935dec424be26b4695a48d62a13",
   "files": [
     {
       "path": "scripts/operations-gate.js",
@@ -38,7 +38,7 @@
     },
     {
       "path": "scripts/verification-v2-trusted-runtime.js",
-      "sha256": "5206e5782d4316d9d546d166f64e1eb6b9ad7b83493ae4c043fef2cc3200e127"
+      "sha256": "6d5f8d386d94d710373ef545e7de744f4d972ee6d220a34f2b2877392d134415"
     },
     {
       "path": "specnav-stage.json",

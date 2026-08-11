@@ -1,6 +1,6 @@
 ---
 name: specnav-verification
-description: Use this skill when a Codex user starts, resumes, or reviews the complete SpecNav Verification 2.0 lifecycle, including runtime readiness, approved cases, six-domain execution, repair loops, gates, and reports.
+description: Use this skill when a Claude Code user starts, resumes, or reviews the complete SpecNav Verification 2.0 lifecycle, including runtime readiness, approved cases, six-domain execution, repair loops, gates, and reports.
 ---
 
 ## Runtime Paths
@@ -17,7 +17,7 @@ Verification Kernel. Verification 2.0 has no light, compact, or simplified lane.
 
 ## Workflow
 
-1. Inspect the Codex adapter contract:
+1. Inspect the Claude Code adapter contract:
 
    ```bash
    node "$SPECNAV_VERIFICATION_ROOT/scripts/claude-verification-adapter.js" describe --json
