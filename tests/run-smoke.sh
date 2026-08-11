@@ -8,7 +8,9 @@ FIXTURE="$(mktemp -d)"
 cp -R "$BASE/." "$FIXTURE/"
 trap 'rm -rf "$FIXTURE"' EXIT
 
-node "$CORE/scripts/affordances.js" --json "$FIXTURE" >/tmp/specnav-affordances.json
+PROJECT_DIR="$FIXTURE" node \
+  "$CORE/scripts/affordances.js" --json "$FIXTURE" \
+  >/tmp/specnav-affordances.json
 jq -e '.active_change == "add-dark-mode"' /tmp/specnav-affordances.json >/dev/null
 
 node "$CORE/scripts/risk-tier.js" --paths src/ui/theme.ts >/tmp/specnav-risk.json
