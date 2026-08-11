@@ -1,10 +1,10 @@
 {
   "schema": "specnav.operations.verification-proof-sync.v1",
   "generated": true,
-  "generated_at": "2026-08-10T18:13:55.971Z",
+  "generated_at": "2026-08-11T01:53:44.357Z",
   "host": "claude-code",
   "source_repository": "specnav-codex-plugin",
-  "source_commit": "a75c9b37edec386fc98484b8e4846598e92b6992",
+  "source_commit": "c40b7d6bf1f1374afb258738b883356229794330",
   "source_dirty": false,
   "runner_source_sha256": "3368e5ef38af6587f61347776d8626aee673f994264e3028ec5989137cc27cf2",
   "files": [
