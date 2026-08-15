@@ -81,6 +81,36 @@ function pluginRepairCommand(pluginRoot = path.resolve(__dirname, '..')) {
       );
     }
   }
+  const dshManifest = path.resolve(
+    pluginRoot,
+    '../..',
+    'specnav.suite.json'
+  );
+  if (require('node:fs').existsSync(dshManifest)) {
+    try {
+      const manifest = JSON.parse(
+        require('node:fs').readFileSync(dshManifest, 'utf8')
+      );
+      if (
+        manifest.schema === 'specnav.dshSuite.v1'
+        && Array.isArray(manifest.modules)
+        && manifest.modules.some((entry) => (
+          entry
+          && entry.name === 'specnav-verification'
+          && entry.path === 'modules/specnav-verification'
+        ))
+      ) {
+        return (
+          'dsh preset: reinstall specnav-dsh-plugin into '
+          + '$DSH_HOME/.agent-presets/specnav'
+        );
+      }
+    } catch {
+      throw new Error(
+        'verification-runtime:invalid-dsh-manifest'
+      );
+    }
+  }
   return 'codex plugin marketplace upgrade specnav-marketplace --json';
 }
 

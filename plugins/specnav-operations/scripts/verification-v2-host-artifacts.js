@@ -233,7 +233,9 @@ function assertPublishInputsCurrent(context, lockFile, hostLockSha) {
     path.join(context.changeDir, 'verify', 'v2', 'runtime-status.json'),
     'verification-host-artifacts:publish-runtime-status-invalid'
   );
-  const runtimeResolution = kernel.createRuntimeAuthority().resolve(
+  const runtimeResolution = kernel.createRuntimeAuthority({
+    projectRoot: context.projectRoot
+  }).resolve(
     runtimeStatusRead.value
   );
   const gateInputRead = readSafeJson(
@@ -356,7 +358,9 @@ function loadContext(request) {
     path.join(verifyV2, 'runtime-status.json'),
     'verification-host-artifacts:runtime-status-invalid'
   );
-  const runtimeResolution = kernel.createRuntimeAuthority().resolve(
+  const runtimeResolution = kernel.createRuntimeAuthority({
+    projectRoot
+  }).resolve(
     runtimeStatusRead.value
   );
   if (!runtimeResolution.ok) {
@@ -477,12 +481,13 @@ function createHostArtifactGenerator(options = {}) {
       ...launcherOptions,
       hosts: REQUIRED_HOSTS,
       sourceHost: 'codex',
-      dependencyHosts: ['codefree-o'],
+      dependencyHosts: ['codefree-o', 'dsh'],
       rootEnvironment(roots) {
         return {
           SPECNAV_CODEX_ROOT: roots.codex,
           SPECNAV_CLAUDE_ROOT: roots['claude-code'],
-          SPECNAV_CODEFREE_O_ROOT: roots['codefree-o']
+          SPECNAV_CODEFREE_O_ROOT: roots['codefree-o'],
+          SPECNAV_DSH_ROOT: roots['dsh']
         };
       }
     }));
@@ -644,7 +649,7 @@ function createHostArtifactGenerator(options = {}) {
           }
         );
         const probeIds = [
-          ...(host === 'codefree-o' ? ['dependency-install'] : []),
+          ...(['codefree-o', 'dsh'].includes(host) ? ['dependency-install'] : []),
           'runtime-doctor',
           'host-smoke'
         ];

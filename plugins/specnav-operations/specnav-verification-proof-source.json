@@ -1,12 +1,12 @@
 {
   "schema": "specnav.operations.verification-proof-sync.v1",
   "generated": true,
-  "generated_at": "2026-08-11T19:51:31.163Z",
+  "generated_at": "2026-08-15T06:34:42.610Z",
   "host": "claude-code",
   "source_repository": "specnav-codex-plugin",
-  "source_commit": "086ed8dd9bbe915c2f2ef4acae0a3fc2a23cbd32",
+  "source_commit": "ba35a07961ba6a9731bfafde016b604b6ae112cb",
   "source_dirty": false,
-  "runner_source_sha256": "7b32a50b600d623fb12997f6891853d3d6490935dec424be26b4695a48d62a13",
+  "runner_source_sha256": "27e225b279f71c2ff3ec8f8687f0f8e8efc275d5a959d886223d44b3c030f9a7",
   "files": [
     {
       "path": "scripts/operations-gate.js",
@@ -22,11 +22,11 @@
     },
     {
       "path": "scripts/verification-v2-host-artifacts.js",
-      "sha256": "e634561ba867e8cac972082de90da2d76732f3492fcc3cc1c68f6ab6fdcd1207"
+      "sha256": "a0cef0cc8303416c8c98797c47d78c1425980a8eb05233e163a50946a103f80a"
     },
     {
       "path": "scripts/verification-v2-host-contract.js",
-      "sha256": "d242727e48226515843ece9b1c3cb62df5a204a60049fc26778555bf2d2e3c8a"
+      "sha256": "dfe8f4f53f03cf592ce1955d9f6c1aa8cdd35d61ac2d6fa395291d61e7d83994"
     },
     {
       "path": "scripts/verification-v2-pointer-chain.js",
@@ -34,7 +34,7 @@
     },
     {
       "path": "scripts/verification-v2-proof.js",
-      "sha256": "a470a41dfd12c4eb80b923396e4f3ed38ab0817acc47ea05bc1013a5b9978d20"
+      "sha256": "ab31ab0d4219991d0ac7708e76a3bb05f685033bebe63fe236fd215b38fb09a0"
     },
     {
       "path": "scripts/verification-v2-trusted-runtime.js",
