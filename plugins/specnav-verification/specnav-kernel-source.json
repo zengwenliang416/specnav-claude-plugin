@@ -1,13 +1,13 @@
 {
   "schema": "specnav.verification.kernel-sync.v1",
   "generated": true,
-  "generated_at": "2026-08-12T05:04:52.362Z",
+  "generated_at": "2026-08-13T15:48:27.198Z",
   "host": "claude-code",
   "source_repository": "specnav-codex-plugin",
-  "source_commit": "9c379b9d26a80ae0d57a2d68eff82684e4858f96",
-  "source_dirty": false,
+  "source_commit": "b53ffcba101bbfb4c6a4f5ac9f16baf5de132a8c",
+  "source_dirty": true,
   "source_path": "plugins/specnav-verification",
-  "source_tree_digest": "a734f2f03f75e5c2e966c9b25e84429dfde758e78039957193d68cddc3b021c8",
+  "source_tree_digest": "b8b186fac677a1c7aa0cc1afe1b35f3ce64faa4df82b7db1f0dc12a12072bc86",
   "kernel": {
     "name": "@specnav/verification-kernel",
     "version": "2.0.0-alpha.2",
@@ -237,6 +237,7 @@
     "kernel/runtime/provider-contract.js",
     "kernel/runtime/repair.js",
     "kernel/runtime/runtime-integrity.js",
+    "kernel/runtime/scope-resolver.js",
     "package.json",
     "schemas/attempt.schema.json",
     "schemas/authority-chain-anchor.schema.json",
@@ -334,15 +335,15 @@
       "source": "skills/specnav-verification-runtime-setup/SKILL.md",
       "target": "skills/specnav-verification-runtime-setup/SKILL.md",
       "transform": "claude-code-skill-v1",
-      "source_sha256": "6ff2fd68a14b59c18bc23dd969395f4c8f148f3f903ac021d9879431c7d12fe2",
-      "target_sha256": "6ff2fd68a14b59c18bc23dd969395f4c8f148f3f903ac021d9879431c7d12fe2"
+      "source_sha256": "ab0e5d8396dd0bf36376458b61584692a23c23305b472e605e91cbb57efa8425",
+      "target_sha256": "ab0e5d8396dd0bf36376458b61584692a23c23305b472e605e91cbb57efa8425"
     },
     {
       "source": "skills/specnav-verification-runtime-status/SKILL.md",
       "target": "skills/specnav-verification-runtime-status/SKILL.md",
       "transform": "claude-code-skill-v1",
-      "source_sha256": "5249ca46c2c774cb23bdb18c02c9abf770372e71590f376e72be2d058446513c",
-      "target_sha256": "5249ca46c2c774cb23bdb18c02c9abf770372e71590f376e72be2d058446513c"
+      "source_sha256": "e0b17b340860c097a72d5405868a8418b57f1f735037e783fa1cfaa0cdf6c8a0",
+      "target_sha256": "e0b17b340860c097a72d5405868a8418b57f1f735037e783fa1cfaa0cdf6c8a0"
     },
     {
       "source": "skills/specnav-verification/SKILL.md",

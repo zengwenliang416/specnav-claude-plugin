@@ -241,9 +241,11 @@ very small low-risk styling/config edits route to the `light` lane and load
 
 Light lane still requires an OpenSpec project, a clean active change, standard
 checkbox `tasks.md`, a bounded `scope.json`, and machine-checkable
-`acceptance.json`. It may skip foundation-spec blocking, runnable prototype
-approval, per-slice review packets, and the full six-domain verification set.
-Verification is reduced to static + unit evidence.
+`acceptance.json`. It may reduce requirements, prototype, and per-slice
+development paperwork for a bounded low-risk edit. It does not reduce the
+verification gate: every lane enters Verification 2.0 with an approved case
+snapshot, all six domains, evidence integrity, freshness, repair/regression,
+and the same release decision.
 
 The lane escalates back to standard or full when the request touches auth,
 permissions, billing, security, database, API routes, deployment, package
@@ -291,6 +293,21 @@ The verification stage has six independent test domains:
 `specnav-html-report` turns verification evidence into a reviewable stakeholder
 HTML report. A green report must be evidence-backed, current, and linked to the
 artifacts it validates.
+
+Before Runtime doctor or setup, SpecNav inspects both
+`<project>/.specnav/runtime/verification` and
+`~/.specnav/runtime/verification`. It recommends project scope but never
+selects either candidate automatically. The user must explicitly choose
+`project` or `user`; SpecNav persists that choice in
+`<project>/.specnav/config.json`. Until then, doctor, install, repair, and
+Verification 2.0 execution are blocked with no fallback.
+
+Project scope reads Midscene configuration only from
+`<project>/.specnav/secrets/verification.env`; user scope reads only from
+`~/.specnav/secrets/verification.env`. The selected file must be a regular,
+non-symlink file with mode `0600`. Shell startup files, global packages, system
+browsers, and the other scope can be reported as diagnostics, but cannot
+satisfy or replace the selected managed Runtime.
 
 ## No Fallback Contract
 

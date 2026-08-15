@@ -222,7 +222,12 @@ claims-map.json
 制品包。`/specnav` 和 `/specnav-implement` 会先运行 `change-triage.js`
 判断请求复杂度。简单文档、文案、标签、注释、README，以及极小范围的低风险样式或配置调整，会进入 `light` lane 并加载 `specnav-light-change`。
 
-Light lane 仍然要求目标项目已有 OpenSpec、存在明确 active change、使用标准 checkbox `tasks.md`、写出有边界的 `scope.json`，并提供机器可检查的 `acceptance.json`。它可以跳过 foundation spec 阻塞、可运行原型批准、逐切片评审包和完整六域验证。验证范围降为 static + unit。
+Light lane 仍然要求目标项目已有 OpenSpec、存在明确 active change、使用标准
+checkbox `tasks.md`、写出有边界的 `scope.json`，并提供机器可检查的
+`acceptance.json`。它只能缩减低风险小改动的需求、原型和逐切片开发文档，不能降低测试
+门禁：所有 lane 都必须进入 Verification 2.0，批准不可变用例快照，执行全部
+六个测试域，校验证据完整性和新鲜度，完成 repair/regression，并使用同一个
+release decision。
 
 如果请求触碰 auth、permission、billing、security、database、API route、deployment、package manifest、SpecNav 内部文件，或者预计超过三个路径、实际超过十个生产文件，必须升级回 standard 或 full lane。如果预计修改路径不清楚，SpecNav 需要先问清范围，再创建 light 制品。
 
@@ -258,6 +263,19 @@ Standard lane 开发必须先存在一个已跟踪批准版 `tasks.md` 的 Git `
 | 体感 / UX 审计 | 人工审阅可读性、交互、性能和整体体验 |
 
 `specnav-html-report` 会把验证证据生成面向审阅人的 HTML 报告。Green 报告必须有证据、保持新鲜，并链接到被验证的产物。
+
+在 Runtime doctor 或 setup 前，SpecNav 会同时检查项目级
+`<project>/.specnav/runtime/verification` 和用户级
+`~/.specnav/runtime/verification`。默认推荐项目级，但不会自动采用任一
+候选。用户必须显式选择 `project` 或 `user`，选择结果写入
+`<project>/.specnav/config.json`；在完成选择前，doctor、install、repair
+和 Verification 2.0 执行全部阻塞，且没有 fallback。
+
+项目级作用域只从 `<project>/.specnav/secrets/verification.env` 读取
+Midscene 配置；用户级作用域只从
+`~/.specnav/secrets/verification.env` 读取。选定文件必须是权限为 `0600`
+的普通非符号链接文件。shell 启动文件、全局 package、系统浏览器和另一作用域
+只能作为诊断信息，不能满足或替代选定的受管 Runtime。
 
 ## 无 Fallback 合同
 

@@ -786,7 +786,10 @@ test -f "$VERIFY/skills/specnav-verify-redteam/SKILL.md"
 test -f "$VERIFY/skills/specnav-verify-e2e/SKILL.md"
 test -f "$VERIFY/skills/specnav-verify-sensory/SKILL.md"
 test -f "$VERIFY/skills/specnav-verify-rerun/SKILL.md"
-jq -e '.contracts.verification == "scripts/verify-domains.js"' "$VERIFY/specnav-stage.json" >/dev/null
+jq -e '
+  .contracts.verification == "scripts/verification-v2-run.js"
+  and .contracts.verification_v1_legacy == "scripts/verify-domains.js"
+' "$VERIFY/specnav-stage.json" >/dev/null
 jq -e 'has("planned_contracts") | not' "$VERIFY/specnav-stage.json" >/dev/null
 grep -Fq -- '--marketplace-root "$SPECNAV_MARKETPLACE_ROOT"' "$VERIFY/commands/specnav-verify.md"
 grep -Fq 'node "$SPECNAV_DEVELOPMENT_ROOT/scripts/development-contract.js" \' "$VERIFY/commands/specnav-verify.md"
