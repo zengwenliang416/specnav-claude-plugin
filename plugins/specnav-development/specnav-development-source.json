@@ -1,0 +1,41 @@
+{
+  "schema": "specnav.development.contract-sync.v1",
+  "generated": true,
+  "generated_at": "2026-08-28T01:28:15.998Z",
+  "host": "claude-code",
+  "source_repository": "specnav-codex-plugin",
+  "source_commit": "63a82dcbe6f177d40dd2ee7a4e5d0b2d578ad4b2",
+  "source_dirty": false,
+  "files": [
+    {
+      "path": "scripts/development-contract.js",
+      "transform": "exact",
+      "source_sha256": "9c9086dad213bba368826578057caa3a8e437f7c24f90adca0c40f70e1c88bc0",
+      "target_sha256": "9c9086dad213bba368826578057caa3a8e437f7c24f90adca0c40f70e1c88bc0"
+    },
+    {
+      "path": "scripts/development-receipt-authority.js",
+      "transform": "exact",
+      "source_sha256": "93380edbeaa1217f465a234d31db880dab2e7c842b000421514c6478489e2732",
+      "target_sha256": "93380edbeaa1217f465a234d31db880dab2e7c842b000421514c6478489e2732"
+    },
+    {
+      "path": "scripts/evidence-runner.js",
+      "transform": "exact",
+      "source_sha256": "8cd211c863e70ee031788700de9a6fcf3af916ea56b2cc9ba3afcc95adf6d39e",
+      "target_sha256": "8cd211c863e70ee031788700de9a6fcf3af916ea56b2cc9ba3afcc95adf6d39e"
+    },
+    {
+      "path": "scripts/task-acceptance-evidence.js",
+      "transform": "exact",
+      "source_sha256": "c7d5614d21dc17e4943c540acfea4cf99268d6230978cb53e77c439ae71106cf",
+      "target_sha256": "c7d5614d21dc17e4943c540acfea4cf99268d6230978cb53e77c439ae71106cf"
+    },
+    {
+      "path": "skills/specnav-break-loop/SKILL.md",
+      "transform": "claude-code-skill-v1",
+      "source_sha256": "fad2825376ce417fed006e144dce5ddbef7b030828d93abd4fbbb297632e3cce",
+      "target_sha256": "42ccb90d46b952e3bb336f2043b49d7641c8a415902d8e251e4e6bafbd2c2710"
+    }
+  ]
+}

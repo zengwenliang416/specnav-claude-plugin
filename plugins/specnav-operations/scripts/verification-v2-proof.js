@@ -410,6 +410,7 @@ function completeGateInput(input, change) {
     && /^[a-f0-9]{64}$/.test(input.case_snapshot_hash || '')
     && isConcreteString(input.case_approval_id)
     && isConcreteString(input.case_approval_reviewer_id)
+    && isConcreteString(input.generation_id)
     && isRecord(aggregation)
     && aggregation.change_id === change
     && Array.isArray(aggregation.case_ids)
@@ -627,6 +628,12 @@ function validateReportModel(
   }
   if (model.sources.gate_decision_id !== releaseGate.id) {
     blockers.push(blocker('verification-release:report-gate-mismatch', artifact));
+  }
+  if (model.sources.generation_id !== input.generation_id) {
+    blockers.push(blocker(
+      'verification-release:report-generation-mismatch',
+      artifact
+    ));
   }
   try {
     const aggregate = kernel.createSixDomainAggregator({
@@ -1537,7 +1544,7 @@ function validateHostInstallations(
       node: preloadedCommand('runtime-doctor'),
       git: preloadedCommand('remote-ref'),
       bash: preloadedCommand('host-smoke'),
-      npm: preloadedCommand('dependency-install', host === 'dsh' ? 'dsh' : 'codefree-o'),
+      npm: preloadedCommand('dependency-install', 'codefree-o'),
       sandbox: preloadedCommand('runtime-doctor')
     };
     const tools = Object.fromEntries(
@@ -1919,6 +1926,7 @@ function atomicWriteJson(changeDir, relative, value) {
 function createReleaseProofValidator(options = {}) {
   const clock = options.clock || (() => new Date().toISOString());
   const runtimeAuthority = options.runtimeAuthority || null;
+  const requireHostProof = options.requireHostProof === true;
   const expectedHostRunnerSourceSha256 = options.expectedHostRunnerSourceSha256
     || hostProofRunnerSourceDigest(LOCAL_REPOSITORY_ROOT);
   const expectedFixtureManifestSha256 = options.expectedFixtureManifestSha256
@@ -2086,12 +2094,14 @@ function createReleaseProofValidator(options = {}) {
       'verify/evidence/index.json',
       blockers
     );
-    const pointerRead = readJson(
-      changeDir,
-      'operations/host-proof-current.json',
-      'operations/host-proof-current.json',
-      blockers
-    );
+    const pointerRead = requireHostProof
+      ? readJson(
+        changeDir,
+        'operations/host-proof-current.json',
+        'operations/host-proof-current.json',
+        blockers
+      )
+      : { value: null, bytes: null };
     const canonicalReads = {
       runs: readJsonValue(
         changeDir,
@@ -2186,6 +2196,7 @@ function createReleaseProofValidator(options = {}) {
     let trustedFactAuthority = options.trustedFactAuthority || null;
     let canonicalRebuild = null;
     let currentFingerprints = null;
+    let activeGeneration = null;
     if (inputComplete) {
       approval = validateApproval(
         schemaRegistry,
@@ -2229,19 +2240,98 @@ function createReleaseProofValidator(options = {}) {
             runtimeResolution.runtimeStatus,
             runtimeResolution.authority
           );
-          canonicalRebuild = kernel.createVerificationArtifactPipeline({
-            kernel,
-            schemaRegistry,
+          const artifactStore = kernel.createVerificationArtifactStore({
             changeRoot: changeDir,
-            verificationRoot: path.join(changeDir, 'verify'),
-            snapshot: approval.snapshot,
-            approval: approval.approval,
-            currentFingerprints,
-            trustedFactAuthority,
-            clock: () => input.freshness.checked_at,
-            secrets: [],
-            policyVersion: input.policy_version
-          }).build({ persist: false });
+            root: path.join(changeDir, 'verify')
+          });
+          const generationRead = artifactStore.readJsonl(
+            'v2/generations.jsonl'
+          );
+          if (!generationRead.ok) {
+            blockers.push(...generationRead.blockers);
+          } else {
+            const generationAuthority =
+              kernel.createVerificationGenerationAuthority({
+                schemaRegistry,
+                key: runtimeResolution.signingKey,
+                clock: () => input.freshness.checked_at
+              });
+            const generationLog = generationAuthority.validateLog(
+              generationRead.value,
+              change
+            );
+            if (!generationLog.ok) {
+              blockers.push(...generationLog.blockers);
+            } else if (!generationLog.active) {
+              blockers.push(blocker(
+                'verification-generation:active-required',
+                'verify/v2/generations.jsonl'
+              ));
+            } else {
+              const collected = kernel.collectGenerationState({
+                store: artifactStore,
+                changeId: change,
+                reviewerId: approval.approval.reviewer.id,
+                snapshot: approval.snapshot,
+                currentFingerprints,
+                parentGenerationId: generationLog.active.id
+              });
+              if (!collected.ok) {
+                blockers.push(...collected.blockers);
+              } else {
+                const generationState = structuredClone(collected.state);
+                generationState.historical_break_loop_failure_ids = [
+                  ...new Set([
+                    ...generationLog.active
+                      .historical_break_loop_failure_ids,
+                    ...generationState.historical_break_loop_failure_ids
+                  ])
+                ].sort();
+                const validatedGeneration =
+                  generationAuthority.validateActive(
+                    generationLog.active,
+                    generationState
+                  );
+                if (!validatedGeneration.ok) {
+                  blockers.push(...validatedGeneration.blockers);
+                } else if (
+                  input.generation_id
+                    !== validatedGeneration.generation.id
+                ) {
+                  blockers.push(blocker(
+                    'verification-generation:active-binding-mismatch',
+                    input.generation_id
+                  ));
+                } else {
+                  activeGeneration = validatedGeneration.generation;
+                }
+              }
+            }
+          }
+          if (activeGeneration) {
+            canonicalRebuild = kernel.createVerificationArtifactPipeline({
+              kernel,
+              schemaRegistry,
+              changeRoot: changeDir,
+              verificationRoot: path.join(changeDir, 'verify'),
+              snapshot: approval.snapshot,
+              approval: approval.approval,
+              currentFingerprints,
+              activeGeneration,
+              trustedFactAuthority,
+              clock: () => input.freshness.checked_at,
+              secrets: [],
+              policyVersion: input.policy_version
+            }).build({ persist: false });
+          }
+          if (!canonicalRebuild) {
+            canonicalRebuild = {
+              ok: false,
+              blockers: blockers.filter((entry) => (
+                entry.id.startsWith('verification-generation:')
+              ))
+            };
+          }
           if (!canonicalRebuild.ok) {
             blockers.push(blocker(
               'verification-release:canonical-rebuild-blocked',
@@ -2344,42 +2434,44 @@ function createReleaseProofValidator(options = {}) {
         gate_input_sha256: inputRead.bytes ? sha256(inputRead.bytes) : null,
         evidence_index_digest: evidenceIndex?.source_digest || null
       };
-      hostBundle = loadHostProofBundle(
-        schemaRegistry,
-        changeDir,
-        pointerRead,
-        change,
-        runtimeResolution?.authority,
-        blockers
-      );
-      if (hostBundle && trustedFactAuthority) {
-        hosts = validateHostInstallations(
+      if (requireHostProof) {
+        hostBundle = loadHostProofBundle(
           schemaRegistry,
-          trustedFactAuthority,
           changeDir,
-          hostBundle.index.value,
-          releaseBindings,
-          hostBundle.pointer,
-          hostBundle.lock.validated,
+          pointerRead,
+          change,
           runtimeResolution?.authority,
-          expectedHostRunnerSourceSha256,
-          expectedFixtureManifestSha256,
-          currentFingerprints?.code_sha,
           blockers
         );
-        compatibility = validateCompatibility(
-          schemaRegistry,
-          hostBundle.compatibility.value,
-          input,
-          hosts,
-          releaseBindings,
-          hostBundle.pointer,
-          hostBundle.lock.validated,
-          blockers
-        );
-        hostAuthorityResult = compatibility
-          ? { summary: compatibility.authority_summary }
-          : null;
+        if (hostBundle && trustedFactAuthority) {
+          hosts = validateHostInstallations(
+            schemaRegistry,
+            trustedFactAuthority,
+            changeDir,
+            hostBundle.index.value,
+            releaseBindings,
+            hostBundle.pointer,
+            hostBundle.lock.validated,
+            runtimeResolution?.authority,
+            expectedHostRunnerSourceSha256,
+            expectedFixtureManifestSha256,
+            currentFingerprints?.code_sha,
+            blockers
+          );
+          compatibility = validateCompatibility(
+            schemaRegistry,
+            hostBundle.compatibility.value,
+            input,
+            hosts,
+            releaseBindings,
+            hostBundle.pointer,
+            hostBundle.lock.validated,
+            blockers
+          );
+          hostAuthorityResult = compatibility
+            ? { summary: compatibility.authority_summary }
+            : null;
+        }
       }
     }
     const reports = validateReports(
@@ -2431,6 +2523,7 @@ function createReleaseProofValidator(options = {}) {
       case_approval_id: approval.approval?.id || null,
       case_approval_reviewer_id: approval.approval?.reviewer?.id || null,
       runtime_authority: runtimeResolution?.authority || null,
+      host_proof_required: requireHostProof,
       host_authority: hostAuthorityResult?.summary || null,
       release_gate: releaseGate ? {
         id: releaseGate.id,
@@ -2520,7 +2613,9 @@ function main() {
   const projectRoot = process.env.PROJECT_DIR || process.cwd();
   const changeIndex = args.indexOf('--change');
   const change = changeIndex >= 0 ? args[changeIndex + 1] : null;
-  const validator = createReleaseProofValidator();
+  const validator = createReleaseProofValidator({
+    requireHostProof: args.includes('--require-host-proof')
+  });
   const result = validator.validate(projectRoot, change);
   process.stdout.write(
     args.includes('--json')

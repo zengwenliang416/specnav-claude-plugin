@@ -5,7 +5,7 @@ description: Use this skill when SpecNav needs release or archive readiness, ope
 
 ## Runtime Paths
 
-Resolve every `SPECNAV_*_ROOT` variable with the owning SpecNav command's installed-cache resolver before running Bash. Do not rely on `CLAUDE_PLUGIN_ROOT`; it is only guaranteed inside Claude Code hook processes. If a required installed plugin root cannot be resolved, report the exact blocker and stop.
+Resolve every `SPECNAV_*_ROOT` variable with the owning SpecNav Codex plugin resolver before running Bash. Codex plugin code must use `PLUGIN_ROOT` and explicit `SPECNAV_*_ROOT` overrides. If a required installed plugin root cannot be resolved, report the exact blocker and stop.
 
 # SpecNav Ops Readiness
 
@@ -15,6 +15,19 @@ Build the final operations readiness decision.
 
 ## Workflow
 
+Before declaring readiness, run the Operations gate:
+
+```bash
+node "$SPECNAV_OPERATIONS_ROOT/scripts/operations-gate.js" --json
+```
+
+Treat every returned blocker as release-blocking. Do not accept legacy green
+aggregates, HTML text, light verification, partial-domain evidence, fallback,
+or a manual green override. The gate requires cross-host proof only when
+`release_target` is `plugin-marketplace` or `host-compatibility`; ordinary
+project and package targets validate only the current project's Verification
+proof.
+
 1. Read verification aggregate report, receipt, blocker classification, development handoff, `tasks.md`, `development/migrations/manifest.json`, release plan, git state, and operations artifacts.
 2. Write readiness from direct evidence only.
 3. Read `references/operations-readiness.md` before writing readiness.
@@ -23,7 +36,7 @@ Build the final operations readiness decision.
 6. Run `node "$SPECNAV_OPERATIONS_ROOT/scripts/operations-gate.js" --json` before and after edits.
 7. Treat `tasks.md` checkbox state as evidence: plain bullets must be normalized first, unchecked tasks are `tasks-md:incomplete-checkboxes`, and no checked task is `tasks-md:no-completed-checkboxes`. Never imply completion from the absence of `- [ ]`.
 8. If `development/migrations/manifest.json` has `required=true`, release target must be `project-deploy`, `readiness.json` must set `ops.migrations` to `pass`, and `operations/migration-deployment.json` must record applied migration ids, evidence refs, and rollback refs or strategy.
-9. For final archive, run `/specnav-archive <change>` or `node "$SPECNAV_OPERATIONS_ROOT/scripts/archive-change.js" --change <change> --json`. Do not manually `mv openspec/changes/<change>` or hand-edit `openspec/.specnav/change-registry.json`.
+9. For final archive, run `node "$SPECNAV_OPERATIONS_ROOT/scripts/archive-change.js" --change <change> --json`. Do not manually move `openspec/changes/<change>` or hand-edit `openspec/.specnav/change-registry.json`.
 
 ## Required Outputs
 
