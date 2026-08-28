@@ -14,6 +14,7 @@ const REQUEST_FIELDS = Object.freeze([
   'runs',
   'attempts',
   'attempt_facts',
+  'historical_artifact_loss',
   'repair_link',
   'repair_recovery',
   'repair_rebind',
@@ -41,6 +42,7 @@ const TRUSTED_PRODUCERS = Object.freeze({
   repair_link: 'specnav-development-repair-bridge',
   repair_recovery: 'specnav-repair-lineage-recovery',
   repair_rebind: 'specnav-repair-generation-rebind',
+  historical_artifact_loss: 'specnav-historical-artifact-loss-recorder',
   attempt_fact: 'specnav-execution-evidence',
   rerun_plan: 'specnav-case-rerun-planner'
 });
@@ -62,6 +64,12 @@ const REQUIRED_CLAIMS = Object.freeze({
     'repair-rebind:human-approved',
     'repair-rebind:previous-generation-preserved',
     'repair-rebind:scope-verified'
+  ]),
+  historical_artifact_loss: Object.freeze([
+    'artifact-loss:human-approved',
+    'artifact-loss:classification-bound',
+    'artifact-loss:history-unrecoverable',
+    'artifact-loss:no-integrity-claim'
   ]),
   attempt_fact: Object.freeze([
     'attempt-binding:verified',
@@ -177,6 +185,71 @@ function compareAttempts(left, right) {
 
 function orderedAttempts(values) {
   return [...values].sort(compareAttempts);
+}
+
+function deriveLoopBreak(
+  packet,
+  attempts,
+  factsByAttempt,
+  noProgressThreshold,
+  attemptBudget
+) {
+  const relevant = orderedAttempts(attempts.filter((attempt) => (
+    attempt.case_id === packet.case_id
+    && ['initial', 'retry', 'retest'].includes(attempt.kind)
+  )));
+  const failedAttempts = relevant.filter((attempt) => (
+    ['fail', 'blocked'].includes(factsByAttempt.get(attempt.id)?.verdict)
+  ));
+  const latest = relevant.at(-1);
+  const latestFact = latest ? factsByAttempt.get(latest.id) : null;
+  if (!latestFact || latestFact.verdict === 'pass') return null;
+
+  let blockerDigest = null;
+  let consecutiveFailures = 0;
+  for (const attempt of [...relevant].reverse()) {
+    const fact = factsByAttempt.get(attempt.id);
+    if (!fact || fact.verdict === 'pass') break;
+    const digest = sha256(canonicalJson({
+      failure_id: packet.id,
+      classification: packet.classification,
+      case_id: packet.case_id,
+      failed_assertion_ids: sorted(packet.failed_assertion_ids),
+      verdict: fact.verdict
+    }));
+    if (blockerDigest !== null && digest !== blockerDigest) break;
+    blockerDigest = digest;
+    consecutiveFailures += 1;
+  }
+
+  const triggers = [];
+  if (consecutiveFailures >= noProgressThreshold) {
+    triggers.push('same-blocker');
+  }
+  if (failedAttempts.length >= attemptBudget) {
+    triggers.push('attempt-budget');
+  }
+  if (triggers.length === 0) return null;
+  return {
+    blocker_digest: blockerDigest,
+    consecutive_failures: consecutiveFailures,
+    attempt_count: failedAttempts.length,
+    no_progress_threshold: noProgressThreshold,
+    attempt_budget: attemptBudget,
+    triggers
+  };
+}
+
+function isTrustedInitialFailure(packet, attempt, fact) {
+  if (!attempt || !fact) return false;
+  if (attempt.status === 'passed') {
+    return fact.verdict === 'pass'
+      && packet.reading_ids.length > 0
+      && packet.failed_assertion_ids.length > 0;
+  }
+  if (attempt.status === 'blocked') return fact.verdict === 'blocked';
+  if (attempt.status === 'failed') return fact.verdict === 'fail';
+  return false;
 }
 
 function rerunScopeProjection(plan) {
@@ -341,6 +414,55 @@ function classificationState(envelope, schemaRegistry, trustVerifier) {
     };
   }
   return { packet, signal, classificationEnvelope: trusted.envelope };
+}
+
+function validateHistoricalArtifactLoss(
+  schemaRegistry,
+  trustVerifier,
+  packet,
+  classificationEnvelope,
+  rawEnvelope
+) {
+  const trusted = verifyEnvelope(
+    schemaRegistry,
+    trustVerifier,
+    'historical_artifact_loss',
+    rawEnvelope,
+    {
+      failure_id: packet.id,
+      change_id: packet.change_id,
+      run_id: packet.run_id,
+      case_id: packet.case_id,
+      attempt_id: packet.attempt_id
+    }
+  );
+  if (trusted.blocker) return trusted;
+  const artifactLoss = schemaValue(
+    schemaRegistry,
+    'historical-artifact-loss',
+    trusted.payload
+  );
+  if (
+    !artifactLoss
+    || artifactLoss.failure_id !== packet.id
+    || artifactLoss.change_id !== packet.change_id
+    || artifactLoss.run_id !== packet.run_id
+    || artifactLoss.case_id !== packet.case_id
+    || artifactLoss.attempt_id !== packet.attempt_id
+    || artifactLoss.classification !== packet.classification
+    || artifactLoss.classification_envelope_digest
+      !== sha256(canonicalJson(classificationEnvelope))
+    || artifactLoss.status !== 'unrecoverable'
+    || artifactLoss.permitted_transition !== 'route_break_loop'
+  ) {
+    return {
+      blocker: blocker(
+        'verification-repair-loop:historical-artifact-loss-invalid',
+        rawEnvelope?.id || packet.id
+      )
+    };
+  }
+  return { artifactLoss, envelope: trusted.envelope };
 }
 
 function validateFacts(
@@ -616,7 +738,7 @@ function validateAttempts(
       || first.change_id !== packet.change_id
       || first.run_id !== packet.run_id
       || first.case_id !== packet.case_id
-      || !['failed', 'blocked'].includes(first.status)
+      || !['passed', 'failed', 'blocked'].includes(first.status)
     )
   ) {
     blockers.push(blocker(
@@ -675,7 +797,7 @@ function validateAttempts(
   );
   blockers.push(...factResult.blockers);
   const firstFact = first ? factResult.factsByAttempt.get(first.id) : null;
-  if (firstFact && !['fail', 'blocked'].includes(firstFact.verdict)) {
+  if (firstFact && !isTrustedInitialFailure(packet, first, firstFact)) {
     blockers.push(blocker(
       'verification-repair-loop:initial-failure-fact-required',
       first.id
@@ -1119,7 +1241,9 @@ function createRepairLoopStateMachine(options = {}) {
     schemaRegistry,
     trustVerifier,
     rerunScopeAuthority,
-    clock = () => new Date().toISOString()
+    clock = () => new Date().toISOString(),
+    noProgressThreshold = 3,
+    attemptBudget = 5
   } = options;
   if (
     !schemaRegistry
@@ -1129,6 +1253,10 @@ function createRepairLoopStateMachine(options = {}) {
     || !rerunScopeAuthority
     || typeof rerunScopeAuthority.resolve !== 'function'
     || typeof clock !== 'function'
+    || !Number.isInteger(noProgressThreshold)
+    || noProgressThreshold < 1
+    || !Number.isInteger(attemptBudget)
+    || attemptBudget < 1
   ) {
     throw new Error('verification-repair-loop:config-invalid');
   }
@@ -1238,7 +1366,60 @@ function createRepairLoopStateMachine(options = {}) {
       trustVerifier
     );
     if (classification.blocker) return blocked([classification.blocker]);
-    const { packet, signal } = classification;
+    const {
+      packet,
+      signal,
+      classificationEnvelope
+    } = classification;
+    if (request.historical_artifact_loss !== undefined) {
+      const conflictingAuthority = [
+        request.repair_link,
+        request.repair_recovery,
+        request.repair_rebind,
+        request.rerun_plan
+      ].some((entry) => entry !== undefined);
+      if (
+        signal !== null
+        || conflictingAuthority
+        || !Array.isArray(request.runs)
+        || request.runs.length > 0
+        || !Array.isArray(request.attempts)
+        || request.attempts.length > 0
+        || !Array.isArray(request.attempt_facts)
+        || request.attempt_facts.length > 0
+      ) {
+        return blocked([
+          blocker(
+            'verification-repair-loop:historical-artifact-loss-authority-ambiguous',
+            packet.id
+          )
+        ]);
+      }
+      const artifactLossState = validateHistoricalArtifactLoss(
+        schemaRegistry,
+        trustVerifier,
+        packet,
+        classificationEnvelope,
+        request.historical_artifact_loss
+      );
+      if (artifactLossState.blocker) {
+        return blocked([artifactLossState.blocker]);
+      }
+      return result({
+        packet,
+        status: 'break_loop_required',
+        label: 'blocked',
+        history: [],
+        action: 'route_break_loop',
+        caseIds: [packet.case_id],
+        attempts: [],
+        reasonIds: [
+          'historical-artifact-loss:unrecoverable',
+          `historical-artifact-loss:${artifactLossState.artifactLoss.id}`,
+          `historical-artifact-loss-review:${artifactLossState.artifactLoss.review_id}`
+        ]
+      });
+    }
     const attemptState = validateAttempts(
       schemaRegistry,
       trustVerifier,
@@ -1302,8 +1483,28 @@ function createRepairLoopStateMachine(options = {}) {
       repairLink = rebind.link;
     }
     const history = buildHistory(attempts, factsByAttempt, repairLink);
+    const automaticLoop = deriveLoopBreak(
+      packet,
+      attempts,
+      factsByAttempt,
+      noProgressThreshold,
+      attemptBudget
+    );
 
-    if (signal) {
+    if (signal || automaticLoop) {
+      const reasonIds = signal
+        ? [
+            'no-progress-source:classifier',
+            `no-progress-threshold:${signal.threshold}`,
+            `no-progress-count:${signal.no_progress_count}`
+          ]
+        : [
+            'no-progress-source:attempt-history',
+            `blocker-digest:${automaticLoop.blocker_digest}`,
+            `consecutive-failures:${automaticLoop.consecutive_failures}`,
+            `attempt-count:${automaticLoop.attempt_count}`,
+            ...automaticLoop.triggers.map((trigger) => `loop-trigger:${trigger}`)
+          ];
       return result({
         packet,
         status: 'break_loop_required',
@@ -1312,10 +1513,7 @@ function createRepairLoopStateMachine(options = {}) {
         action: 'route_break_loop',
         caseIds: [packet.case_id],
         attempts,
-        reasonIds: [
-          `no-progress-threshold:${signal.threshold}`,
-          `no-progress-count:${signal.no_progress_count}`
-        ],
+        reasonIds,
         repairLink
       });
     }

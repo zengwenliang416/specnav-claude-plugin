@@ -14,6 +14,8 @@ const APPROVAL_BLOCKERS = new Map([
   ['runtime-repair', 'runtime-approval-required'],
   ['repair-recover', 'transition-approval-required'],
   ['repair-rebind', 'transition-approval-required'],
+  ['repair-artifact-loss-record', 'artifact-loss-approval-required'],
+  ['generation-activate', 'generation-approval-required'],
   ['repair-transition-apply', 'transition-approval-required'],
   ['migrate-apply', 'mutation-approval-required'],
   ['migrate-rollback', 'mutation-approval-required']
@@ -30,12 +32,15 @@ const SUPPORTED_ACTIONS = new Set([
   'runtime-status',
   'runtime-setup',
   'runtime-repair',
+  'generation-prepare',
+  'generation-activate',
   'repair-classify',
   'repair-request',
   'repair-start',
   'repair-complete',
   'repair-recover',
   'repair-rebind',
+  'repair-artifact-loss-record',
   'repair-rerun-plan',
   'repair-evaluate',
   'repair-transition-apply',
@@ -84,12 +89,15 @@ const ACTIONS = Object.freeze([
   ['runtime-status', false],
   ['runtime-setup', true],
   ['runtime-repair', true],
+  ['generation-prepare', false],
+  ['generation-activate', true],
   ['repair-classify', false],
   ['repair-request', false],
   ['repair-start', false],
   ['repair-complete', false],
   ['repair-recover', true],
   ['repair-rebind', true],
+  ['repair-artifact-loss-record', true],
   ['repair-rerun-plan', false],
   ['repair-evaluate', false],
   ['repair-transition-apply', true],
@@ -337,7 +345,10 @@ function createVerificationHostAdapter(options = {}) {
       execution = options.execute({
         action,
         project_root: request.project_root,
-        options: commandOptions
+        options: {
+          ...commandOptions,
+          approved: request.approved === true
+        }
       });
     } catch (error) {
       return blocked(
@@ -457,6 +468,29 @@ function commandFor(pluginRoot, request) {
       '--json'
     ];
   }
+  if (
+    request.action === 'generation-prepare'
+    || request.action === 'generation-activate'
+  ) {
+    return [
+      path.join(scripts, 'verification-v2-run.js'),
+      request.action,
+      '--project',
+      request.project_root,
+      ...optionArgs(options, [
+        ['change', '--change'],
+        ['reviewer_id', '--reviewer-id'],
+        ['generation_review', '--generation-review'],
+        ['case_snapshot', '--snapshot'],
+        ['case_approval', '--approval'],
+        ['requirements_source', '--requirements'],
+        ['acceptance_source', '--acceptance'],
+        ['runtime_status', '--runtime-status']
+      ]),
+      ...(options.approved === true ? ['--approved'] : []),
+      '--json'
+    ];
+  }
   if (request.action === 'aggregate' || request.action === 'report') {
     return [
       path.join(scripts, 'verification-v2-run.js'),
@@ -534,6 +568,7 @@ function commandFor(pluginRoot, request) {
       'repair-complete': 'repair-complete',
       'repair-recover': 'repair-recover',
       'repair-rebind': 'repair-rebind',
+      'repair-artifact-loss-record': 'artifact-loss-record',
       'repair-rerun-plan': 'rerun-plan',
       'repair-evaluate': 'evaluate',
       'repair-transition-apply': 'transition-apply',
@@ -553,6 +588,7 @@ function commandFor(pluginRoot, request) {
         ['scope', '--scope'],
         ['recovery_review', '--recovery-review'],
         ['rebind_review', '--rebind-review'],
+        ['artifact_loss_review', '--artifact-loss-review'],
         ['spec_review', '--spec-review'],
         ['quality_review', '--quality-review'],
         ['proposal_id', '--proposal-id'],
@@ -683,6 +719,7 @@ function parseCli(args) {
     scope: argValue(args, '--scope'),
     recovery_review: argValue(args, '--recovery-review'),
     rebind_review: argValue(args, '--rebind-review'),
+    artifact_loss_review: argValue(args, '--artifact-loss-review'),
     spec_review: argValue(args, '--spec-review'),
     quality_review: argValue(args, '--quality-review'),
     proposal_id: argValue(args, '--proposal-id'),
@@ -696,6 +733,7 @@ function parseCli(args) {
     traceability: argValue(args, '--traceability'),
     codegraph_impact: argValue(args, '--codegraph-impact'),
     runtime_status: argValue(args, '--runtime-status'),
+    generation_review: argValue(args, '--generation-review'),
     scenario_registry: argValue(args, '--scenario-registry'),
     render: args.includes('--render'),
     requires_midscene: args.includes('--requires-midscene'),
