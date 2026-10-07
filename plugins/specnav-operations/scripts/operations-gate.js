@@ -562,6 +562,7 @@ function validateOperations(root = lib.projectRoot()) {
   );
   artifacts.push(verificationV2.artifact);
   blockers.push(...verificationV2.artifact.blockers);
+  if (lane === 'light') blockers.push('verification-not-green');
   if (risk.tier === 'high-risk' && !signoff) blockers.push('high-risk-signoff');
 
   artifacts.push(validateTasksMarkdown(changeDir, change));

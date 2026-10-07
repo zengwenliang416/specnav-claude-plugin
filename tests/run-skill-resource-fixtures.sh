@@ -100,19 +100,19 @@ assert_file "openspec/changes/$CHANGE/development/prototype-promotion-map.json"
 run_json "$SCOPE"
 assert_file "openspec/changes/$CHANGE/scope.json"
 
-run_json "$SLICE" --task-id=slice-001
+run_json "$SLICE" --task-id=001-primary-flow
 assert_blocks_with missing-task-id node "$SLICE"
 assert_blocks_with missing-option-value:--task-id node "$SLICE" --task-id --json
 assert_blocks_with invalid-task-id node "$SLICE" --task-id=../../outside
 assert_file "openspec/changes/$CHANGE/tasks.md"
 grep -Fq -- '- [ ] User can complete the primary approved flow from the prototype handoff.' "$PROJECT/openspec/changes/$CHANGE/tasks.md"
-assert_file "openspec/changes/$CHANGE/development/tasks/slice-001/brief.md"
-assert_file "openspec/changes/$CHANGE/development/tasks/slice-001/context.json"
+assert_file "openspec/changes/$CHANGE/development/tasks/001-primary-flow/brief.md"
+assert_file "openspec/changes/$CHANGE/development/tasks/001-primary-flow/context.json"
 assert_file "openspec/changes/$CHANGE/development/handoff-to-verify.md"
 assert_file "openspec/changes/$CHANGE/codegraph/claims-map.json"
 assert_file "openspec/changes/$CHANGE/codegraph/evidence-query-plan.json"
-jq -e '.claims[] | select(.stage == "development" and .task_id == "slice-001")' "$PROJECT/openspec/changes/$CHANGE/codegraph/claims-map.json" >/dev/null
-jq -e '.queries[] | select(.stage == "development" and .claim_id == "development:task-slice-001")' "$PROJECT/openspec/changes/$CHANGE/codegraph/evidence-query-plan.json" >/dev/null
+jq -e '.claims[] | select(.stage == "development" and .task_id == "001-primary-flow")' "$PROJECT/openspec/changes/$CHANGE/codegraph/claims-map.json" >/dev/null
+jq -e '.queries[] | select(.stage == "development" and .claim_id == "development:task-001-primary-flow")' "$PROJECT/openspec/changes/$CHANGE/codegraph/evidence-query-plan.json" >/dev/null
 
 cat >"$PROJECT/openspec/changes/$CHANGE/tasks.md" <<'MD'
 # Tasks

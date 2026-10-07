@@ -425,9 +425,56 @@ function isDangerousCommand(command) {
   return DANGEROUS_COMMAND_PATTERNS.some((pattern) => pattern.test(command));
 }
 
+const MOD_GATE_SCHEMA = 'specnav.mod-gate.v1';
+const TOOL_USE_ID_PATTERN = /^[\w-]{1,128}$/;
+
+function modGateReceiptFile(root, payload) {
+  const raw = payload && typeof payload.tool_use_id === 'string' ? payload.tool_use_id.trim() : '';
+  if (!TOOL_USE_ID_PATTERN.test(raw)) return null;
+  return path.join(lib.specnavDir(root), `mod-gate-${raw}.json`);
+}
+
+// The mod child records the hit. A later settings-hook invocation of the same
+// tool call replays that child's stdout, including a warn systemMessage, and
+// does not evaluate the gate again. No tool_use_id (the fixture payloads)
+// leaves this inert.
+function readModGateReceipt(root, payload) {
+  if (process.env.SPECNAV_GATE_CALLER === 'mod') return null;
+  const file = modGateReceiptFile(root, payload);
+  if (!file) return null;
+  const receipt = lib.readJson(file, null);
+  if (!receipt || receipt.schema !== MOD_GATE_SCHEMA) return null;
+  const sessionId = payload && typeof payload.session_id === 'string' ? payload.session_id : '';
+  if (receipt.session_id && sessionId && receipt.session_id !== sessionId) return null;
+  return {
+    exitCode: receipt.exitCode === 2 ? 2 : 0,
+    stdout: typeof receipt.stdout === 'string' ? receipt.stdout : '',
+    stderr: typeof receipt.stderr === 'string' ? receipt.stderr : ''
+  };
+}
+
 function main() {
   const root = lib.projectRoot();
   const payload = readStdinJson();
+  if (process.env.SPECNAV_GATE_CALLER === 'mod') {
+    // Only an openspec/ that already exists may receive the receipt directory.
+    // Creating openspec/ here would make hasOpenSpec true and govern a project
+    // that has not opted in.
+    if (fs.existsSync(lib.openspecDir(root))) {
+      try {
+        lib.ensureDir(lib.specnavDir(root));
+      } catch {
+        // The mod still gates. The receipt write is best-effort.
+      }
+    }
+  } else {
+    const replay = readModGateReceipt(root, payload);
+    if (replay) {
+      if (replay.stdout) process.stdout.write(replay.stdout);
+      if (replay.stderr) process.stderr.write(replay.stderr);
+      process.exit(replay.exitCode);
+    }
+  }
   const normalized = normalizePayload(payload);
   const sessionId = typeof payload.session_id === 'string' && payload.session_id
     ? payload.session_id

@@ -10,7 +10,7 @@
   "files": [
     {
       "path": "scripts/operations-gate.js",
-      "sha256": "86cef1b3557c1ccb21889a481e5f473cd80696b13cc044a92b037a2a5d7e2258"
+      "sha256": "22ce4a7f3f3cbe6688e2268fef37246c88f605792a4da4e4eb55d0fa20560b49"
     },
     {
       "path": "scripts/safe-filesystem.js",
@@ -26,7 +26,7 @@
     },
     {
       "path": "scripts/verification-v2-host-contract.js",
-      "sha256": "86cd9f01d8ab043b753dd97fd65a91b3f30e9d575538ae545807f314c985f639"
+      "sha256": "95df2ceabbfe69981fa17cac6c1c2b79199005ae3f14dd0e2e550719fdca5787"
     },
     {
       "path": "scripts/verification-v2-pointer-chain.js",

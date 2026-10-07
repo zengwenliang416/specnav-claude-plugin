@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="README.zh-CN.md">中文</a> ·
-  <a href="#install-from-github">Install</a> ·
+  <a href="#install">Install</a> ·
   <a href="#how-the-flow-works">Flow</a> ·
   <a href="#stage-atlas">Stage Atlas</a> ·
   <a href="#skills">Skills</a> ·
@@ -96,59 +96,87 @@ Future SpecNav diagrams should follow the project visual memory:
   </tr>
 </table>
 
-## Install From GitHub
+## Install
 
-Add this repository as a Claude Code marketplace, then install and enable all
-seven plugins:
-
-```bash
-claude plugin marketplace add zengwenliang416/specnav-claude-plugin
-
-claude plugin install specnav-core@specnav-marketplace
-claude plugin install specnav-requirements@specnav-marketplace
-claude plugin install specnav-prototype@specnav-marketplace
-claude plugin install specnav-development@specnav-marketplace
-claude plugin install specnav-verification@specnav-marketplace
-claude plugin install specnav-operations@specnav-marketplace
-claude plugin install specnav-codegraph@specnav-marketplace
-
-claude plugin enable specnav-core@specnav-marketplace
-claude plugin enable specnav-requirements@specnav-marketplace
-claude plugin enable specnav-prototype@specnav-marketplace
-claude plugin enable specnav-development@specnav-marketplace
-claude plugin enable specnav-verification@specnav-marketplace
-claude plugin enable specnav-operations@specnav-marketplace
-claude plugin enable specnav-codegraph@specnav-marketplace
-```
-
-Validate the marketplace if you are working from a local checkout:
+`install.js` at the repository root installs all seven plugins and chooses
+where Claude Code records them. The default marketplace source is `origin`,
+currently `https://github.com/zengwenliang416/specnav-claude-plugin.git`.
 
 ```bash
-claude plugin validate "$PWD"
+node install.js --help
+node install.js --user
+node install.js --project /path/to/app
+node install.js --local /path/to/app
 ```
 
-Start a fresh Claude Code session after installing or updating commands, skills,
-hooks, agents, or scripts. Existing sessions may not see newly installed
-capabilities.
+With no flag, a terminal asks for `1` user, `2` project, or `3` local. A
+non-interactive run with no flag exits 2. Only one scope is accepted. The
+target must already exist, must not be a symlink, and must not be this plugin
+repository.
 
-## Local Development Install
+Each plugin id is `<name>@specnav-marketplace`. The installer runs
+`marketplace add`, `plugin install --yes`, and `plugin enable` for every
+plugin. An existing marketplace, an already installed plugin, and an already
+enabled plugin are success. Plugin files are still cached under
+`~/.claude/plugins/`, whichever scope you pick. The current session does not
+see the new commands. Start a new Claude Code session, or run
+`/reload-plugins` in the session.
 
-From a local checkout:
+### User scope
+
+`node install.js --user` writes the current user's `~/.claude/settings.json`
+(`$CLAUDE_CONFIG_DIR` changes that directory). Projects on this machine can
+discover the suite.
+
+### Project scope
+
+`node install.js --project /path/to/app` writes `<app>/.claude/settings.json`.
+Commit that file so collaborators enable the same plugins. The file does not
+download them. Each person still runs the installer once on their own machine.
+Precedence is local, then project, then user.
+
+### Local scope
+
+`node install.js --local /path/to/app` is this user and this project only. It
+writes `.claude/settings.local.json` and appends that path to `.gitignore`
+unless `.gitignore` is a symlink or already ignores `.claude/`. Do not commit
+`settings.local.json`.
+
+### Local checkout
+
+Use the checkout as the marketplace source so development does not clone
+GitHub:
 
 ```bash
 git clone https://github.com/zengwenliang416/specnav-claude-plugin.git
 cd specnav-claude-plugin
-
-claude plugin marketplace add "$PWD"
-
-claude plugin install specnav-core@specnav-marketplace
-claude plugin install specnav-requirements@specnav-marketplace
-claude plugin install specnav-prototype@specnav-marketplace
-claude plugin install specnav-development@specnav-marketplace
-claude plugin install specnav-verification@specnav-marketplace
-claude plugin install specnav-operations@specnav-marketplace
-claude plugin install specnav-codegraph@specnav-marketplace
+node install.js --user --source "$PWD"
+node install.js --project /path/to/app --source "$PWD"
 ```
+
+`--source` accepts a Git URL or a local path, including a `#ref`. Whitespace
+is rejected. The same install without the helper:
+
+```bash
+claude plugin marketplace add --scope user https://github.com/zengwenliang416/specnav-claude-plugin.git
+claude plugin install specnav-core@specnav-marketplace --scope user --yes
+claude plugin enable specnav-core@specnav-marketplace --scope user
+```
+
+Repeat install and enable for `specnav-requirements`, `specnav-prototype`,
+`specnav-development`, `specnav-verification`, `specnav-operations`, and
+`specnav-codegraph`. For project or local scope, change `--scope` and run the
+commands in the target project.
+
+Update one plugin at the scope where it was installed:
+
+```bash
+claude plugin update specnav-core@specnav-marketplace --scope user
+```
+
+### Claude Code mod
+
+On Claude Code CLI 2.1.287+ and Desktop 2.1.286+, `specnav-core` is also a mod. `plugins/specnav-core/hooks/hooks.json` keeps the settings hooks and loads `hooks/register.mjs`. Those hosts run the guard in `tool.call` before the permission check. A hard deny returns `{ deny }`. `tool.call` and `command.run` both use `.catch`: a thrown tool hook denies the call, and a thrown command returns a failure line. Exit 0 continues to the later hooks. The call's result is `openspec/.specnav/mod-gate-<tool_use_id>.json`. The settings PreToolUse hook replays it, so a warning still reaches the model and the gate is counted once. `/specnav-status` and `/specnav-doctor` are immediate commands and print the workflow line and the doctor text. `/specnav` and `/specnav-bootstrap` stay markdown workflows. Older Claude Code uses the settings hooks alone. Install scope only chooses where `enabledPlugins` is stored. `.specnav.json` still decides whether SpecNav governs a project.
 
 ## First Run
 
@@ -416,7 +444,8 @@ specnav-update-spec
 
 ```text
 .claude-plugin/marketplace.json           Claude Code marketplace manifest
-plugins/specnav-core/                     runtime, router, hooks, commands, status, doctor
+install.js                                user, project, or local install
+plugins/specnav-core/                     runtime, router, hooks, mod, commands, status, doctor
 plugins/specnav-requirements/             discovery, foundation specs, requirements
 plugins/specnav-prototype/                runnable prototype and handoff
 plugins/specnav-development/              scope lock and vertical-slice implementation
@@ -441,6 +470,8 @@ Run the smoke check:
 
 ```bash
 bash tests/run-smoke.sh
+node --test tests/install-scope.test.js
+node --test tests/mod-gate.test.js
 ```
 
 Targeted checks:

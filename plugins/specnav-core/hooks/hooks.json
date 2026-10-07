@@ -63,5 +63,6 @@
         ]
       }
     ]
-  }
+  },
+  "modules": ["./register.mjs"]
 }

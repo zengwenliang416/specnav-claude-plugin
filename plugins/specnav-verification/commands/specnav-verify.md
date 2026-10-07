@@ -66,7 +66,7 @@ If development is blocked, report its exact blockers and stop.
 Read and follow:
 
 ```text
-$SPECNAV_VERIFICATION_ROOT/skills/specnav-verification/SKILL.md
+$SPECNAV_VERIFICATION_ROOT/skills/specnav-verify-plan/SKILL.md
 ```
 
 The full adapter entry is:

@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 VERIFY="$ROOT/plugins/specnav-verification"
+DEV="$ROOT/plugins/specnav-development"
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
@@ -335,7 +336,7 @@ JSON
 JSON
   cat >"$change_dir/tasks.md" <<'MD'
 # Development Tasks
-- [x] user can view dashboard summary with loading empty and error states
+- [x] 1.1 user can view dashboard summary with loading empty and error states
 MD
   cat >"$dev/before-dev-check.json" <<'JSON'
 {"schema_version":1,"active_change":"add-dashboard","status":"passed","ok":true}
@@ -362,7 +363,7 @@ JSON
 {"schema_version":1,"budgets":[{"task":"001-dashboard-summary","max_files":2}]}
 JSON
   cat >"$dev/task-graph.json" <<'JSON'
-{"schema_version":1,"nodes":["001-dashboard-summary"],"edges":[]}
+{"schema_version":1,"nodes":[{"id":"001-dashboard-summary","task_items":["1.1"]}],"edges":[]}
 JSON
   cat >"$dev/code-owner-map.json" <<'JSON'
 {"schema_version":1,"owners":[{"path":"src/dashboard/**","owner":"dashboard"}]}
@@ -371,7 +372,7 @@ JSON
 {"schema_version":1,"components":["DashboardView"]}
 JSON
   cat >"$dev/task-context.jsonl" <<'JSONL'
-{"task":"001-dashboard-summary","status":"ready"}
+{"task_id":"001-dashboard-summary","task_items":["1.1"],"status":"ready"}
 JSONL
   cat >"$dev/task-ledger.jsonl" <<'JSONL'
 {"task":"001-dashboard-summary","status":"spec_review_passed"}
@@ -463,9 +464,12 @@ MD
     "openspec/changes/add-dashboard/prototype/decision.json",
     "openspec/changes/add-dashboard/prototype/artifact/index.html"
   ],
+  "task_items": ["1.1"],
   "allowed_files": ["src/dashboard/DashboardView.tsx"],
   "non_goals": ["export"],
   "expected_evidence": ["test output"],
+  "acceptance_assertions": ["A1"],
+  "test_paths": ["true"],
   "unsafe_assumptions": []
 }
 JSON
@@ -500,6 +504,8 @@ No extra behavior was introduced.
 No misunderstood requirements were found.
 ## Cannot Verify From Diff
 Browser-level state coverage remains for verification.
+## Acceptance Assertions Verified
+- A1 verified against the dashboard summary slice.
 ## Required Fixes
 No required fixes remain.
 MD
@@ -519,6 +525,8 @@ Good.
 Good.
 ## Complexity Delta
 Low.
+## Acceptance Assertions Verified
+- A1 verified against the dashboard summary slice.
 ## Required Fixes
 No required fixes remain.
 MD
@@ -545,6 +553,9 @@ Backend field naming remains a verification watch item.
 ## Items Requiring Six-Domain Verification
 All six domains.
 MD
+
+  mkdir -p "$project/src/dashboard"
+  printf '%s\n' 'export function DashboardView() { return null; }' >"$project/src/dashboard/DashboardView.tsx"
 }
 
 write_verify_artifacts() {
@@ -805,6 +816,25 @@ git -C "$PROJECT" \
   -c user.name='SpecNav Tests' \
   -c user.email='specnav@example.invalid' \
   commit -qm 'fixture: verification baseline'
+
+set +e
+PROJECT_DIR="$PROJECT" node "$DEV/scripts/evidence-runner.js" refresh-current-head --change add-dashboard --json >"$TMP_DIR/seal-evidence.json"
+SEAL_EVIDENCE_STATUS=$?
+set -e
+if [[ "$SEAL_EVIDENCE_STATUS" != "0" ]]; then
+  echo "verification evidence refresh failed" >&2
+  cat "$TMP_DIR/seal-evidence.json" >&2
+  exit 1
+fi
+set +e
+node "$DEV/scripts/task-acceptance-evidence.js" write --project "$PROJECT" --change add-dashboard >"$TMP_DIR/seal-acceptance.json"
+SEAL_ACCEPTANCE_STATUS=$?
+set -e
+if [[ "$SEAL_ACCEPTANCE_STATUS" != "0" ]]; then
+  echo "verification task acceptance write failed" >&2
+  cat "$TMP_DIR/seal-acceptance.json" >&2
+  exit 1
+fi
 
 run_json "$PROJECT" validate "$TMP_DIR/missing-verify.json" 2
 assert_blocker "$TMP_DIR/missing-verify.json" 'missing-verify-artifact:plan.json'

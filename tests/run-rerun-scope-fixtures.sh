@@ -64,7 +64,7 @@ jq -e '.warnings[0] | test("unmapped-changes")' "$TMP_DIR/unmapped.json" >/dev/n
 P="$TMP_DIR/no-matrix"
 cp -R "$PROJECT_FIXTURE" "$P"
 runner "$P" "src/ui/theme.ts" "$TMP_DIR/no-matrix.json" 2
-jq -e '.blockers | index("missing-verify-artifact:traceability-matrix.json")' "$TMP_DIR/no-matrix.json" >/dev/null \
+jq -e '.blocker_ids | index("missing-verify-artifact:traceability-matrix.json")' "$TMP_DIR/no-matrix.json" >/dev/null \
   || { echo "case4 failed"; cat "$TMP_DIR/no-matrix.json"; exit 1; }
 jq -e '.domains_to_rerun | length == 6' "$TMP_DIR/no-matrix.json" >/dev/null \
   || { echo "case4 failed: fallback domains"; exit 1; }

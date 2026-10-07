@@ -214,6 +214,7 @@ function isLifecyclePath(relativePath, change) {
       .some((directory) => normalized.startsWith(`${changePrefix}${directory}`))
     || normalized.startsWith(`${changePrefix}verify-report.`)
     || normalized === `openspec/changes/${change}/tasks.md`
+    || normalized === `openspec/changes/${change}/acceptance.json`
   );
 }
 

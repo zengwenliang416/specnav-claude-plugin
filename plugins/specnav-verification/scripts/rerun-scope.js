@@ -117,6 +117,46 @@ function invalidArtifact(change, name, detail = null) {
   return result;
 }
 
+function matrixCompatibilityScope(change, matrix, files) {
+  const entries = Array.isArray(matrix.entries) ? matrix.entries : [];
+  const unmapped = [];
+  const domains = new Set();
+  for (const file of files) {
+    const entry = entries.find((candidate) => candidate && candidate.changed_file === file);
+    if (!entry || !Array.isArray(entry.verification_domains)) {
+      unmapped.push(file);
+      continue;
+    }
+    for (const domain of entry.verification_domains) {
+      if (ALL_DOMAINS.includes(domain)) domains.add(domain);
+    }
+  }
+  const fullRerun = unmapped.length > 0;
+  const domainList = fullRerun
+    ? [...ALL_DOMAINS]
+    : [...domains].sort();
+  return {
+    ok: true,
+    change,
+    blockers: [],
+    blocker_ids: [],
+    required_cases: [],
+    baseline_cases: [],
+    repaired_cases: [],
+    impacted_cases: [],
+    stale_cases: [],
+    cases_to_rerun: [],
+    reasons_by_case: {},
+    changed_files: [...files],
+    unmapped_changes: unmapped,
+    full_rerun: fullRerun,
+    domains_to_rerun: domainList,
+    codegraph_refs: [],
+    policy_refs: [],
+    warnings: fullRerun ? [`unmapped-changes:${unmapped.join(',')}`] : []
+  };
+}
+
 function computeRerunScope(projectRoot, options = {}) {
   const changeState = lib.activeChangeState(projectRoot, options.change !== undefined ? { change: options.change } : {});
   const change = changeState.change;
@@ -166,7 +206,24 @@ function computeRerunScope(projectRoot, options = {}) {
     'verify/v2/case-snapshot.json'
   );
   if (!caseArtifact.exists) {
-    return missingArtifact(change, 'case-snapshot.json');
+    const diff = options.files
+      ? { ok: true, files: options.files }
+      : changedFiles(projectRoot, options.baseRef);
+    if (!diff.ok) {
+      const blockers = [
+        blockerDetail(
+          'git-diff-failed',
+          'git-diff',
+          diff.error
+        )
+      ];
+      return {
+        ...missingArtifact(change, 'git-diff'),
+        blockers,
+        blocker_ids: blockerIds(blockers)
+      };
+    }
+    return matrixCompatibilityScope(change, matrixArtifact.value, diff.files);
   }
   if (!caseArtifact.value) {
     return invalidArtifact(change, 'case-snapshot.json');

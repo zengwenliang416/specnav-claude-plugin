@@ -47,6 +47,34 @@ init_git_baseline() {
   git -C "$project" commit -qm "test: establish development baseline"
 }
 
+seal_task_acceptance() {
+  local project="$1"
+  local change="${2:-add-dashboard}"
+  local evidence_out="$TMP_DIR/seal-evidence.json"
+  local acceptance_out="$TMP_DIR/seal-acceptance.json"
+  local evidence_status acceptance_status
+
+  set +e
+  PROJECT_DIR="$project" node "$DEV/scripts/evidence-runner.js" refresh-current-head --change "$change" --json >"$evidence_out"
+  evidence_status=$?
+  set -e
+  if [[ "$evidence_status" != "0" ]]; then
+    echo "evidence refresh failed for $project" >&2
+    cat "$evidence_out" >&2
+    exit 1
+  fi
+
+  set +e
+  node "$DEV/scripts/task-acceptance-evidence.js" write --project "$project" --change "$change" >"$acceptance_out"
+  acceptance_status=$?
+  set -e
+  if [[ "$acceptance_status" != "0" ]]; then
+    echo "task acceptance write failed for $project" >&2
+    cat "$acceptance_out" >&2
+    exit 1
+  fi
+}
+
 write_requirements_project() {
   local project="$1"
   local change="add-dashboard"
@@ -431,7 +459,7 @@ JSON
   cat >"$change_dir/tasks.md" <<'MD'
 # Development Tasks
 
-- [x] user can view dashboard summary with loading empty and error states
+- [x] 1.1 user can view dashboard summary with loading empty and error states
 MD
 
   cat >"$development/before-dev-check.json" <<'JSON'
@@ -487,7 +515,12 @@ JSON
   cat >"$development/task-graph.json" <<'JSON'
 {
   "schema_version": 1,
-  "nodes": ["001-dashboard-summary"],
+  "nodes": [
+    {
+      "id": "001-dashboard-summary",
+      "task_items": ["1.1"]
+    }
+  ],
   "edges": []
 }
 JSON
@@ -513,7 +546,7 @@ JSON
 JSON
 
   cat >"$development/task-context.jsonl" <<'JSONL'
-{"task":"001-dashboard-summary","source":"context.json","status":"ready"}
+{"task_id":"001-dashboard-summary","task_items":["1.1"],"source":"context.json","status":"ready"}
 JSONL
 
   cat >"$development/task-ledger.jsonl" <<'JSONL'
@@ -655,6 +688,7 @@ MD
     "src/dashboard/DashboardView.tsx",
     "tests/dashboard/dashboard-summary.test.tsx"
   ],
+  "task_items": ["1.1"],
   "non_goals": [
     "analytics export",
     "database persistence"
@@ -664,6 +698,8 @@ MD
     "GREEN test output",
     "focused validation command"
   ],
+  "acceptance_assertions": ["A1"],
+  "test_paths": ["true"],
   "unsafe_assumptions": []
 }
 JSON
@@ -673,7 +709,7 @@ JSON
 
 ## Status
 
-DONE_WITH_CONCERNS
+DONE
 
 ## Files Changed
 
@@ -742,6 +778,10 @@ No misunderstood requirements were found.
 
 Browser state coverage remains for verification.
 
+## Acceptance Assertions Verified
+
+- A1 verified against the dashboard summary slice.
+
 ## Required Fixes
 
 No required fixes remain.
@@ -777,6 +817,10 @@ Existing summary card primitives are reused.
 ## Complexity Delta
 
 Complexity stays within the recorded budget.
+
+## Acceptance Assertions Verified
+
+- A1 verified against the dashboard summary slice.
 
 ## Required Fixes
 
@@ -827,7 +871,12 @@ Backend field naming remains a verification watch item.
 Six-domain verification must check user-visible states, data flow, and component boundaries.
 MD
 
+  mkdir -p "$project/src/dashboard" "$project/tests/dashboard"
+  printf '%s\n' 'export function DashboardView() { return null; }' >"$project/src/dashboard/DashboardView.tsx"
+  printf '%s\n' 'test("dashboard summary", () => {});' >"$project/tests/dashboard/dashboard-summary.test.tsx"
+
   init_git_baseline "$project"
+  seal_task_acceptance "$project"
 }
 
 test -f "$DEV/scripts/development-contract.js"
@@ -891,7 +940,7 @@ cat >"$MANIFEST_DEV/manifest.json" <<'JSON'
   "before_dev_check": {"active_change": "add-dashboard", "status": "ok"},
   "promotion_map": {"promotion_policy": "reimplement_under_development_gate", "allowed_to_copy": ["layout"], "must_reimplement": ["logic"], "blocked_direct_copies": ["scripts"]},
   "complexity_budget": {"max_new_files": 8, "max_new_dependencies": 0},
-  "task_graph": {"tasks": [{"id": "001-dashboard-summary", "depends_on": []}]},
+  "task_graph": {"tasks": [{"id": "001-dashboard-summary", "depends_on": []}], "nodes": [{"id": "001-dashboard-summary", "task_items": ["1.1"]}]},
   "code_owner_map": {"src/dashboard": "app-team"},
   "extraction_map": {"candidates": [], "policy": "extract shared dashboard widgets on second use"}
 }
@@ -923,6 +972,19 @@ loading, empty, and failure states.
 - [x] 1.2 Add deterministic state transition tests.
 - [x] 1.3 Refactor the service adapter behind the existing view contract.
 MD
+jq '.nodes = [{"id":"001-dashboard-summary","task_items":["1.1","1.2","1.3"]}]' \
+  "$HIERARCHICAL_TASK_PROJECT/openspec/changes/add-dashboard/development/task-graph.json" \
+  >"$TMP_DIR/hierarchical-task-graph.json"
+mv "$TMP_DIR/hierarchical-task-graph.json" \
+  "$HIERARCHICAL_TASK_PROJECT/openspec/changes/add-dashboard/development/task-graph.json"
+jq '.task_items = ["1.1","1.2","1.3"]' \
+  "$HIERARCHICAL_TASK_PROJECT/openspec/changes/add-dashboard/development/tasks/001-dashboard-summary/context.json" \
+  >"$TMP_DIR/hierarchical-task-context.json"
+mv "$TMP_DIR/hierarchical-task-context.json" \
+  "$HIERARCHICAL_TASK_PROJECT/openspec/changes/add-dashboard/development/tasks/001-dashboard-summary/context.json"
+cat >"$HIERARCHICAL_TASK_PROJECT/openspec/changes/add-dashboard/development/task-context.jsonl" <<'JSONL'
+{"task_id":"001-dashboard-summary","task_items":["1.1","1.2","1.3"],"source":"context.json","status":"ready"}
+JSONL
 run_json "$HIERARCHICAL_TASK_PROJECT" "$TMP_DIR/hierarchical-task.json" 0 entry
 jq -e '.ok == true and .mode == "entry"' "$TMP_DIR/hierarchical-task.json" >/dev/null
 
@@ -1358,7 +1420,7 @@ cp -R "$HAPPY_PROJECT" "$INCOMPLETE_TASK_PROJECT"
 cat >"$INCOMPLETE_TASK_PROJECT/openspec/changes/add-dashboard/tasks.md" <<'MD'
 # Development Tasks
 
-- [ ] user can view dashboard summary with loading empty and error states
+- [ ] 1.1 user can view dashboard summary with loading empty and error states
 MD
 run_json "$INCOMPLETE_TASK_PROJECT" "$TMP_DIR/incomplete-task-entry.json" 0 entry
 jq -e '.ok == true and .mode == "entry"' "$TMP_DIR/incomplete-task-entry.json" >/dev/null
@@ -1529,11 +1591,21 @@ cp -R "$HAPPY_PROJECT" "$REVIEW_BINDING_PROJECT"
 cat >"$REVIEW_BINDING_PROJECT/openspec/changes/add-dashboard/acceptance.json" <<'JSON'
 {"assertions":[{"id":"A1","statement":"dashboard renders summary","verify_via":"e2e","status":"failing","evidence_ref":null}]}
 JSON
+SPEC_REVIEW_FILE="$REVIEW_BINDING_PROJECT/openspec/changes/add-dashboard/development/tasks/001-dashboard-summary/spec-review.md"
+python3 - "$SPEC_REVIEW_FILE" <<'PY'
+import sys
+path = sys.argv[1]
+source = open(path).read()
+start = source.find("\n## Acceptance Assertions Verified\n")
+end = source.find("\n## Required Fixes\n")
+if start < 0 or end < 0 or end < start:
+    raise SystemExit("spec review is missing the acceptance citation block")
+open(path, "w").write(source[:start] + source[end:])
+PY
 run_json "$REVIEW_BINDING_PROJECT" "$TMP_DIR/review-binding-unsupported.json" 2
 assert_blocker "$TMP_DIR/review-binding-unsupported.json" 'review:unsupported-verdict'
 
 # Citing an unknown assertion id is rejected by name.
-SPEC_REVIEW_FILE="$REVIEW_BINDING_PROJECT/openspec/changes/add-dashboard/development/tasks/001-dashboard-summary/spec-review.md"
 cat >>"$SPEC_REVIEW_FILE" <<'MD'
 
 ## Acceptance Assertions Verified
@@ -1551,6 +1623,9 @@ src = open(p).read()
 src = src.replace('- A9 verified against dashboard flow.', '- A1 verified against dashboard flow.')
 open(p, 'w').write(src)
 PY
+# The citation edit changes spec-review.md, so the signed acceptance binding
+# has to be regenerated before handoff can be clean again.
+node "$DEV/scripts/task-acceptance-evidence.js" write --force --project "$REVIEW_BINDING_PROJECT" --change add-dashboard >"$TMP_DIR/review-binding-reseal.json"
 # Valid citation clears the review gate entirely (the underlying happy
 # project is otherwise handoff-clean).
 run_json "$REVIEW_BINDING_PROJECT" "$TMP_DIR/review-binding-valid.json" 0

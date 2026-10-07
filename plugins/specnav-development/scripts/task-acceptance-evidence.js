@@ -209,6 +209,7 @@ function isLifecyclePath(relativePath, changeId) {
       .some((directory) => normalized.startsWith(`${changePrefix}${directory}`))
     || normalized.startsWith(`${changePrefix}verify-report.`)
     || normalized === `openspec/changes/${changeId}/tasks.md`
+    || normalized === `openspec/changes/${changeId}/acceptance.json`
   );
 }
 
@@ -676,9 +677,10 @@ function materialize(options = {}) {
       projectRoot,
       changeDir
     });
-  const parentAcceptance = readJson(path.join(changeDir, 'acceptance.json'));
+  const parentFile = path.join(changeDir, 'acceptance.json');
+  const parentAcceptance = fs.existsSync(parentFile) ? readJson(parentFile) : null;
   const parentAssertions = new Map(
-    (Array.isArray(parentAcceptance.assertions)
+    (Array.isArray(parentAcceptance?.assertions)
       ? parentAcceptance.assertions
       : []).map((entry) => [entry.id, entry])
   );

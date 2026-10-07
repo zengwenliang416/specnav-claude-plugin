@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="README.md">English</a> ·
-  <a href="#从-github-安装">安装</a> ·
+  <a href="#安装">安装</a> ·
   <a href="#流程如何运行">流程</a> ·
   <a href="#阶段图谱">阶段图谱</a> ·
   <a href="#skills">Skills</a> ·
@@ -91,56 +91,63 @@ SpecNav 的含义是通过文件化 OpenSpec 契约导航开发过程。
   </tr>
 </table>
 
-## 从 GitHub 安装
+## 安装
 
-把本仓库添加为 Claude Code marketplace，然后安装并启用七个插件：
-
-```bash
-claude plugin marketplace add zengwenliang416/specnav-claude-plugin
-
-claude plugin install specnav-core@specnav-marketplace
-claude plugin install specnav-requirements@specnav-marketplace
-claude plugin install specnav-prototype@specnav-marketplace
-claude plugin install specnav-development@specnav-marketplace
-claude plugin install specnav-verification@specnav-marketplace
-claude plugin install specnav-operations@specnav-marketplace
-claude plugin install specnav-codegraph@specnav-marketplace
-
-claude plugin enable specnav-core@specnav-marketplace
-claude plugin enable specnav-requirements@specnav-marketplace
-claude plugin enable specnav-prototype@specnav-marketplace
-claude plugin enable specnav-development@specnav-marketplace
-claude plugin enable specnav-verification@specnav-marketplace
-claude plugin enable specnav-operations@specnav-marketplace
-claude plugin enable specnav-codegraph@specnav-marketplace
-```
-
-如果你在本地 checkout 中开发，可以验证 marketplace：
+仓库根目录的 `install.js` 一次安装七个插件，并选择 Claude Code 把启用记录写到哪里。默认 marketplace 来源是 `origin`，当前是 `https://github.com/zengwenliang416/specnav-claude-plugin.git`。
 
 ```bash
-claude plugin validate "$PWD"
+node install.js --help
+node install.js --user
+node install.js --project /path/to/app
+node install.js --local /path/to/app
 ```
 
-安装或更新 commands、skills、hooks、agents、scripts 后，请启动新的 Claude Code 会话。旧会话不一定能看到刚安装的能力。
+终端里不带参数会询问 `1` 用户级、`2` 项目级或 `3` 本地级。管道或脚本里不带参数会退出，退出码是 2。三种范围只能选一种。目标必须是已有目录，不能是符号链接，也不能是这个插件仓库。
 
-## 本地开发安装
+插件 id 是 `<名字>@specnav-marketplace`。安装器对每个插件执行 `marketplace add`、`plugin install --yes`、`plugin enable`。已经添加、已经安装、已经启用都算成功。插件文件仍缓存在 `~/.claude/plugins/`，和所选范围无关。当前会话看不到刚装上的命令，新开一个 Claude Code 会话，或在会话里执行 `/reload-plugins`。
 
-从本地 checkout 安装：
+### 用户级
+
+`node install.js --user` 写到当前用户的 `~/.claude/settings.json`（`$CLAUDE_CONFIG_DIR` 会改这个目录）。这台机器上的项目都能发现这七个插件。
+
+### 项目级
+
+`node install.js --project /path/to/app` 写到该项目的 `.claude/settings.json`。提交这个文件后，协作者会启用同一组插件。文件本身不下载插件，每个人仍要在自己的机器上执行一次。优先级是本地级高于项目级，项目级高于用户级。
+
+### 本地级
+
+`node install.js --local /path/to/app` 只对你、只在这个项目。记录在 `.claude/settings.local.json`。安装器会把该文件加进 `.gitignore`，除非 `.gitignore` 是符号链接，或已经忽略 `.claude/`。不要提交 `settings.local.json`。
+
+### 本地检出
+
+开发和测试用本机目录，避免去克隆 GitHub：
 
 ```bash
 git clone https://github.com/zengwenliang416/specnav-claude-plugin.git
 cd specnav-claude-plugin
-
-claude plugin marketplace add "$PWD"
-
-claude plugin install specnav-core@specnav-marketplace
-claude plugin install specnav-requirements@specnav-marketplace
-claude plugin install specnav-prototype@specnav-marketplace
-claude plugin install specnav-development@specnav-marketplace
-claude plugin install specnav-verification@specnav-marketplace
-claude plugin install specnav-operations@specnav-marketplace
-claude plugin install specnav-codegraph@specnav-marketplace
+node install.js --user --source "$PWD"
+node install.js --project /path/to/app --source "$PWD"
 ```
+
+`--source` 接受 Git 地址或本地路径，可以带 `#ref`。地址里不能有空白。不经过 `install.js` 时，等价命令是：
+
+```bash
+claude plugin marketplace add --scope user https://github.com/zengwenliang416/specnav-claude-plugin.git
+claude plugin install specnav-core@specnav-marketplace --scope user --yes
+claude plugin enable specnav-core@specnav-marketplace --scope user
+```
+
+其余六个插件同样安装并启用：`specnav-requirements`、`specnav-prototype`、`specnav-development`、`specnav-verification`、`specnav-operations`、`specnav-codegraph`。项目级和本地级把 `--scope` 换成 `project` 或 `local`，并且要在目标项目目录里执行。
+
+更新某一范围里的一个插件：
+
+```bash
+claude plugin update specnav-core@specnav-marketplace --scope user
+```
+
+### Claude Code mod
+
+`specnav-core` 在 Claude Code CLI 2.1.287+ 和 Desktop 2.1.286+ 上同时是 mod。`plugins/specnav-core/hooks/hooks.json` 保留原来的 settings hooks，并加载 `hooks/register.mjs`。这些版本在权限确认前的 `tool.call` 里运行 guard。硬拒绝直接返回 `{ deny }`。`tool.call` 和 `command.run` 都挂了 `.catch`：hook 自己抛错时，工具调用会拒绝，命令会返回失败文本。退出码 0 继续走后面的 hook。同一次调用的结果写在 `openspec/.specnav/mod-gate-<tool_use_id>.json`，settings 里的 PreToolUse 回放这份结果，警告仍会进模型，gate 只记一次。`/specnav-status` 和 `/specnav-doctor` 是立即命令，直接打印工作流状态和 doctor 文本。`/specnav` 和 `/specnav-bootstrap` 仍是 markdown 工作流。更早的 Claude Code 只使用 settings hooks。安装范围只决定 `enabledPlugins` 写在哪里。`.specnav.json` 仍决定项目是否被 SpecNav 托管。
 
 ## 第一次使用
 
@@ -381,7 +388,8 @@ specnav-update-spec
 
 ```text
 .claude-plugin/marketplace.json           Claude Code marketplace manifest
-plugins/specnav-core/                     runtime、router、hooks、commands、status、doctor
+install.js                                选择用户级、项目级或本地级
+plugins/specnav-core/                     runtime、router、hooks、mod、commands、status、doctor
 plugins/specnav-requirements/             discovery、foundation specs、requirements
 plugins/specnav-prototype/                runnable prototype 和 handoff
 plugins/specnav-development/              scope lock 和 vertical-slice implementation
@@ -406,6 +414,8 @@ claude plugin validate "$PWD"
 
 ```bash
 bash tests/run-smoke.sh
+node --test tests/install-scope.test.js
+node --test tests/mod-gate.test.js
 ```
 
 定向检查：

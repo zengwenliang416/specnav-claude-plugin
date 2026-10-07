@@ -321,12 +321,14 @@ function hostProofRunnerSourceFiles(repositoryRoot) {
   return [...files].sort();
 }
 
-function synchronizedRunnerSourceDigest(repositoryRoot) {
+function synchronizedRunnerSourceDigest(repositoryRoot, manifestRelative = null) {
   const root = fs.realpathSync(path.resolve(repositoryRoot));
-  const candidates = [
-    'plugins/specnav-operations/specnav-verification-proof-source.json',
-    'modules/specnav-operations/specnav-verification-proof-source.json'
-  ].filter((relative) => fs.existsSync(path.join(root, relative)));
+  const candidates = manifestRelative
+    ? [manifestRelative]
+    : [
+      'plugins/specnav-operations/specnav-verification-proof-source.json',
+      'modules/specnav-operations/specnav-verification-proof-source.json'
+    ].filter((relative) => fs.existsSync(path.join(root, relative)));
   if (candidates.length !== 1) {
     throw new Error('verification-host-contract:runner-authority-invalid');
   }
@@ -384,6 +386,20 @@ function synchronizedRunnerSourceDigest(repositoryRoot) {
   return manifest.runner_source_sha256;
 }
 
+function installedProofRelative(root) {
+  const pluginRoot = fs.realpathSync(path.resolve(__dirname, '..'));
+  const marker = path.join(pluginRoot, 'specnav-verification-proof-source.json');
+  if (!fs.existsSync(marker)) return null;
+  const relative = path.relative(root, fs.realpathSync(marker)).split(path.sep).join('/');
+  if (!relative || relative.startsWith('..') || path.isAbsolute(relative)) return null;
+  const sourceMarkers = new Set([
+    'plugins/specnav-operations/specnav-verification-proof-source.json',
+    'modules/specnav-operations/specnav-verification-proof-source.json'
+  ]);
+  if (sourceMarkers.has(relative)) return null;
+  return relative;
+}
+
 function hostProofRunnerSourceDigest(repositoryRoot) {
   const root = fs.realpathSync(path.resolve(repositoryRoot));
   const canonicalMarker = path.join(
@@ -406,11 +422,20 @@ function hostProofRunnerSourceDigest(repositoryRoot) {
       'specnav-verification-proof-source.json'
     )
   ].filter((candidate) => fs.existsSync(candidate));
-  if (fs.existsSync(canonicalMarker) === (synchronizedMarkers.length > 0)) {
+  const installedMarker = installedProofRelative(root);
+  const modes = [
+    fs.existsSync(canonicalMarker),
+    synchronizedMarkers.length > 0,
+    Boolean(installedMarker)
+  ].filter(Boolean).length;
+  if (modes !== 1) {
     throw new Error('verification-host-contract:runner-authority-invalid');
   }
   if (synchronizedMarkers.length > 0) {
     return synchronizedRunnerSourceDigest(root);
+  }
+  if (installedMarker) {
+    return synchronizedRunnerSourceDigest(root, installedMarker);
   }
   const records = hostProofRunnerSourceFiles(repositoryRoot).map((relative) => {
     const file = confinedRegularFile(

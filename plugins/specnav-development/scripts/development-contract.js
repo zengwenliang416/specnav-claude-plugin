@@ -1473,6 +1473,11 @@ const LEDGER_FAILURE_STATUSES = new Set([
 ]);
 const LEDGER_ESCALATION_STATUSES = new Set(['escalated', 'break_loop', 'replanned', 'split']);
 const LEDGER_COMPLETION_STATUSES = new Set(['complete', 'completed', 'closed', 'done', 'passed']);
+const LEDGER_RESET_STATUSES = new Set([
+  ...LEDGER_COMPLETION_STATUSES,
+  'spec_review_passed',
+  'quality_review_passed'
+]);
 
 function normalizedBlockerValue(value) {
   if (typeof value === 'string') {
@@ -1513,8 +1518,9 @@ function ledgerBlockerDigest(entry) {
 }
 
 function detectTaskLoops(developmentDir) {
-  // The breaker resets only after completion or an explicit escalation. This
-  // prevents superficial progress entries from hiding repeated failed work.
+  // A successful review or completion resets the same-blocker streak. Started
+  // and progress notes do not, so a superficial update cannot hide repeated
+  // failed work. Escalation clears the breaker explicitly.
   const result = parseJsonl(path.join(developmentDir, 'task-ledger.jsonl'), 'task-ledger.jsonl');
   const states = new Map();
   const tripped = new Map();
@@ -1528,7 +1534,7 @@ function detectTaskLoops(developmentDir) {
       tripped.delete(taskId);
       continue;
     }
-    if (LEDGER_COMPLETION_STATUSES.has(status)) {
+    if (LEDGER_RESET_STATUSES.has(status)) {
       states.delete(taskId);
       tripped.delete(taskId);
       continue;
@@ -1564,8 +1570,8 @@ function detectTaskLoops(developmentDir) {
       }
       continue;
     }
-    // started/progress/review entries are not evidence that the blocker was
-    // resolved, so they cannot reset either breaker.
+    // started/progress entries are not evidence that the blocker was resolved,
+    // so they cannot reset either breaker.
   }
 
   return Array.from(tripped.entries()).map(([taskId, loop]) => ({
@@ -2043,6 +2049,7 @@ function developmentLifecyclePath(relativePath, activeChange) {
       .some((directory) => normalized.startsWith(`${changePrefix}${directory}`))
     || normalized.startsWith(`${changePrefix}verify-report.`)
     || normalized === `openspec/changes/${activeChange}/tasks.md`
+    || normalized === `openspec/changes/${activeChange}/acceptance.json`
   );
 }
 
@@ -3036,6 +3043,12 @@ function classifyTaskDirs(changeDir, developmentDir, activeChange, taskDirs, pla
     }
 
     blockers.push(`unplanned-development-task-dir:${dirName}`);
+    // A slice packet can exist before the task graph names it. Entry still
+    // has to surface scaffold placeholders in that packet.
+    blockers.push(...validateTaskBrief(
+      path.join(developmentDir, 'tasks', dirName),
+      dirName
+    ).blockers);
   }
 
   return {
